@@ -1,12 +1,37 @@
 Require Import List.
 Import ListNotations.
+Require Import Coq.Init.Nat.
 
-Definition run_length {A: Type} (eq: A -> A -> bool) :=
-  let f := fun next newList =>
-             match newList with
-             | nil => [(next,1)]
-             | (x,count)::tl => if eq x next then (x, count+1)::tl else (next,1) :: (x, count) :: tl
-             end
-  in List.fold_right f [].
+Require Import VST.fcf.EqDec.
 
-Check run_length.
+Open Scope eq_scope.
+Open Scope bool_scope.
+
+Section RunLength.
+
+  Generalizable Variable A.
+  Context `{EqDec A}.
+
+  Definition run_length_cons (maxRun : nat) (x: A) (l: list (A * nat)) :=
+    match l with
+    | nil => [(x,1)]
+    | (y,count)::tl => if (x ?= y) && (ltb count maxRun)
+                      then (x, count+1)::tl
+                      else (x,1) :: (y, count) :: tl
+    end.
+
+  Definition run_length_encode maxRun :=
+    List.fold_right (run_length_cons maxRun) [].
+
+  Definition run_length_cons_inverse (x: (A * nat)) (l: list A) :=
+    match x with
+    | (el, count) => List.repeat el count ++ l
+    end.
+
+  Definition run_length_decode (l : list (A * nat)) :=
+    List.fold_right run_length_cons_inverse [] l.
+
+End RunLength.
+
+Compute run_length_encode [1; 1; 1; 2; 2; 3; 2; 1].
+Compute run_length_decode (run_length_encode [1; 1; 1; 2; 2; 3; 2; 1]).
