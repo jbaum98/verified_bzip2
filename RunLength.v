@@ -37,14 +37,29 @@ Section RunLength.
   Definition run_length_encode :=
     List.fold_right run_length_cons [].
 
-  Lemma run_length_cons_cases : forall x l
-                                       (P: A -> list (A * nat) -> list (A * nat) -> Prop),
+  (* A useful lemma to break down proofs about run_length_cons into 4 cases:
+     - l = []
+     - x = hd and count < maxRun
+     - x = hd and count >= maxRun
+     - x <> hd
+   *)
+  Lemma run_length_cons_cases :
+    (* P is a relation between the inputs of run_length_cons and its output *)
+    forall x l (P: A -> list (A * nat) -> list (A * nat) -> Prop),
+      (* l = 0 *)
       P x [] [(x, 1)] ->
-      (forall hd count tl, x = hd -> count < maxRun ->
-                           P x ((hd,count)::tl) ((hd, Nat.succ count)::tl)) ->
-      (forall hd count tl, x = hd -> count >= maxRun ->
-                           P x ((hd,count)::tl) ((x,1)::(hd,count)::tl)) ->
-      (forall hd count tl, x <> hd -> P x ((hd,count)::tl) ((x,1)::(hd,count)::tl)) ->
+      (* x = hd and count < maxRun *)
+      (forall hd count tl,
+          x = hd -> count < maxRun ->
+          P x ((hd,count)::tl) ((hd, Nat.succ count)::tl)) ->
+      (* x = hd and count >= maxRun *)
+      (forall hd count tl,
+          x = hd -> count >= maxRun ->
+          P x ((hd,count)::tl) ((x,1)::(hd,count)::tl)) ->
+      (* x <> hd *)
+      (forall hd count tl,
+          x <> hd ->
+          P x ((hd,count)::tl) ((x,1)::(hd,count)::tl)) ->
       P x l (run_length_cons x l).
   Proof.
     intros x l P HBase HEq HOver HNew.
@@ -64,9 +79,12 @@ Section RunLength.
         apply HNew; auto.
   Qed.
 
+  (* run_bounded asserts that every run in l is less than or equal to
+     maxRun *)
   Definition run_bounded (l: list (A * nat)) :=
     Forall (fun x => x <= maxRun) (map snd l).
 
+  (* run_length_cons preserves run_bounded *)
   Lemma run_length_cons_bounded : forall x l,
       run_bounded l -> run_bounded (run_length_cons x l).
   Proof.
@@ -76,6 +94,7 @@ Section RunLength.
       simpl; try (inversion HInd; subst); econstructor; auto; simpl; try omega.
   Qed.
 
+  (* run_length_encode preserves run_bounded *)
   Theorem run_length_bounded : forall l,
       run_bounded (run_length_encode l).
   Proof.
@@ -98,6 +117,7 @@ Section RunLength.
       else 1 + count + run_length_measure tl
     end.
 
+  (* decode a run-length encoded list *)
   Function run_length_decode (l : list (A * nat)) { measure run_length_measure l } :=
     match l with
     | [] => []
@@ -121,6 +141,8 @@ Section RunLength.
       simpl. omega.
   Defined.
 
+  (* run_length_decode-ing the result of a run_length_cons is the same
+     as regular cons followed by run_length_decode *)
   Lemma run_length_cons_invert : forall x l,
       run_length_decode (run_length_cons x l) = x :: run_length_decode l.
   Proof.
@@ -131,6 +153,7 @@ Section RunLength.
               simpl; subst; try reflexivity).
   Qed.
 
+  (* run_length_decode undoes run_length_encode *)
   Theorem run_length_invert : forall l,
       run_length_decode (run_length_encode l) = l.
   Proof.
