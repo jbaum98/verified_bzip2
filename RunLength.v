@@ -38,12 +38,12 @@ Section RunLength.
     List.fold_right run_length_cons [].
 
   Lemma run_length_cons_cases : forall x l
-                                  (P: A -> list (A * nat) -> list (A * nat) -> Prop),
+                                       (P: A -> list (A * nat) -> list (A * nat) -> Prop),
       P x [] [(x, 1)] ->
       (forall hd count tl, x = hd -> count < maxRun ->
-                      P x ((hd,count)::tl) ((hd, Nat.succ count)::tl)) ->
+                           P x ((hd,count)::tl) ((hd, Nat.succ count)::tl)) ->
       (forall hd count tl, x = hd -> count >= maxRun ->
-                      P x ((hd,count)::tl) ((x,1)::(hd,count)::tl)) ->
+                           P x ((hd,count)::tl) ((x,1)::(hd,count)::tl)) ->
       (forall hd count tl, x <> hd -> P x ((hd,count)::tl) ((x,1)::(hd,count)::tl)) ->
       P x l (run_length_cons x l).
   Proof.
@@ -132,7 +132,7 @@ Section RunLength.
   Qed.
 
   Theorem run_length_invert : forall l,
-    run_length_decode (run_length_encode l) = l.
+      run_length_decode (run_length_encode l) = l.
   Proof.
     induction l as [| hd tl].
     - rewrite run_length_decode_equation. reflexivity.
