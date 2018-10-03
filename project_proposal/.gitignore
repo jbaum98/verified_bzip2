@@ -9,3 +9,4 @@ _region_.*
 *.log
 *.pdf
 *.run.xml
+result
