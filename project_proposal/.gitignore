@@ -1,0 +1,11 @@
+_region_.*
+*.aux
+*.bbl
+*.blg
+*-blx.bib
+*.dvi
+*.fdb_latexmk
+*.fls
+*.log
+*.pdf
+*.run.xml
