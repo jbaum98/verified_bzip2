@@ -7,7 +7,7 @@ let
       # Fonts
       collection-fontsrecommended
       # Bibliography
-      biblatex bibtex biblatex-ieee
+      biblatex biblatex-ieee biber
       # misc
       xstring parskip etoolbox logreq
       ;
