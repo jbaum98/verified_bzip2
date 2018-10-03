@@ -1,0 +1,7 @@
+https://www.cvedetails.com/vulnerability-list/vendor_id-1198/product_id-2068/Bzip-Bzip2.html
+https://snyk.io/research/zip-slip-vulnerability
+https://www.cvedetails.com/vulnerability-list/vendor_id-816/product_id-1395/Info-zip-Unzip.html
+https://www.cvedetails.com/vulnerability-list/vendor_id-1914/product_id-10323/Rarlab-Unrar.html
+http://kb.winzip.com/kb/entry/20/
+https://lwn.net/Articles/628100/
+https://www.sec-consult.com/en/blog/advisories/multiple-vulnerabilities-in-infozip-unzip/
