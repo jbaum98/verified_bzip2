@@ -9,7 +9,7 @@ let
       # Bibliography
       biblatex biblatex-ieee biber
       # misc
-      xstring parskip etoolbox logreq
+      xstring parskip etoolbox logreq titlesec
       ;
   });
 
