@@ -12,7 +12,7 @@ NatEncode.vo: VST/compcert/lib/Integers.vo
 
 
 VST/%.vo: VST/%.v
-	$(MAKE) -C VST COQFLAGS="$(COQFLAGS)" $(patsubst VST/%,%,$@)
+	$(MAKE) -C VST $(patsubst VST/%,%,$@)
 
 %.vo: %.v
 	$(COQC) $<

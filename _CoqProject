@@ -1,1 +1,1 @@
--Q /home/jakewaksbaum/verified_bzip2/VST/msl VST.msl -Q /home/jakewaksbaum/verified_bzip2/VST/sepcomp VST.sepcomp -Q /home/jakewaksbaum/verified_bzip2/VST/veric VST.veric -Q /home/jakewaksbaum/verified_bzip2/VST/floyd VST.floyd -Q /home/jakewaksbaum/verified_bzip2/VST/fcf fcf -R /home/jakewaksbaum/verified_bzip2/VST/compcert compcert
+-Q VST/msl VST.msl -Q VST/sepcomp VST.sepcomp -Q VST/veric VST.veric -Q VST/floyd VST.floyd -Q VST/fcf fcf -R VST/compcert compcert
