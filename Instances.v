@@ -1,9 +1,10 @@
-Require Import fcf.EqDec.
 Require compcert.lib.Integers.
 Require Import Coqlib.
+Require Import VST.msl.eq_dec.
 
-Instance Byte_EqDec   : EqDec Integers.Byte.int   := dec_EqDec Integers.Byte.eq_dec.
-Instance Int_EqDec    : EqDec Integers.Int.int    := dec_EqDec Integers.Int.eq_dec.
-Instance Int64_EqDec  : EqDec Integers.Int64.int  := dec_EqDec Integers.Int64.eq_dec.
-Instance Ptrofs_EqDec : EqDec Integers.Ptrofs.int := dec_EqDec Integers.Ptrofs.eq_dec.
-Instance Z_EqDec : EqDec Z := dec_EqDec zeq.
+Instance Byte_EqDec   : EqDec Integers.Byte.int   := Integers.Byte.eq_dec.
+Instance Int_EqDec    : EqDec Integers.Int.int    := Integers.Int.eq_dec.
+Instance Int64_EqDec  : EqDec Integers.Int64.int  := Integers.Int64.eq_dec.
+Instance Ptrofs_EqDec : EqDec Integers.Ptrofs.int := Integers.Ptrofs.eq_dec.
+
+Instance Z_EqDec : EqDec Z := zeq.

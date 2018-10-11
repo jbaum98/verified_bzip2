@@ -1,1 +1,1 @@
--Q VST/msl VST.msl -Q VST/sepcomp VST.sepcomp -Q VST/veric VST.veric -Q VST/floyd VST.floyd -Q VST/fcf fcf -R VST/compcert compcert
+-Q VST/msl VST.msl -Q VST/sepcomp VST.sepcomp -Q VST/veric VST.veric -Q VST/floyd VST.floyd -R VST/compcert compcert

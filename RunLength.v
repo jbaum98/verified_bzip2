@@ -1,21 +1,22 @@
 Require Import List.
 Import ListNotations.
+Require Import Coq.Bool.Bool.
 Require Import Coq.Init.Nat.
 Require Import Omega.
-Require Import Coq.Bool.Bool.
 Require Import Recdef.
+Require Import Notations.
+
+Require Import VST.msl.eq_dec.
+Require Import compcert.lib.Integers.
+Require Import compcert.lib.Coqlib.
+
 Require Import Instances.
 Require Import NatEncode.
-Require Import compcert.lib.Integers.
-Require Import Coqlib.
-
-Require Import fcf.EqDec.
+Require Import Sumbool.
 
 Section RunLength.
 
-  Open Scope bool_scope.
   Open Scope nat_scope.
-  Open Scope eq_scope.
 
   Context `{A: Set}.
 
@@ -34,7 +35,7 @@ Section RunLength.
       match l with
       | nil => [(x,1)]
       | (y,count)::tl =>
-        if (x ?= y) && (Nat.succ count <? modulus)
+        if ((x = y) && (succ count < modulus))%sumbool
         then (x, Nat.succ count) :: tl
         else (x,1) :: (y, count) :: tl
       end.
@@ -67,22 +68,16 @@ Section RunLength.
             x <> hd ->
             P x ((hd,count)::tl) ((x,1)::(hd,count)::tl)) ->
         P x l (run_length_cons x l).
-    Proof.
+    Proof with auto.
       intros x l P HBase HEq HOver HNew.
       induction l as [| p tl].
       - apply HBase.
-      - destruct p as [hd count].
-        destruct (EqDec_dec _ x hd) as [Eq | Neq].
-        + simpl. rewrite (proj2 (eqb_leibniz _ _) Eq).
-          destruct (le_lt_dec modulus (Nat.succ count)) as [ Ge | Lt ].
-          * assert (Ge': Nat.succ count >= modulus) by omega.
-            rewrite (proj2 (Nat.ltb_ge _ _) Ge'). simpl.
-            apply HOver; auto.
-          * rewrite (proj2 (Nat.ltb_lt _ _) Lt). simpl.
-            subst x. apply HEq; auto.
-        + simpl. rewrite (proj2 (eqb_false_iff _ _ _) Neq).
-          rewrite andb_false_l.
-          apply HNew; auto.
+      - destruct p as [hd count]. simpl.
+        destruct (eq_dec x hd); subst.
+        + destruct (lt_dec (succ count) modulus).
+          * apply HEq...
+          * apply HOver... omega.
+        + rewrite sumbool_and_false_l. apply HNew...
     Qed.
 
     (* run_bounded asserts that every run in l is less than or equal to
@@ -112,6 +107,8 @@ Section RunLength.
   End Encode.
 
   Section Decode.
+    Open Scope sumbool.
+
     (* We define a measure that will decrease on each recursive call to
      run_length_decode, so that we can prove that it terminates. To
      that end, we measure the cons cell itself as 1 so that the
@@ -120,7 +117,7 @@ Section RunLength.
       match l with
       | [] => 0
       | (_,count)::tl =>
-        if count ?= 0
+        if count = 0
         then 1 + run_length_measure tl
         else 1 + count + run_length_measure tl
       end.
@@ -130,23 +127,18 @@ Section RunLength.
       match l with
       | [] => []
       | (x,count)::tl =>
-        if 0 <? count
+        if 0 < count
         then x :: run_length_decode ((x, Nat.pred count) :: tl)
         else run_length_decode tl
       end.
     Proof.
-      - intros l p tl x count HP HL HLT. simpl.
-        destruct (Nat.eq_dec 1 count) as [Eq | NEq].
+      - intros l p tl x count HP HL HLT _. simpl.
+        destruct (count = 1) as [Eq | NEq].
         + subst. simpl. omega.
-        + apply Nat.ltb_lt in HLT.
-          assert (HLT': 0 < Nat.pred count) by omega.
-          rewrite (proj2 (Nat.leb_gt _ _) HLT').
-          rewrite (proj2 (Nat.leb_gt _ _) HLT). simpl.
-          omega.
-      - intros l p tl x count HP HL HLT. simpl.
-        rewrite Nat.ltb_antisym in HLT.
-        rewrite (proj1 (negb_false_iff _) HLT).
-        simpl. omega.
+        + destruct (Nat.pred count = 0); try omega.
+          destruct (count = 0); try omega.
+      - intros l p tl x count HP HL HLT _. simpl.
+        destruct (count = 0); try omega.
     Defined.
   End Decode.
 
