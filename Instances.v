@@ -1,5 +1,5 @@
 Require compcert.lib.Integers.
-Require Import Coqlib.
+Require compcert.lib.Coqlib.
 Require Import VST.msl.eq_dec.
 
 Instance Byte_EqDec   : EqDec Integers.Byte.int   := Integers.Byte.eq_dec.
