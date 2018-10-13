@@ -15,6 +15,7 @@ Instances.vo: VST/msl/eq_dec.vo \
 							VST/compcert/lib/Coqlib.vo
 NatEncode.vo: VST/compcert/lib/Integers.vo
 Sumbool.vo: 	VST/msl/eq_dec.vo
+Rot.vo:       VST/floyd/sublist.vo
 
 
 VST/%.vo: VST/%.v
