@@ -1,13 +1,12 @@
 Require Import List.
 Import ListNotations.
-
-Require Import VST.floyd.sublist.
+Require Import Coq.Sorting.Permutation.
 
 Section Rot.
 
   Open Scope program_scope.
 
-  Variable A : Type.
+  Context {A : Type}.
 
   Fixpoint init l : list A :=
     match l with
@@ -15,10 +14,10 @@ Section Rot.
     | hd :: tl => hd :: init tl
     end.
 
-  Definition rrot `{Inhabitant A} (l: list A) : list A :=
+  Definition rrot (l: list A) : list A :=
     match l with
     | [] => []
-    | _ => last l default :: init l
+    | hd :: tl => last l hd :: init l
     end.
 
   Definition lrot (l: list A) : list A :=
@@ -27,60 +26,93 @@ Section Rot.
     | hd :: tl => tl ++ [hd]
     end.
 
+  Theorem list_ind2 : forall (P : list A -> Prop),
+      P [] ->
+      (forall a, P [a]) ->
+      (forall a b l, P (b :: l) -> P (a :: b :: l)) ->
+      forall l : list A, P l.
+  Proof.
+    intros P HBase HOne HInd.
+    refine (
+        fix F l : P l :=
+          match l as l' return l = l' -> P l' with
+          | []  => fun _ => HBase
+          | [x] => fun _ => HOne x
+          | a :: tl => fun HL => _
+          end eq_refl
+      ).
+    destruct l. rewrite <- HL. exact HBase.
+    inversion HL. apply HInd. rewrite <- H1. apply F.
+  Qed.
+
+  Lemma last2 : forall (l : list A) (a b d : A),
+      last (a :: b :: l) d = last (b :: l) d.
+  Proof.
+    reflexivity.
+  Qed.
+
+  Lemma init2 : forall (l : list A) (a b : A),
+      init (a :: b :: l) = a :: init (b :: l).
+  Proof.
+    reflexivity.
+  Qed.
+
   Lemma last_app : forall (l: list A) (x d: A),
       last (l ++ [x]) d = x.
   Proof.
-    induction l.
-    - reflexivity.
-    - intros. simpl.
-      remember (l ++ [x]) as v. destruct v.
-      + exfalso. revert Heqv. apply app_cons_not_nil.
-      + rewrite Heqv. apply IHl.
+    induction l as [| x | a b tl IH] using list_ind2;
+      intros; try reflexivity.
+    do 2 rewrite <- app_comm_cons.
+    rewrite last2.
+    apply IH.
   Qed.
 
   Lemma init_app : forall (x y: list A) a,
       init (x ++ a :: y) = x ++ init (a :: y).
   Proof.
-    induction x.
-    - reflexivity.
-    - intros.
-      rewrite <- app_comm_cons.
-      remember (x ++ a0 :: y) as l.
-      destruct l.
-      + exfalso. revert Heql. apply app_cons_not_nil.
-      + replace (init (a :: a1 :: l)) with (a :: init (a1 :: l)) by reflexivity.
-        rewrite <- app_comm_cons.
-        f_equal.
-        rewrite Heql; clear Heql.
-        apply IHx.
+    induction x as [| x | a b tl IH] using list_ind2;
+      intros; try reflexivity.
+    do 2 rewrite <- app_comm_cons.
+    rewrite init2.
+    rewrite <- app_comm_cons at 1.
+    f_equal.
+    apply IH.
   Qed.
 
-  Lemma rrot_app `{Inhabitant A}: forall (l: list A) a,
-      rrot (l ++ [a]) = a :: l.
+  Lemma l_app_nil_inv : forall (a b : A) (l : list A),
+      l ++ [b] = [a] -> l = [] /\ a = b.
+  Proof.
+    destruct l as [|hd tl].
+    - split; auto. rewrite app_nil_l in H.
+      inversion H; auto.
+    - intros contra. inversion contra.
+      symmetry in H1. apply app_cons_not_nil in H1. contradiction.
+  Qed.
+
+  Lemma rrot_app : forall (l: list A) y,
+      rrot (l ++ [y]) = y :: l.
   Proof.
     intros.
-    destruct (l ++ [a]) eqn:contra.
-    - exfalso. symmetry in contra. revert contra. apply app_cons_not_nil.
-    - unfold rrot.
-      rewrite <- contra. clear contra.
-      rewrite last_app.
-      rewrite init_app.
-      simpl.
-      rewrite app_nil_r.
+    pose proof (app_cons_not_nil l [] y) as contra.
+    unfold rrot.
+    destruct (l ++ [y]) eqn:H.
+    - contradiction.
+    - rewrite <- H; clear contra H.
+      rewrite last_app, init_app.
+      simpl. rewrite app_nil_r.
       reflexivity.
   Qed.
 
   Lemma last_nonempty : forall (l: list A) w x y z,
       l <> [] -> last (x :: l) w = last (z :: l) y.
   Proof.
-    induction l.
-    - contradiction.
-    - intros. destruct l.
-      + reflexivity.
-      + replace (last (x :: a :: a0 :: l) w) with (last (a :: a0 :: l) w) by reflexivity.
-        replace (last (z :: a :: a0 :: l) y) with (last (a :: a0 :: l) y) by reflexivity.
-      apply IHl.
-      intro contra. inversion contra.
+    induction l as [| a | a b tl IH] using list_ind2;
+      intros; try contradiction; clear H.
+    - reflexivity.
+    - rewrite last2.
+      rewrite last2 with (a := z) at 1.
+      apply IH.
+      intro contra; inversion contra.
   Qed.
 
   Lemma lrot_app : forall (x y: list A) a,
@@ -93,7 +125,7 @@ Section Rot.
     apply app_assoc.
   Qed.
 
-  Theorem rrot_reverse `{Inhabitant A} : forall (l: list A),
+  Theorem rrot_reverse : forall (l: list A),
       rrot (rev l) = rev (lrot l).
   Proof.
     destruct l.
@@ -104,7 +136,7 @@ Section Rot.
       reflexivity.
   Qed.
 
-  Theorem lrot_reverse `{Inhabitant A} : forall (l: list A),
+  Theorem lrot_reverse : forall (l: list A),
       lrot (rev l) = rev (rrot l).
   Proof.
     intros.
@@ -114,7 +146,7 @@ Section Rot.
     reflexivity.
   Qed.
 
-  Theorem l_r_rot_inverse `{Inhabitant A}: forall (l: list A),
+  Theorem l_r_rot_inverse : forall (l: list A),
       rrot (lrot l) = l.
   Proof.
     destruct l.
@@ -122,7 +154,7 @@ Section Rot.
     - simpl. apply rrot_app.
   Qed.
 
-  Theorem r_l_rot_inverse `{Inhabitant A}: forall (l: list A),
+  Theorem r_l_rot_inverse : forall (l: list A),
       lrot (rrot l) = l.
   Proof.
     intro l.
@@ -132,7 +164,124 @@ Section Rot.
     rewrite l_r_rot_inverse.
     apply rev_involutive.
   Qed.
-End Rot.
 
-Arguments lrot [_] _.
-Arguments rrot [_] [_] _.
+  Theorem lrot_perm : forall (l : list A),
+      Permutation l (lrot l).
+  Proof.
+    destruct l as [|hd tl].
+    - apply perm_nil.
+    - simpl.
+      rewrite <- rev_involutive.
+      rewrite rev_unit.
+      apply Permutation_sym.
+      eapply perm_trans.
+      apply Permutation_sym. apply Permutation_rev.
+      apply perm_skip.
+      eapply perm_trans.
+      apply Permutation_sym. apply Permutation_rev.
+      apply Permutation_refl.
+  Qed.
+
+  Theorem f_perm (f : list A -> list A) (HF: forall l, Permutation l (f l)) :
+    forall (x y : list A), Permutation x y -> Permutation x (f y).
+  Proof.
+    assert (LP: forall l, Permutation (f l) l). {
+      intro l. apply Permutation_sym. apply HF.
+    }
+    intros. inversion H; subst; clear H.
+    - apply HF.
+    - apply Permutation_sym. eapply perm_trans. apply LP.
+      apply perm_skip. apply Permutation_sym. auto.
+    - apply Permutation_sym. eapply perm_trans. apply LP.
+      repeat constructor.
+    - apply Permutation_sym. eapply perm_trans. apply LP.
+      apply Permutation_sym. eapply perm_trans; eauto.
+  Qed.
+
+  Theorem f_perm' (f : list A -> list A) (HF: forall l, Permutation l (f l)) :
+    forall (x y : list A), Permutation x y -> Permutation (f x) (f y).
+  Proof.
+    intros.
+    eapply perm_trans. apply Permutation_sym. apply f_perm; auto.
+    apply Permutation_sym.
+    eapply perm_trans. apply Permutation_sym. apply f_perm; auto.
+    apply Permutation_sym. apply H.
+  Qed.
+
+  Theorem lrot_perm' : forall (x y : list A),
+      Permutation x y -> Permutation x (lrot y).
+  Proof.
+    exact (f_perm lrot lrot_perm).
+  Qed.
+
+  Theorem lrot_perm'' : forall (x y : list A),
+      Permutation x y -> Permutation (lrot x) (lrot y).
+  Proof.
+    exact (f_perm' lrot lrot_perm).
+  Qed.
+
+  Theorem rrot_perm : forall (l : list A),
+      Permutation l (rrot l).
+  Proof.
+    intros.
+    rewrite <- rev_involutive.
+    rewrite <- lrot_reverse.
+    apply Permutation_sym. eapply perm_trans.
+    apply Permutation_sym. apply Permutation_rev.
+    eapply perm_trans. apply lrot_perm''.
+    apply Permutation_sym. apply Permutation_rev.
+    apply Permutation_sym. apply lrot_perm.
+  Qed.
+
+  Theorem rrot_perm' : forall (x y : list A),
+      Permutation x y -> Permutation x (rrot y).
+  Proof.
+    exact (f_perm rrot rrot_perm).
+  Qed.
+
+  Theorem rrot_perm'' : forall (x y : list A),
+      Permutation x y -> Permutation (rrot x) (rrot y).
+  Proof.
+    exact (f_perm' rrot rrot_perm).
+  Qed.
+
+  Theorem lrot_length : forall l,
+        length l = length (lrot l).
+  Proof.
+    intros.
+    apply Permutation_length.
+    apply lrot_perm.
+  Qed.
+
+  Theorem rrot_length : forall l,
+        length l = length (rrot l).
+  Proof.
+    intros.
+    apply Permutation_length.
+    apply rrot_perm.
+  Qed.
+
+  Theorem f_nonempty (f : list A -> list A) (HF: forall l, Permutation l (f l)):
+    forall l, l <> [] -> f l <> [].
+  Proof.
+    intros. intro contra.
+    specialize (HF l).
+    rewrite contra in HF.
+    apply Permutation_sym in HF.
+    apply Permutation_nil in HF.
+    rewrite HF in H. contradiction.
+  Qed.
+
+  Theorem lrot_nonempty : forall l,
+      l <> [] -> lrot l <> [].
+  Proof.
+    exact (f_nonempty lrot lrot_perm).
+  Qed.
+
+  Theorem rrot_nonempty : forall l,
+      l <> [] -> rrot l <> [].
+  Proof.
+    exact (f_nonempty rrot rrot_perm).
+  Qed.
+
+End Rot.
