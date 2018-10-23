@@ -11,6 +11,7 @@ RunLength.vo: Instances.vo NatEncode.vo SumboolIf.vo \
 							VST/compcert/lib/Coqlib.vo
 Instances.vo: VST/msl/eq_dec.vo VST/compcert/lib/Integers.vo
 NatEncode.vo: VST/compcert/lib/Integers.vo
+Ord.vo: VST/compcert/lib/Integers.vo
 
 VST/%.vo: VST/%.v
 	$(MAKE) -C VST $(patsubst VST/%,%,$@)
