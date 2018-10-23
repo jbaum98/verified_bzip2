@@ -1,5 +1,5 @@
 Require compcert.lib.Integers.
-Require Import Coqlib.
+Require Import Coq.ZArith.ZArith.
 
 Open Scope nat_scope.
 Class NatEncode (A : Set) := {
@@ -10,6 +10,7 @@ Class NatEncode (A : Set) := {
 }.
 Close Scope nat_scope.
 
+Open Scope Z_scope.
 Theorem int_nat_encode : forall {I: Set} {modulus: Z} {repr: Z -> I} {unsigned: I -> Z},
     modulus > 0 ->
     (forall x, unsigned (repr x) = x mod modulus) ->
@@ -27,6 +28,7 @@ Proof.
   rewrite Z.mod_small; try omega.
   apply Nat2Z.id.
 Defined.
+Close Scope Z_scope.
 
 Instance Byte_NatEncode : NatEncode Integers.Byte.int
   := int_nat_encode Integers.Byte.modulus_pos Integers.Byte.unsigned_repr_eq.
