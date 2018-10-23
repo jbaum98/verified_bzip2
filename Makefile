@@ -1,7 +1,9 @@
 COQFLAGS := `cat _CoqProject`
 COQC := coqc $(COQFLAGS)
 
-all: $(patsubst %.v,%.vo,$(wildcard *.v))
+VFILES := RunLength Instances NatEncode Ord MergesortClass Prefix
+
+all: $(addsuffix .vo, $(VFILES))
 
 clean:
 	fd --no-ignore-vcs -e vo -e glob -x rm {}
@@ -13,6 +15,7 @@ Instances.vo: VST/msl/eq_dec.vo VST/compcert/lib/Integers.vo
 NatEncode.vo: VST/compcert/lib/Integers.vo
 Ord.vo: VST/compcert/lib/Integers.vo
 MergesortClass.vo: Ord.vo
+Prefix.vo: Ord.vo MergesortClass.vo
 
 VST/%.vo: VST/%.v
 	$(MAKE) -C VST $(patsubst VST/%,%,$@)
