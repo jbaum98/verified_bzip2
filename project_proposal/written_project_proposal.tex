@@ -1,0 +1,106 @@
+\documentclass{article}
+
+% Paper size and margins
+\usepackage[letterpaper,margin=0.5in]{geometry}
+
+% Use spaces between paragraphs
+\usepackage{parskip}
+
+% No numbers in section titles
+\usepackage{titlesec}
+\titlelabel{}
+
+% Bibliography
+\usepackage[style=ieee]{biblatex}
+\bibliography{written_project_proposal}
+
+\title{Towards a Verified Bzip2: A Functional Specification for Burrows-Wheeler}
+\author{Jake Waksbaum '20\\Advisor: Andrew Appel}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{Motivation and Goal}
+File compression software is often used to reduce the amount of disk
+space occupied by archived files and to more efficiently transfer
+data. Many types of file compression software, such as
+bzip2\cite{bzip2}, 7zip\cite{7zip}, unzip\cite{infozip}, and
+WinRAR\cite{winrar} have been found vulnerable to security exploits
+that can be used in denial-of-service attacks or to enable arbitrary
+code execution. Often these vulnerabilities are the result of
+programmer errors related to the management of low-level resources:
+buffer-overflow, use-after-free, double-free, etc. These types of
+errors are well-addressed using formal verification methods that
+demand proof that low-level resources are correctly managed.
+
+The goal of my project is to begin the work of producing a formally
+verified implementation of the popular and open-source bzip2
+compression algorithm. A formally verified compression and
+decompression program won't suffer from the types of security exploits
+common to existing implementations.
+
+\section{Problem Background and Related Work}
+Coq is a theorem proving assistant that allows programmers to write
+machine-checked proofs: proofs are verified by Coq to be valid. It
+also includes a functional programming language called Gallina that
+can be used to produce functional specifications\cite{7536361} that
+are useful for describing the desired behavior of some C program.
+
+The CompCert
+compiler\cite{Stewart:2015:CC:2676726.2676985,leroy:inria-00000963} is
+an optimizing C compiler, that has been formally verified in Coq to
+preserve semantics: this means that the semantics of the executable
+code with respect to the semantics of the assembly language are the
+same as the semantics of the source code with respect to the semantics
+of the source language, C. This allows us to have confidence that the
+properties that we prove about our C programs also hold on the
+compiled executables.
+
+The Verified Software
+Toolchain\cite{Appel:2011:VST:1987211.1987212,Appel:2014:PLC:2670099}
+includes also a program logic for C called Verifiable C that is proved
+sound with respect to the operational semantics of CompCert C. This
+gives us tools in Coq to reason about our C programs and to prove
+properties such as correctness and safety. It includes
+VST-Floyd\cite{cao2018vst-floyd:}, which helps automate some parts of
+the process of building functional correctness proofs of C programs.
+
+These tools were used to formalize the functional specifications of
+the mbedTLS HMAC-DRBG, to prove that the specification truly produces
+pseuodrandom output, and then to produce an executable for which that
+result also holds\cite{Ye:2017:VCS:3133956.3133974}.
+
+\section{Approach}
+I plan to work towards a formally verified implementation of bzip2 by
+implementing functional specifications for the core compression and
+decompression passes that make up the bzip2 stack: run-length
+encoding, Burrows-Wheeler, Huffman encoding, etc. This means writing a
+functional program in Gallina that implements those algorithms, and
+proving useful properties about those algorithms such as that the
+decoder inverts the encoder. I will focus on the functional
+specification of the algorithms as opposed to the verification of C
+implementations.
+
+\section{Plan}
+I will start by working on a functional specification for run-length
+encoding, as it is simple and the first phase of compression. Then, I
+will work on a functional specification for Burrows-Wheeler. Depending
+on how long that takes, I can move on to the rest of the compression
+stack, implementing and proving theorems about as much of it as I can
+in the time that I have. Each component of the stack is easy to treat
+separately and can be proved correct independent of the other
+components.
+
+\section{Evaluation}
+My main goal is to produce a functional specification for
+Burrows-Wheeler and a proof that the decoder inverts the encoder. A
+stretch goal would be to verify the entire bzip2 compression stack,
+and an even bigger stretch goal would be to produce an entire Coq
+program that can operate on real bzip2 zip files. Evaluating whether
+or not I have completed the proof is pretty simple: Coq will reject
+any incorrect proofs of my theorems.
+
+\printbibliography{}
+
+\end{document}
