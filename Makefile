@@ -1,7 +1,7 @@
 COQFLAGS := `cat _CoqProject`
 COQC := coqc $(COQFLAGS)
 
-VFILES := RunLength Instances NatEncode Ord MergesortClass Prefix
+VFILES := RunLength Instances NatEncode Ord MergesortClass Prefix BurrowsWheeler
 
 all: $(addsuffix .vo, $(VFILES))
 
@@ -16,6 +16,7 @@ NatEncode.vo: VST/compcert/lib/Integers.vo
 Ord.vo: VST/compcert/lib/Integers.vo
 MergesortClass.vo: Ord.vo
 Prefix.vo: Ord.vo MergesortClass.vo
+BurrowsWheeler.vo: Ord.vo Rot.vo Prefix.vo
 
 VST/%.vo: VST/%.v
 	$(MAKE) -C VST $(patsubst VST/%,%,$@)
