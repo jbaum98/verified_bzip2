@@ -1,7 +1,7 @@
 COQFLAGS := `cat _CoqProject`
 COQC := coqc $(COQFLAGS)
 
-all: RunLength.vo
+all: $(patsubst %.v,%.vo,$(wildcard *.v))
 
 clean:
 	fd --no-ignore-vcs -e vo -e glob -x rm {}
