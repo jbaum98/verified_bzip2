@@ -1,18 +1,16 @@
-Require Import List.
-Import ListNotations.
-Require Import Coq.Bool.Bool.
-Require Import Coq.Init.Nat.
-Require Import Omega.
-Require Import Recdef.
-Require Import Notations.
+Require Import Coq.Lists.List.
+Require Import Coq.omega.Omega.
+Require Import Coq.funind.Recdef.
+Require Import Coq.Classes.EquivDec.
 
-Require Import VST.msl.eq_dec.
 Require Import compcert.lib.Integers.
 Require Import compcert.lib.Coqlib.
 
-Require Import Instances.
 Require Import NatEncode.
-Require Import Sumbool.
+Require Import SumboolIf.
+Require Import Instances.
+
+Import ListNotations.
 
 Section RunLength.
 
@@ -21,7 +19,7 @@ Section RunLength.
   Context `{A: Set}.
 
   Section Encode.
-    Context `{ED : EqDec A}.
+    Context `{ED : EqDec A eq}.
 
     (* modulus is the an upper bound on the length of a run. Useful if
        we want to later encode the run-length encoded list in some
@@ -35,7 +33,7 @@ Section RunLength.
       match l with
       | nil => [(x,1)]
       | (y,count)::tl =>
-        if ((x = y) && (succ count < modulus))%sumbool
+        if ((x == y) && (lt_dec (Nat.succ count) modulus))%sumbool
         then (x, Nat.succ count) :: tl
         else (x,1) :: (y, count) :: tl
       end.
@@ -73,8 +71,8 @@ Section RunLength.
       induction l as [| p tl].
       - apply HBase.
       - destruct p as [hd count]. simpl.
-        destruct (eq_dec x hd); subst.
-        + destruct (lt_dec (succ count) modulus).
+        destruct (x == hd); unfold equiv in *; subst.
+        + destruct (lt_dec (Nat.succ count) modulus).
           * apply HEq...
           * apply HOver... omega.
         + rewrite sumbool_and_false_l. apply HNew...
@@ -117,7 +115,7 @@ Section RunLength.
       match l with
       | [] => 0
       | (_,count)::tl =>
-        if count = 0
+        if count == 0
         then 1 + run_length_measure tl
         else 1 + count + run_length_measure tl
       end.
@@ -127,24 +125,24 @@ Section RunLength.
       match l with
       | [] => []
       | (x,count)::tl =>
-        if 0 < count
+        if lt_dec 0 count
         then x :: run_length_decode ((x, Nat.pred count) :: tl)
         else run_length_decode tl
       end.
     Proof.
       - intros l p tl x count HP HL HLT _. simpl.
-        destruct (count = 1) as [Eq | NEq].
+        destruct (count == 1) as [Eq | NEq]; unfold equiv in *.
         + subst. simpl. omega.
-        + destruct (Nat.pred count = 0); try omega.
-          destruct (count = 0); try omega.
+        + destruct (Nat.pred count == 0); destruct (count == 0);
+            unfold equiv in *; try omega.
       - intros l p tl x count HP HL HLT _. simpl.
-        destruct (count = 0); try omega.
+        destruct (count == 0); unfold equiv in *; try omega.
     Defined.
   End Decode.
 
   (* run_length_decode-ing the result of a run_length_cons is the same
      as regular cons followed by run_length_decode *)
-  Lemma run_length_cons_invert `{EqDec A}: forall modulus x l,
+  Lemma run_length_cons_invert `{EqDec A eq}: forall modulus x l,
       modulus > 1 ->
       run_length_decode (run_length_cons modulus x l) = x :: run_length_decode l.
   Proof.
@@ -156,7 +154,7 @@ Section RunLength.
   Qed.
 
   (* run_length_decode undoes run_length_encode *)
-  Theorem run_length_invert `{EqDec A}: forall modulus l,
+  Theorem run_length_invert `{EqDec A eq}: forall modulus l,
       modulus > 1 ->
       run_length_decode (run_length_encode modulus l) = l.
   Proof.
@@ -206,6 +204,8 @@ End Run_Encoding.
 Section Bytes.
 
   Local Definition modulus := Z.to_nat Byte.modulus.
+
+  Open Scope Z_scope.
   Lemma two_p_gt_ONE : forall x,
       0 < x -> two_p x > 1.
   Proof.

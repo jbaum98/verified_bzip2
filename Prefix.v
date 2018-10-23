@@ -1,13 +1,19 @@
-Require Import List.
+(** An implementation of equivalence and lexicographic ordering for
+    lists, only looking at the first k elements of the list. **)
+
+Require Import Coq.Lists.List.
 Import ListNotations.
-Require Import Omega.
+Require Import Coq.omega.Omega.
 Require Import Coq.Relations.Relation_Definitions.
 Require Import Coq.Classes.EquivDec.
-Require Import Coq.Structures.Orders.
-Require Import Ord.
-Require Mergesort.
+Require Import Coq.Sorting.Permutation.
 
-Section EqK.
+Require Import Ord.
+Require MergesortClass.
+
+Module Mergesort := MergesortClass.
+
+Section Eq_K.
 
   Context {A : Type} {R : relation A} `{E : EqDec A R}.
 
@@ -42,7 +48,7 @@ Section EqK.
       + apply eq_zero.
       + apply eq_cons. apply equiv_reflexive.
         apply IHl.
-  Qed.
+  Defined.
 
   Theorem eq_k_sym (k : nat) : forall (a b : list A),
       eq_k k a b -> eq_k k b a.
@@ -53,7 +59,7 @@ Section EqK.
     - apply eq_zero.
     - apply eq_cons. apply equiv_symmetric; auto.
       auto.
-  Qed.
+  Defined.
 
   Fixpoint eq_k_trans (k : nat) : forall (a b c : list A),
       eq_k k a b -> eq_k k b c -> eq_k k a c.
@@ -66,7 +72,7 @@ Section EqK.
     apply eq_cons; auto.
     eapply equiv_transitive; eauto.
     apply eq_k_trans with (b := b); auto.
-  Qed.
+  Defined.
 
   Instance Equivalence_list_k (k : nat) : Equivalence (eq_k k) :=
   { Equivalence_Reflexive := eq_k_refl k;
@@ -77,9 +83,19 @@ Section EqK.
     eq_k_dec k.
 
   Theorem eq_k_firstn : forall k xs ys,
-      eq_k k xs ys <-> Forall2 eq (firstn k xs) (firstn k ys).
-  Admitted.
-End EqK.
+      eq_k k xs ys <-> Forall2 equiv (firstn k xs) (firstn k ys).
+  Proof with auto.
+    induction k; intros xs ys.
+    - split; intros; constructor.
+    - destruct xs as [|hd tl]; destruct ys as [|hd' tl'].
+      + split; intros; constructor.
+      + split; intros; inversion H.
+      + split; intros; inversion H.
+      + split; intros;
+          inversion H; subst; clear H;
+            simpl; constructor; try apply IHk; auto.
+  Qed.
+End Eq_K.
 
 Section Ord_K.
 
@@ -113,45 +129,16 @@ Section Ord_K.
   Instance LeDec_list_k (k : nat) : LeDec (le_k k) := le_k_dec k.
 End Ord_K.
 
-Definition sort {A : Type} `{TotalOrderDec A} (k : nat) :
-  list (list A) -> list (list A)
-  := @Mergesort.sort _ _ (LeDec_list_k k ).
+Section Sort.
+  Context {A : Type} `{TotalOrderDec A}.
 
-Compute sort 4 [[1; 2; 3]; [1; 0; 2]].
+  Variable k : nat.
 
+  Definition sort : list (list A) -> list (list A)
+    := @Mergesort.sort _ _ (LeDec_list_k k ).
 
-(*   Theorem le_k_antisymm (k : nat) : forall a b : list A, *)
-(*       le_k k a b -> le_k k b a -> eq_k k a b. *)
-(*   Proof. *)
-(*     intros a b LAB LBA. *)
-(*     induction LAB; subst. *)
-(*     - inversion LBA; subst; clear LBA. *)
-(*       constructor. apply eq_zero. *)
-(*     - apply eq_zero. *)
-(*     - inversion LBA; subst; clear LBA. *)
-(*       + apply eq_zero. *)
-(*       + eapply lt_contra; eauto. *)
-(*       + eapply lt_eq_contra; eauto using eq_sym. *)
-(*     - inversion LBA; subst; clear LBA. *)
-(*       + eapply lt_eq_contra; eauto using eq_sym. *)
-(*       + apply eq_cons; auto. *)
-(*   Qed. *)
-
-(*   Theorem le_k_trans (k : nat) : forall a b c : list A, *)
-(*       le_k k a b -> le_k k b c -> le_k k a c. *)
-(*   Proof. *)
-(*     intros a b c LAB LBC. *)
-(*     induction LAB; try constructor. *)
-(*     - inversion LBC; subst; clear LBC; try constructor. *)
-(*       + *)
-
-(*   Instance Ord_list_k (k: nat) : Ord (list A) (Eq_list_k k) := *)
-(*     { *)
-(*       le := le_k k; *)
-(*       le_dec := le_k_dec k; *)
-(*       le_antisymm := le_k_antisymm k; *)
-(*       le_trans := le_k_trans k; *)
-(*     }. *)
-(* End Ord_K. *)
-
-(* Compute le_k_dec 2 [1; 2; 3] [1; 0; 2]. *)
+  Theorem sort_perm : forall l, Permutation l (sort l).
+  Proof.
+    exact Mergesort.Permuted_sort.
+  Defined.
+End Sort.

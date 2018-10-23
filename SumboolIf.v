@@ -1,7 +1,4 @@
-Require Import Sumbool.
-Require Import Coq.Arith.Compare_dec.
-
-Require Import VST.msl.eq_dec.
+Require Import Coq.Bool.Sumbool.
 
 Arguments sumbool_and : default implicits.
 Arguments sumbool_or : default implicits.
@@ -48,9 +45,3 @@ Notation "x || y"
   := (sumbool_or x y)  (at level 50, left associativity) : sumbool_scope.
 Notation "x && y"
   := (sumbool_and x y) (at level 40, left associativity) : sumbool_scope.
-Notation "x = y"
-  := (eq_dec x y)      (at level 70, no associativity) : sumbool_scope.
-Notation "x < y"
-  := (lt_dec x y)      (at level 70, no associativity) : sumbool_scope.
-Notation "x > y"
-  := (gt_dec x y)      (at level 70, no associativity) : sumbool_scope.
