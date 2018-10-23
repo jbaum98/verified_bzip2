@@ -3,6 +3,7 @@ Require Import Coq.omega.Omega.
 Require Import Coq.Relations.Relation_Definitions.
 Require Import Coq.Classes.EquivDec.
 Require Import Coq.Sorting.Permutation.
+Require Import Coq.Program.Basics.
 
 Require Import Rot.
 Require Import Prefix.
@@ -32,21 +33,47 @@ Proof.
 Qed.
 
 Section Iterate.
-  Context {A : Type} (f : A -> A).
+  Context {A : Type}.
 
-  Fixpoint iterate_n (n : nat) (z : A) : list A :=
+  Fixpoint iterate_n (f : A -> A) (z : A) (n : nat) : list A :=
     match n with
     | O   => [z]
-    | S m => z :: iterate_n m (f z)
+    | S m => z :: iterate_n f (f z) m
     end.
 
-  Theorem iterate_n_preserves : forall n z (P: A -> Prop),
-      P z -> (forall x, P x -> P (f x)) -> P z -> Forall P (iterate_n n z).
+  Fixpoint repeat_n (f : A -> A) (z : A) (n : nat) : A :=
+    match n with
+    | O => z
+    | S m => repeat_n f (f z) m
+    end.
+
+  Theorem iterate_n_preserves : forall f n z (P: A -> Prop),
+      P z -> (forall x, P x -> P (f x)) -> P z -> Forall P (iterate_n f z n).
   Proof.
-    intros n z P Hz HPreserve Pz. revert z Hz Pz.
+    intros f n z P Hz HPreserve Pz. revert z Hz Pz.
     induction n.
     - constructor; auto.
     - simpl. constructor; auto.
+  Qed.
+
+  Theorem iterate_n_nth : forall f n z i d,
+      i <= n -> nth i (iterate_n f z n) d = repeat_n f z i.
+  Proof.
+    intros f n z i. revert f n z.
+    induction i; intros.
+    - destruct n.
+      + reflexivity.
+      + reflexivity.
+    - destruct n; try omega.
+      simpl. apply IHi. omega.
+  Qed.
+
+  Theorem iterate_n_len : forall f n z,
+      length (iterate_n f z n) = S n.
+  Proof.
+    induction n; intros.
+    - simpl. reflexivity.
+    - simpl. f_equal. apply IHn.
   Qed.
 End Iterate.
 
@@ -54,7 +81,7 @@ Section Rots.
   Context {A : Type}.
 
   Definition rots (l : list A) : list (list A) :=
-    iterate_n lrot (Nat.pred (length l)) l.
+    iterate_n lrot l (Nat.pred (length l)).
 
   Lemma rots_destr : forall (l : list A),
       exists r, rots l = l :: r.
