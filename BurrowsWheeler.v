@@ -32,6 +32,148 @@ Proof.
   auto.
 Qed.
 
+Section Repeat.
+  Fixpoint repeat_n {A : Type} (f : A -> A) (z : A) (n : nat) : A :=
+    match n with
+    | O => z
+    | S m => repeat_n f (f z) m
+    end.
+
+  Theorem repeat_inv {A : Type} (f g : A -> A) (HI: forall x, g (f x) = x) : forall n x,
+      g (repeat_n f x (S n)) = repeat_n f x n.
+  Proof.
+    induction n; intros.
+    - simpl. auto.
+    - remember (S n) as n'. simpl. subst.
+      apply IHn.
+  Qed.
+
+  Theorem repeat_n_preserves {A : Type} : forall f z n (P: A -> Prop),
+      (forall x, P x -> P (f x)) -> P z -> P (repeat_n f z n).
+  Proof.
+    intros f z n P Preserve Pz. revert z Pz.
+    induction n.
+    - auto.
+    - simpl. auto.
+  Qed.
+
+  Lemma repeat_lrot_len {A : Type} : forall (l : list A) n,
+      length (repeat_n lrot l n) = length l.
+  Proof.
+    intros.
+    apply repeat_n_preserves; auto.
+    intros. rewrite <- H.
+    symmetry. apply lrot_length.
+  Qed.
+
+  Definition lastn {A : Type} (k : nat) (l : list A) : list A :=
+    rev (firstn k (rev l)).
+
+  Theorem lastn_all {A : Type} : forall l : list A,
+      lastn (length l) l = l.
+  Proof.
+    intros.
+    unfold lastn.
+    rewrite <- rev_length.
+    rewrite firstn_all.
+    apply rev_involutive.
+  Qed.
+
+  Theorem lastn_1_app {A : Type} : forall (a : A) l,
+      lastn 1 (l ++ [a]) = [a].
+  Proof.
+    induction l.
+    - reflexivity.
+    - simpl. unfold lastn.
+      simpl rev at 2.
+      rewrite rev_unit. simpl firstn. reflexivity.
+  Qed.
+
+  Theorem lastn_app {A : Type} : forall (a : A) l k,
+      lastn k l ++ [a] = lastn (S k) (l ++ [a]).
+  Proof.
+    induction k.
+    - simpl. symmetry. apply lastn_1_app.
+    - simpl.
+      unfold lastn.
+      rewrite rev_unit.
+      remember (S k) as k'. simpl firstn at 2. subst.
+      remember (firstn _ _) as F.
+      simpl. reflexivity.
+  Qed.
+
+  Lemma firstn_lt {A : Type} : forall k (l l': list A),
+      k <= length l -> firstn k l = firstn k (l ++ l').
+  Proof.
+    intros.
+    rewrite firstn_app.
+    replace (k - length l) with 0 by omega.
+    simpl. rewrite app_nil_r. reflexivity.
+  Qed.
+
+  Lemma lastn_lt {A : Type} : forall k (l l': list A),
+      k <= length l -> lastn k l = lastn k (l' ++ l).
+  Proof.
+    intros.
+    unfold lastn.
+    f_equal.
+    rewrite rev_app_distr.
+    apply firstn_lt.
+    rewrite rev_length; auto.
+  Qed.
+
+  Lemma repeat_lrot_k {A : Type} : forall k (l : list A),
+      k <= length l -> repeat_n lrot l k = lastn (length l - k) l ++ firstn k l.
+  Proof.
+    induction k; intros.
+    - simpl. rewrite app_nil_r. rewrite Nat.sub_0_r.
+      symmetry. apply lastn_all.
+    - simpl repeat_n.
+      destruct l as [|a tl] eqn:HL.
+      + simpl.
+        apply repeat_n_preserves.
+        intros; subst; auto.
+        reflexivity.
+      + rewrite <- HL at 1 2 3.
+        simpl firstn.
+        replace (cons a) with (app [a]) by reflexivity.
+        replace (lastn (length l - S k) l) with (lastn (length l - S k) tl)
+          by (simpl in H; subst; replace (a :: tl) with ([a] ++ tl) by auto;
+              apply lastn_lt; rewrite app_length; simpl; omega).
+        rewrite app_assoc.
+        rewrite lastn_app.
+        rewrite <- HL in H.
+        replace (S (length l - S k)) with (length l - k) by omega.
+        replace (firstn k tl) with (firstn k (lrot l))
+          by (subst; symmetry; apply firstn_lt; simpl in H; omega).
+        replace (tl ++ [a]) with (lrot l) by (subst; reflexivity).
+        replace (length l) with (length (lrot l)) by (symmetry; apply lrot_length).
+        apply IHk; try (rewrite <- lrot_length; omega).
+  Qed.
+
+  Theorem lrot_l_id {A : Type} : forall (l : list A),
+      repeat_n lrot l (length l) = l.
+  Proof.
+    intros.
+    rewrite repeat_lrot_k; auto.
+    rewrite firstn_all. rewrite Nat.sub_diag.
+    reflexivity.
+  Qed.
+
+  Theorem lrot_pred_l_rrot {A : Type} : forall (l : list A),
+      repeat_n lrot l (Nat.pred (length l)) = rrot l.
+  Proof.
+    intros.
+    rewrite <- repeat_inv with (g := rrot) by apply l_r_rot_inverse.
+    f_equal.
+    destruct (length l) eqn:HL.
+    - replace l with (@nil A) by (symmetry; apply length_zero_iff_nil; auto).
+      reflexivity.
+    - simpl Nat.pred. rewrite <- HL; clear HL.
+      apply lrot_l_id.
+  Qed.
+End Repeat.
+
 Section Iterate.
   Context {A : Type}.
 
@@ -41,16 +183,10 @@ Section Iterate.
     | S m => z :: iterate_n f (f z) m
     end.
 
-  Fixpoint repeat_n (f : A -> A) (z : A) (n : nat) : A :=
-    match n with
-    | O => z
-    | S m => repeat_n f (f z) m
-    end.
-
   Theorem iterate_n_preserves : forall f n z (P: A -> Prop),
-      P z -> (forall x, P x -> P (f x)) -> P z -> Forall P (iterate_n f z n).
+      (forall x, P x -> P (f x)) -> P z -> Forall P (iterate_n f z n).
   Proof.
-    intros f n z P Hz HPreserve Pz. revert z Hz Pz.
+    intros f n z P HPreserve Pz. revert z Pz.
     induction n.
     - constructor; auto.
     - simpl. constructor; auto.
@@ -108,6 +244,39 @@ Section Rots.
   Proof.
     intros. apply iterate_n_preserves; auto.
     intros. eapply eq_trans. symmetry. apply lrot_length. auto.
+  Qed.
+
+  Theorem rrot_rots : forall l,
+      map rrot (rots l) = rrot (rots l).
+  Proof.
+    intros l.
+    unfold rots.
+    apply nth_eq. { rewrite map_length, rrot_length; reflexivity. }
+    intros.
+    rewrite nth_indep with (d' := rrot d), map_nth by auto.
+    rewrite map_length, iterate_n_len in H.
+    rewrite iterate_n_nth by omega.
+    rewrite nth_rrot by (rewrite iterate_n_len; omega).
+    rewrite iterate_n_nth.
+    rewrite iterate_n_len.
+    destruct i.
+    - unfold Nat.add. clear H.
+      rewrite Nat.mod_small by omega. simpl. rewrite Nat.sub_0_r.
+      symmetry; apply lrot_pred_l_rrot.
+    - replace ((S i + S _) - 1) with (i + 1 * S (Nat.pred (length l))) by omega.
+      rewrite Nat.mod_add by omega.
+      rewrite Nat.mod_small by omega.
+      apply repeat_inv. apply l_r_rot_inverse.
+    - rewrite iterate_n_len.
+      destruct i.
+      + simpl Nat.add.
+        eapply Nat.le_trans.
+        apply Nat.mod_le; try omega.
+        omega.
+      + replace (S i + S _ - 1) with (i + 1 * S (Nat.pred (length l))) by omega.
+        rewrite Nat.mod_add by omega.
+        rewrite Nat.mod_small by omega.
+        omega.
   Qed.
 End Rots.
 
