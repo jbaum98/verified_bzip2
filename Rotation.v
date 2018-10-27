@@ -1,8 +1,6 @@
 Require Import Coq.Lists.List.
 Require Import Coq.Sorting.Permutation.
 Require Import Coq.omega.Omega.
-Require Import Coq.Logic.FunctionalExtensionality.
-Require Import Coq.Program.Basics.
 
 Require Import Repeat.
 
@@ -170,6 +168,8 @@ Section Permutations.
 End Permutations.
 
 Section Rot.
+  Open Scope program_scope.
+
   Context {A : Type}.
 
   (* Rotate a list to the right by moving the last element to the front. *)
@@ -210,24 +210,24 @@ Section Rot.
     apply app_assoc.
   Qed.
 
-  Theorem rrot_reverse : forall (l: list A),
-      rrot (rev l) = rev (lrot l).
+  Theorem rrot_rev : forall l,
+    rrot (rev l) = rev (lrot l).
   Proof.
     destruct l.
     - reflexivity.
-    - simpl. rewrite rrot_app.
+    - simpl.
+      rewrite rrot_app.
       unfold lrot. simpl.
       rewrite rev_app_distr.
       reflexivity.
   Qed.
 
-  Theorem lrot_reverse : forall (l: list A),
+  Theorem lrot_rev : forall l,
       lrot (rev l) = rev (rrot l).
   Proof.
     intros.
     rewrite <- rev_involutive at 1.
-    rewrite <- rrot_reverse.
-    rewrite -> rev_involutive.
+    rewrite <- rrot_rev, -> rev_involutive.
     reflexivity.
   Qed.
 
@@ -244,8 +244,8 @@ Section Rot.
   Proof.
     intro l.
     rewrite <- rev_involutive at 1.
-    rewrite <- rrot_reverse.
-    replace (rev (rrot l)) with (lrot (rev l)) by apply lrot_reverse.
+    rewrite <- rrot_rev.
+    replace (rev (rrot l)) with (lrot (rev l)) by apply lrot_rev.
     rewrite l_r_rot_inverse.
     apply rev_involutive.
   Qed.
@@ -284,7 +284,7 @@ Section Rot.
   Proof.
     intros.
     rewrite <- rev_involutive.
-    rewrite <- lrot_reverse.
+    rewrite <- lrot_rev.
     apply Permutation_sym. eapply perm_trans.
     apply Permutation_sym. apply Permutation_rev.
     eapply perm_trans. apply lrot_perm''.
@@ -426,7 +426,7 @@ Section Nth.
   Proof.
     intros.
     rewrite hd_last_rev.
-    rewrite <- lrot_reverse.
+    rewrite <- lrot_rev.
     rewrite last_lrot.
     rewrite <- hd_rev_last.
     reflexivity.
@@ -563,9 +563,8 @@ Section Repeats.
       rep lrot (Nat.pred (length l)) l = rrot l.
   Proof.
     intros.
-    rewrite <- rep_inv1_l with (g := rrot)
-      by (extensionality x; apply l_r_rot_inverse).
-    unfold compose; f_equal.
+    rewrite <- rep_inv1_l with (g := rrot) by apply l_r_rot_inverse.
+    f_equal.
     destruct (length l) eqn:HL.
     - replace l with (@nil A) by (symmetry; apply length_zero_iff_nil; auto).
       reflexivity.
