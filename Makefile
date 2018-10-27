@@ -17,6 +17,7 @@ Ord.vo: VST/compcert/lib/Integers.vo
 MergesortClass.vo: Ord.vo
 Prefix.vo: Ord.vo MergesortClass.vo
 BurrowsWheeler.vo: Ord.vo Rot.vo Prefix.vo
+Rot.vo: Repeat.vo
 
 VST/%.vo: VST/%.v
 	$(MAKE) -C VST $(patsubst VST/%,%,$@)

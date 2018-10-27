@@ -1,6 +1,10 @@
 Require Import Coq.Lists.List.
 Require Import Coq.Sorting.Permutation.
 Require Import Coq.omega.Omega.
+Require Import Coq.Logic.FunctionalExtensionality.
+Require Import Coq.Program.Basics.
+
+Require Import Repeat.
 
 Import ListNotations.
 
@@ -455,3 +459,121 @@ Section Nth.
         reflexivity.
   Qed.
 End Nth.
+
+Section Repeats.
+  Context {A : Type}.
+
+  Definition lastn (k : nat) (l : list A) : list A :=
+    rev (firstn k (rev l)).
+
+  Theorem lastn_all : forall l : list A,
+      lastn (length l) l = l.
+  Proof.
+    intros.
+    unfold lastn.
+    rewrite <- rev_length.
+    rewrite firstn_all.
+    apply rev_involutive.
+  Qed.
+
+  Theorem lastn_1_app : forall a l,
+      lastn 1 (l ++ [a]) = [a].
+  Proof.
+    induction l.
+    - reflexivity.
+    - simpl. unfold lastn.
+      simpl rev at 2.
+      rewrite rev_unit. simpl firstn. reflexivity.
+  Qed.
+
+  Theorem lastn_app : forall a l k,
+      lastn k l ++ [a] = lastn (S k) (l ++ [a]).
+  Proof.
+    induction k.
+    - simpl. symmetry. apply lastn_1_app.
+    - simpl.
+      unfold lastn.
+      rewrite rev_unit.
+      remember (S k) as k'. simpl firstn at 2. subst.
+      remember (firstn _ _) as F.
+      simpl. reflexivity.
+  Qed.
+
+  Lemma firstn_lt : forall k (l l': list A),
+      k <= length l -> firstn k l = firstn k (l ++ l').
+  Proof.
+    intros.
+    rewrite firstn_app.
+    replace (k - length l) with 0 by omega.
+    simpl. rewrite app_nil_r. reflexivity.
+  Qed.
+
+  Lemma lastn_lt : forall k (l l': list A),
+      k <= length l -> lastn k l = lastn k (l' ++ l).
+  Proof.
+    intros.
+    unfold lastn. f_equal.
+    rewrite rev_app_distr.
+    apply firstn_lt.
+    rewrite rev_length; auto.
+  Qed.
+
+  Lemma repeat_lrot_k : forall k (l : list A),
+      k <= length l -> rep lrot k l = lastn (length l - k) l ++ firstn k l.
+  Proof.
+    induction k; intros.
+    - simpl. rewrite app_nil_r. rewrite Nat.sub_0_r.
+      symmetry. apply lastn_all.
+    - destruct l as [|a tl] eqn:HL.
+      + apply repeat_n_preserves.
+        intros; subst; auto.
+        reflexivity.
+      + rewrite <- HL at 1 2 3.
+        simpl firstn.
+        replace (cons a) with (app [a]) by reflexivity.
+        replace (lastn (length l - S k) l) with (lastn (length l - S k) tl)
+          by (simpl in H; subst; replace (a :: tl) with ([a] ++ tl) by auto;
+              apply lastn_lt; rewrite app_length; simpl; omega).
+        rewrite app_assoc.
+        rewrite lastn_app.
+        rewrite <- HL in H.
+        replace (S (length l - S k)) with (length l - k) by omega.
+        replace (firstn k tl) with (firstn k (lrot l))
+          by (subst; symmetry; apply firstn_lt; simpl in H; omega).
+        replace (tl ++ [a]) with (lrot l) by (subst; reflexivity).
+        replace (length l) with (length (lrot l)) by (symmetry; apply lrot_length).
+        rewrite rep_z.
+        apply IHk; try (rewrite <- lrot_length; omega).
+  Qed.
+
+  Theorem lrot_rep_id : forall (l : list A),
+      rep lrot (length l) l = l.
+  Proof.
+    intros.
+    rewrite repeat_lrot_k; auto.
+    rewrite firstn_all. rewrite Nat.sub_diag.
+    reflexivity.
+  Qed.
+
+  Theorem rrot_rep_id : forall (l : list A),
+      rep lrot (length l) l = l.
+  Admitted.
+
+  Theorem lrot_rep_pred : forall (l : list A),
+      rep lrot (Nat.pred (length l)) l = rrot l.
+  Proof.
+    intros.
+    rewrite <- rep_inv1_l with (g := rrot)
+      by (extensionality x; apply l_r_rot_inverse).
+    unfold compose; f_equal.
+    destruct (length l) eqn:HL.
+    - replace l with (@nil A) by (symmetry; apply length_zero_iff_nil; auto).
+      reflexivity.
+    - simpl Nat.pred. rewrite <- HL; clear HL.
+      apply lrot_rep_id.
+  Qed.
+
+  Theorem rrot_rep_pred : forall (l : list A),
+      rep rrot (Nat.pred (length l)) l = lrot l.
+  Admitted.
+End Repeats.
