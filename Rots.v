@@ -75,5 +75,18 @@ Section Rots.
   Theorem rots_nonempty : forall l,
       Forall (fun x => ~ (x = [])) (rots l).
   Proof.
-  Admitted.
+    destruct l eqn:HL.
+    - constructor.
+    - rewrite <- HL.
+      assert (l <> []) by (intro c; subst; inversion c). clear HL.
+      eapply Forall_impl with (P := fun x => length x = length l).
+      intros x Hlen.
+      assert (HlenL: length l <> 0)
+        by (rewrite length_zero_iff_nil; intro c; contradiction).
+      rewrite <- Hlen in HlenL.
+      rewrite <- length_zero_iff_nil; auto.
+      unfold rots. apply iter_preserves.
+      intros x Hx. rewrite <- Hx. symmetry; apply lrot_length.
+      auto.
+  Qed.
 End Rots.
