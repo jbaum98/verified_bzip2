@@ -136,10 +136,18 @@ Section Sort.
   Variable k : nat.
 
   Definition sort : list (list A) -> list (list A)
-    := @Mergesort.sort _ _ (LeDec_list_k k ).
+    := @Mergesort.sort _ _ (LeDec_list_k k).
 
   Theorem sort_perm : forall l, Permutation l (sort l).
   Proof.
     exact Mergesort.Permuted_sort.
   Defined.
+
+  Theorem sort_length : forall l,
+      length (sort l) = length l.
+  Proof.
+    intros.
+    apply Permutation_length.
+    apply Permutation_sym. apply sort_perm.
+  Qed.
 End Sort.

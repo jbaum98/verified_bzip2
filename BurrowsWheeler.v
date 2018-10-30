@@ -8,8 +8,6 @@ Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Coq.Program.Combinators.
 
 Require Import Coq.Logic.FunctionalExtensionality.
-Require Import Coq.Setoids.Setoid.
-Require Import Coq.Classes.Morphisms.
 
 Require Import Rotation.
 Require Import Prefix.
@@ -45,6 +43,15 @@ Proof.
     + reflexivity.
     + subst. f_equal.
   - subst. induction y; constructor; auto.
+Qed.
+
+Lemma map_forall_eq {A B : Type} : forall (l : list A) (f g : A -> B),
+    Forall (fun x => f x = g x) l -> map f l = map g l.
+Proof.
+  induction l; intros.
+  - reflexivity.
+  - inversion H; subst; clear H.
+    simpl. f_equal; auto.
 Qed.
 
 Section Permutations.
@@ -143,31 +150,37 @@ Section Cols.
     replace (Nat.min j (S k)) with (Nat.min j k) by (rewrite ?Nat.min_l; omega).
     reflexivity.
   Qed.
+
+  Theorem cols_id : forall n mat,
+      Forall (fun x => length x <= n) mat ->
+      cols n mat = mat.
+  Proof.
+    induction n; intros mat HL.
+    - unfold cols. unfold firstn.
+      rewrite <- map_id.
+      apply map_forall_eq.
+      eapply Forall_impl; [|apply HL].
+      simpl; intros.
+      assert (length a = 0) by omega.
+      symmetry. apply length_zero_iff_nil; auto.
+    - unfold cols. rewrite <- map_id.
+      apply map_forall_eq.
+      eapply Forall_impl; [|apply HL].
+      cbv beta. intros.
+      apply firstn_all2; auto.
+  Qed.
 End Cols.
 
 Section Lexsort.
   Context {A : Type} `{TotalOrderDec A}.
 
-  Definition lexsort (ls : list (list A)) : list (list A) :=
-    match ls with
-    | [] => []
-    | hd :: tl => sort (length hd) ls
-    end.
-
-  Remark lexsort_rots : forall l,
-      lexsort (rots l) = sort (length l) (rots l).
-  Proof.
-    intros. unfold lexsort.
-    destruct (rots_destr l). rewrite -> H0. reflexivity.
-  Qed.
-
   Lemma orig_in_sorted_rots : forall l k,
-      Exists (@equiv _ _ (Equivalence_list_k k) l) (sort k (rots l)).
+      l <> [] -> Exists (@equiv _ _ (Equivalence_list_k k) l) (sort k (rots l)).
   Proof.
     intros.
     apply Permutation_exists with (l0 := rots l) (l' := sort k (rots l)).
     apply sort_perm.
-    apply (@orig_in_rots _ _ _ (EqDec_list_k k) l).
+    apply (@orig_in_rots _ _ _ (EqDec_list_k k) l); auto.
   Defined.
 
   Lemma sort_rots_len : forall k l,
@@ -175,7 +188,7 @@ Section Lexsort.
   Proof.
     intros.
     eapply Permutation_forall.
-    apply sort_perm. apply rots_len.
+    apply sort_perm. apply rots_row_length.
   Qed.
 End Lexsort.
 
@@ -227,14 +240,42 @@ Section Transform.
   Definition bwp (l: list A) : list A :=
     match l with
     | [] => []
-    | hd :: tl => List.map (fun x => last x hd) (lexsort (rots l))
+    | hd :: tl => List.map (fun x => last x hd) (sort (length l) (rots l))
     end.
 
+  Theorem bwp_nonempty : forall l,
+      l <> [] ->
+      forall d, bwp l = List.map (fun x => last x d) (sort (length l) (rots l)).
+  Proof.
+    destruct l; intros.
+    - contradiction.
+    - apply map_forall_eq.
+      apply Forall_forall.
+      intros.
+      assert (x <> []). {
+        apply (Forall_forall (fun x => ~ x = []) (sort (length (a :: l)) (rots (a :: l)))); auto.
+        eapply Permutation_forall. apply sort_perm.
+        apply rots_nonempty; auto.
+      }
+      apply last_nonempty; auto.
+  Qed.
+
+  Theorem bwp_length : forall l,
+      length (bwp l) = length l.
+  Proof.
+    induction l.
+    - reflexivity.
+    - simpl. rewrite map_length.
+      rewrite sort_length.
+      rewrite rots_length.
+      reflexivity.
+  Qed.
+
   Definition bwn (l : list A) : nat :=
-    @findIndex _ _ _ (EqDec_list_k (length l)) l (lexsort (rots l)).
+    @findIndex _ _ _ (EqDec_list_k (length l)) l (sort (length l) (rots l)).
 
   Theorem bwn_correct : forall xs d,
-      Forall2 equiv (nth (bwn xs) (lexsort (rots xs)) d) xs.
+      xs <> [] -> Forall2 equiv (nth (bwn xs) (sort (length xs) (rots xs)) d) xs.
   Proof.
     intros.
     unfold bwn.
@@ -243,16 +284,14 @@ Section Transform.
     replace (length (nth _ _ _)) with (length xs).
     - apply eq_k_firstn.
       apply findIndex_correct.
-      rewrite lexsort_rots.
-      apply orig_in_sorted_rots.
-    - assert (L: forall x, In x (lexsort (rots xs)) -> (fun x => length x = length xs) x). {
+      apply orig_in_sorted_rots; auto.
+    - assert (L: forall x, In x (sort (length xs) (rots xs)) -> (fun x => length x = length xs) x). {
         apply Forall_forall.
-        rewrite lexsort_rots.
         apply sort_rots_len.
       }
       symmetry; apply L.
       apply nth_In. apply findIndex_bounds.
-      rewrite lexsort_rots. apply orig_in_sorted_rots.
+      apply orig_in_sorted_rots; auto.
   Qed.
 End Transform.
 
@@ -260,10 +299,99 @@ Section Transform_Eq.
   Context {A: Type} `{TotalOrderDec A eq} .
 
   Theorem bwn_correct' : forall xs d,
-    nth (bwn xs) (lexsort (rots xs)) d = xs.
+    xs <> [] -> nth (bwn xs) (sort (length xs) (rots xs)) d = xs.
   Proof.
     intros.
     apply Forall2_eq.
     apply bwn_correct.
+    auto.
   Qed.
 End Transform_Eq.
+
+Section PrependColumn.
+  Context {A : Type}.
+
+  Fixpoint prepend_col (col : list A) (mat : list (list A)) :=
+    match (col, mat) with
+    | (hd :: tl, row :: rows) => (hd :: row) :: prepend_col tl rows
+    | _ => mat
+    end.
+
+  Lemma cols_rrot : forall j l d,
+      cols (S j) (map rrot l) = prepend_col (map (fun x => last x d) l) (cols j l).
+  Admitted.
+
+  Theorem recreate_inspiration `{TotalOrderDec A} : forall j l,
+      cols (S j) (sort (length l) (rots l)) =
+      sort 1 (prepend_col (bwp l) (cols j (sort (length l) (rots l)))).
+  Proof.
+    intros. destruct l eqn:HL; [reflexivity|].
+    rewrite <- HL in *. assert (l <> []) by (intro c; subst; inversion c).
+    destruct (le_lt_dec (S j) (length l)).
+    - rewrite cols_sort_shift by omega.
+      rewrite cols_rrot with (d := a).
+      rewrite <- bwp_nonempty with (d := a) by auto.
+      reflexivity.
+    - admit.
+  Admitted.
+End PrependColumn.
+
+Lemma map_const {A B} : forall (f : A -> B) l c,
+    (forall x, f x = c) -> map f l = repeat c (length l).
+Proof.
+  intros.
+  induction l; [reflexivity|].
+  simpl. rewrite H. f_equal. auto.
+Qed.
+
+Section Recreate.
+  Context {A : Type} `{TotalOrderDec A eq}.
+
+  Fixpoint recreate (j : nat) (l : list A) : list (list A) :=
+    match j with
+    | O    => map (const []) l
+    | S j' => sort 1 (prepend_col l (recreate j' l))
+    end.
+
+  Lemma recreate_correct_gen : forall j l,
+      recreate j (bwp l) = cols j (sort (length l) (rots l)).
+  Proof.
+    induction j; intros.
+    - unfold cols. simpl.
+      do 2 (erewrite map_const; [|unfold const; reflexivity]).
+      rewrite bwp_length, sort_length, rots_length.
+      reflexivity.
+    - simpl.
+      rewrite recreate_inspiration.
+      rewrite IHj.
+      reflexivity.
+  Qed.
+
+  Theorem recreate_correct : forall l,
+      recreate (length l) (bwp l) = sort (length l) (rots l).
+  Proof.
+    intros.
+    rewrite recreate_correct_gen.
+    rewrite cols_id; auto.
+    eapply Forall_impl; [|apply sort_rots_len].
+    cbv beta; intros; omega.
+  Qed.
+End Recreate.
+
+Section Unbwt.
+  Context {A : Type} `{TotalOrderDec A eq}.
+
+  Definition unbwt (t : nat) (l : list A) : list A :=
+    nth t (recreate (length l) l) l.
+
+  Theorem unbwt_correct : forall xs,
+      unbwt (bwn xs) (bwp xs) = xs.
+  Proof.
+    intros [|a xs]; [reflexivity|].
+    unfold unbwt.
+    rewrite bwp_length.
+    rewrite recreate_correct.
+    apply bwn_correct'.
+    intro contra; inversion contra.
+  Qed.
+End Unbwt.

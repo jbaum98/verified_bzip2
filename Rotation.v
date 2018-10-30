@@ -81,14 +81,13 @@ Section HeadTailInitLast.
       symmetry in H1. apply app_cons_not_nil in H1. contradiction.
   Qed.
 
-  Lemma last_nonempty : forall (l: list A) w x y z,
-      l <> [] -> last (x :: l) w = last (z :: l) y.
+  Lemma last_nonempty : forall (l: list A) d d',
+      l <> [] -> last l d = last l d'.
   Proof.
     induction l as [| a | a b tl IH] using list_ind2;
       intros; try contradiction; clear H.
     - reflexivity.
-    - rewrite last2.
-      rewrite last2 with (a := z) at 1.
+    - do 2 rewrite last2.
       apply IH.
       intro contra; inversion contra.
   Qed.

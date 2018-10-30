@@ -14,20 +14,25 @@ Section Rots.
   Context {A : Type}.
 
   Definition rots (l : list A) : list (list A) :=
-    iter lrot (Nat.pred (length l)) l.
+    iter lrot (length l) l.
 
   Lemma rots_destr : forall (l : list A),
-      exists r, rots l = l :: r.
+      l <> [] -> exists r, rots l = l :: r.
   Proof.
     intros.
     unfold rots.
-    destruct l as [| a [| b tl]]; simpl.
-    - exists nil. auto.
+    destruct l as [| a [| b tl]] eqn:HD; simpl; try contradiction; clear H.
     - eexists. f_equal.
     - eexists. f_equal.
   Defined.
 
-  Lemma rots_len : forall l,
+  Lemma rots_length : forall l,
+      length (rots l) = length l.
+  Proof.
+    intros. unfold rots. apply iter_length.
+  Qed.
+
+  Lemma rots_row_length : forall l,
       Forall (fun x => length x = length l) (rots l).
   Proof.
     intros. apply iter_preserves; auto.
@@ -48,10 +53,10 @@ Section Rots.
     destruct i; simpl Nat.add; simpl Repeat.rep; simpl id.
     - rewrite Nat.mod_small by omega.
       rewrite iter_nth by omega.
-      simpl; rewrite Nat.sub_0_r.
+      simpl. rewrite Nat.sub_1_r.
       symmetry; apply lrot_rep_pred.
-    - remember (Nat.pred (length l)) as L.
-      replace (S (i + S _) - 1) with (i + 1 * S L) by omega.
+    - remember (length l) as L.
+      replace (S (i + L) - 1) with (i + 1 * L) by omega.
       rewrite Nat.mod_add, Nat.mod_small by omega.
       rewrite iter_nth by omega.
       rewrite rep_l.
@@ -59,11 +64,16 @@ Section Rots.
   Qed.
 
   Lemma orig_in_rots `{EqDec (list A)}: forall l,
-      Exists (equiv l) (rots l).
+      l <> [] -> Exists (equiv l) (rots l).
   Proof.
     intros. simpl.
-    destruct (rots_destr l).
-    rewrite H0.
+    destruct (rots_destr l) as [x HCons]; auto.
+    rewrite HCons.
     apply Exists_cons_hd. apply equiv_reflexive.
   Defined.
+
+  Theorem rots_nonempty : forall l,
+      Forall (fun x => ~ (x = [])) (rots l).
+  Proof.
+  Admitted.
 End Rots.

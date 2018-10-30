@@ -10,7 +10,7 @@ Section Iterate.
 
   Fixpoint iter (f : A -> A) (n : nat) (z : A) : list A :=
     match n with
-    | O   => [z]
+    | O   => []
     | S m => z :: iter f m (f z)
     end.
 
@@ -24,19 +24,19 @@ Section Iterate.
   Qed.
 
   Theorem iter_nth : forall f n z i d,
-      i <= n -> nth i (iter f n z) d = rep f i z.
+      i < n -> nth i (iter f n z) d = rep f i z.
   Proof.
     intros f n z i. revert f n z.
     induction i; intros.
     - destruct n.
-      + reflexivity.
+      + omega.
       + reflexivity.
     - destruct n; try omega.
       rewrite rep_z. apply IHi. omega.
   Qed.
 
   Theorem iter_length : forall f n z,
-      length (iter f n z) = S n.
+      length (iter f n z) = n.
   Proof.
     induction n; intros.
     - simpl. reflexivity.
