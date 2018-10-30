@@ -322,18 +322,17 @@ Section PrependColumn.
   Admitted.
 
   Theorem recreate_inspiration `{TotalOrderDec A} : forall j l,
+      j < length l ->
       cols (S j) (sort (length l) (rots l)) =
       sort 1 (prepend_col (bwp l) (cols j (sort (length l) (rots l)))).
   Proof.
     intros. destruct l eqn:HL; [reflexivity|].
     rewrite <- HL in *. assert (l <> []) by (intro c; subst; inversion c).
-    destruct (le_lt_dec (S j) (length l)).
-    - rewrite cols_sort_shift by omega.
-      rewrite cols_rrot with (d := a).
-      rewrite <- bwp_nonempty with (d := a) by auto.
-      reflexivity.
-    - admit.
-  Admitted.
+    rewrite cols_sort_shift by omega.
+    rewrite cols_rrot with (d := a).
+    rewrite <- bwp_nonempty with (d := a) by auto.
+    reflexivity.
+  Qed.
 End PrependColumn.
 
 Lemma map_const {A B} : forall (f : A -> B) l c,
@@ -354,6 +353,7 @@ Section Recreate.
     end.
 
   Lemma recreate_correct_gen : forall j l,
+      j <= length l ->
       recreate j (bwp l) = cols j (sort (length l) (rots l)).
   Proof.
     induction j; intros.
@@ -362,8 +362,8 @@ Section Recreate.
       rewrite bwp_length, sort_length, rots_length.
       reflexivity.
     - simpl.
-      rewrite recreate_inspiration.
-      rewrite IHj.
+      rewrite recreate_inspiration by omega.
+      rewrite IHj by omega.
       reflexivity.
   Qed.
 
@@ -371,7 +371,7 @@ Section Recreate.
       recreate (length l) (bwp l) = sort (length l) (rots l).
   Proof.
     intros.
-    rewrite recreate_correct_gen.
+    rewrite recreate_correct_gen by omega.
     rewrite cols_id; auto.
     eapply Forall_impl; [|apply sort_rots_len].
     cbv beta; intros; omega.
