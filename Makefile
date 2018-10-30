@@ -5,6 +5,9 @@ VFILES := RunLength Instances NatEncode Ord MergesortClass Prefix BurrowsWheeler
 
 all: $(addsuffix .vo, $(VFILES))
 
+clean-local:
+	fd -E VST --no-ignore-vcs -e vo -e glob -x rm {}
+
 clean:
 	fd --no-ignore-vcs -e vo -e glob -x rm {}
 
