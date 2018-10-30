@@ -524,7 +524,7 @@ Section Repeats.
     - simpl. rewrite app_nil_r. rewrite Nat.sub_0_r.
       symmetry. apply lastn_all.
     - destruct l as [|a tl] eqn:HL.
-      + apply repeat_n_preserves.
+      + apply rep_preserves.
         intros; subst; auto.
         reflexivity.
       + rewrite <- HL at 1 2 3.
@@ -555,8 +555,16 @@ Section Repeats.
   Qed.
 
   Theorem rrot_rep_id : forall (l : list A),
-      rep lrot (length l) l = l.
-  Admitted.
+      rep rrot (length l) l = l.
+  Proof.
+    intros.
+    rewrite <- lrot_rep_id at 1.
+    replace (length (rep rrot (length l) l)) with (length l)
+      by (eapply rep_preserves; [|reflexivity];
+          intros x LenEq; rewrite LenEq; apply rrot_length).
+    rewrite rep_inv_l; [|apply r_l_rot_inverse|omega].
+    rewrite Nat.sub_diag. reflexivity.
+  Qed.
 
   Theorem lrot_rep_pred : forall (l : list A),
       rep lrot (Nat.pred (length l)) l = rrot l.
@@ -573,5 +581,14 @@ Section Repeats.
 
   Theorem rrot_rep_pred : forall (l : list A),
       rep rrot (Nat.pred (length l)) l = lrot l.
-  Admitted.
+  Proof.
+    intros.
+    rewrite <- rep_inv1_l with (g := lrot) by apply r_l_rot_inverse.
+    f_equal.
+    destruct (length l) eqn:HL.
+    - replace l with (@nil A) by (symmetry; apply length_zero_iff_nil; auto).
+      reflexivity.
+    - simpl Nat.pred. rewrite <- HL; clear HL.
+      apply rrot_rep_id.
+  Qed.
 End Repeats.

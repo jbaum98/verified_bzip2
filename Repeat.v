@@ -93,7 +93,7 @@ Section Preserves.
   Context {A : Type} (P : A -> Prop) (f : A -> A).
   Hypothesis HP : forall x, P x -> P (f x).
 
-  Theorem repeat_n_preserves : forall z n,
+  Theorem rep_preserves : forall z n,
       P z -> P (rep f n z).
   Proof.
     intros z n Pz; revert z Pz.
