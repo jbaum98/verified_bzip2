@@ -123,9 +123,29 @@ End Permutations.
 Section SortRotations.
   Context {A : Type} `{TotalOrderDec A}.
 
+  Lemma sort_succ_k : forall k l,
+      sort (S k) l = sort 1 (map rrot (sort k (map lrot l))).
+  Proof.
+    assert (forall l : list (list A), map rrot (map lrot l) = l) as map_l_r. {
+      intros.
+      rewrite map_map.
+      replace (fun x => rrot (lrot x)) with (@id (list A))
+        by (apply functional_extensionality; intro; rewrite l_r_rot_inverse; easy).
+      f_equal. apply map_id.
+    }
+
+    destruct k.
+    - intros. rewrite sort_zero. rewrite map_l_r. easy.
+    - intros. rename k into k'; remember (S k') as k.
+  Admitted.
+
   Theorem sort_rrot_k : forall k l,
     sort k (map (rep rrot k) l)= rep (sort 1 ∘ map rrot) k l.
   Proof.
+    induction k; intros.
+    - simpl. rewrite map_id. apply sort_zero.
+    - simpl rep. unfold compose at 1.
+      rewrite <- IHk.
   Admitted.
 
   Lemma sort_succ_rrot : forall k l,
@@ -209,6 +229,90 @@ Section Cols.
       apply firstn_all2; auto.
   Qed.
 End Cols.
+
+Section PrependColumn.
+  Context {A : Type}.
+
+  Fixpoint prepend_col (col : list A) (mat : list (list A)) :=
+    match (col, mat) with
+    | (hd :: tl, row :: rows) => (hd :: row) :: prepend_col tl rows
+    | _ => mat
+    end.
+
+  Theorem prepend_hd_tl : forall l d,
+      Forall (fun x => ~ x = []) l ->
+      prepend_col (map (hd d) l) (map (@tl A) l) = l.
+  Proof.
+    induction l; intros.
+    - simpl. reflexivity.
+    - inversion H; subst; clear H.
+      simpl. rewrite IHl by auto. f_equal.
+      destruct a; try contradiction.
+      reflexivity.
+  Qed.
+
+  Lemma cols_rrot : forall j l d,
+      cols (S j) (map rrot l) = prepend_col (map (fun x => last x d) l) (cols j l).
+  Admitted.
+End PrependColumn.
+
+Section AppendCol.
+  Context {A : Type}.
+
+  Definition append_col (c : list A) (m : list (list A)) :=
+    map lrot (prepend_col c m).
+
+  Theorem map_lrot_prepend : forall c m,
+      map lrot (prepend_col c m) = append_col c m.
+  Proof.
+    reflexivity.
+  Qed.
+
+  Theorem map_rrot_append : forall c m,
+      map rrot (append_col c m) = prepend_col c m.
+  Proof.
+    intros.
+    apply map_injective with (f := lrot); [apply lrot_injective|].
+    rewrite map_map.
+    erewrite map_ext; [|apply r_l_rot_inverse].
+    rewrite map_id. reflexivity.
+  Qed.
+
+  Theorem append_last_init : forall l d,
+      Forall (fun x => ~ x = []) l ->
+      append_col (map (fun x => last x d) l) (map init l) = l.
+  Proof.
+    induction l; intros.
+    - reflexivity.
+    - inversion H; subst; clear H.
+      simpl. unfold append_col in *. simpl.
+      rewrite IHl; auto.
+      f_equal.
+      destruct a; try contradiction.
+      symmetry. apply init_last_destr.
+  Qed.
+
+  Theorem map_lrot_append : forall l d,
+      Forall (fun x => ~ x = []) l ->
+      map lrot l = append_col (map (hd d) l) (map (@tl A) l).
+  Proof.
+    intros. unfold append_col.
+    rewrite prepend_hd_tl; auto.
+  Qed.
+
+  Theorem map_rrot_prepend : forall (l : list (list A)) d,
+      Forall (fun x => ~ x = []) l ->
+      map rrot l = prepend_col (map (fun x => last x d) l) (map init l).
+  Proof.
+    intros.
+    apply map_injective with (f := lrot); [apply lrot_injective|].
+    rewrite map_map.
+    erewrite map_ext; [|apply r_l_rot_inverse].
+    rewrite map_id.
+    pose proof append_last_init as ALI.
+    unfold append_col in ALI. symmetry. auto.
+  Qed.
+End AppendCol.
 
 Section Lexsort.
   Context {A : Type} `{TotalOrderDec A}.
@@ -347,33 +451,6 @@ Section Transform_Eq.
   Qed.
 End Transform_Eq.
 
-Section PrependColumn.
-  Context {A : Type}.
-
-  Fixpoint prepend_col (col : list A) (mat : list (list A)) :=
-    match (col, mat) with
-    | (hd :: tl, row :: rows) => (hd :: row) :: prepend_col tl rows
-    | _ => mat
-    end.
-
-  Lemma cols_rrot : forall j l d,
-      cols (S j) (map rrot l) = prepend_col (map (fun x => last x d) l) (cols j l).
-  Admitted.
-
-  Theorem recreate_inspiration `{TotalOrderDec A} : forall j l,
-      j < length l ->
-      cols (S j) (sort (length l) (rots l)) =
-      sort 1 (prepend_col (bwp l) (cols j (sort (length l) (rots l)))).
-  Proof.
-    intros. destruct l eqn:HL; [reflexivity|].
-    rewrite <- HL in *. assert (l <> []) by (intro c; subst; inversion c).
-    rewrite cols_sort_shift by omega.
-    rewrite cols_rrot with (d := a).
-    rewrite <- bwp_nonempty with (d := a) by auto.
-    reflexivity.
-  Qed.
-End PrependColumn.
-
 Lemma map_const {A B} : forall (f : A -> B) l c,
     (forall x, f x = c) -> map f l = repeat c (length l).
 Proof.
@@ -390,6 +467,19 @@ Section Recreate.
     | O    => map (const []) l
     | S j' => sort 1 (prepend_col l (recreate j' l))
     end.
+
+  Theorem recreate_inspiration `{TotalOrderDec A} : forall j l,
+      j < length l ->
+      cols (S j) (sort (length l) (rots l)) =
+      sort 1 (prepend_col (bwp l) (cols j (sort (length l) (rots l)))).
+  Proof.
+    intros. destruct l eqn:HL; [reflexivity|].
+    rewrite <- HL in *. assert (l <> []) by (intro c; subst; inversion c).
+    rewrite cols_sort_shift by omega.
+    rewrite cols_rrot with (d := a).
+    rewrite <- bwp_nonempty with (d := a) by auto.
+    reflexivity.
+  Qed.
 
   Lemma recreate_correct_gen : forall j l,
       j <= length l ->

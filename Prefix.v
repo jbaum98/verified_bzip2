@@ -151,3 +151,7 @@ Section Sort.
     apply Permutation_sym. apply sort_perm.
   Qed.
 End Sort.
+
+Theorem sort_zero {A} `{TotalOrderDec A}: forall l : list (list A),
+    sort 0 l = l.
+Admitted.
