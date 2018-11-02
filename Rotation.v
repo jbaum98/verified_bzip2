@@ -592,3 +592,25 @@ Section Repeats.
       apply rrot_rep_id.
   Qed.
 End Repeats.
+
+Section Injective.
+  Context {A : Type}.
+
+  Theorem lrot_injective : forall l l' : list A,
+      lrot l = lrot l' -> l = l'.
+  Proof.
+    intros.
+    apply f_equal with (f := rrot) in H.
+    do 2 rewrite l_r_rot_inverse in H.
+    auto.
+  Qed.
+
+  Theorem rrot_injective : forall l l' : list A,
+      rrot l = rrot l' -> l = l'.
+  Proof.
+    intros.
+    apply f_equal with (f := lrot) in H.
+    do 2 rewrite r_l_rot_inverse in H.
+    auto.
+  Qed.
+End Injective.

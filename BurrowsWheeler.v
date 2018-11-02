@@ -45,6 +45,45 @@ Proof.
   - subst. induction y; constructor; auto.
 Qed.
 
+Lemma Forall2_map {A B : Type} (R : B -> B -> Prop) : forall (f : A -> B) (l l' : list A),
+    length l = length l' ->
+    Forall2 R (map f l) (map f l') <-> Forall2 (fun x y => R (f x) (f y)) l l'.
+Proof.
+  induction l; intros.
+  - simpl in H.
+    replace l' with (@nil A) by (symmetry; apply length_zero_iff_nil; auto).
+    split; constructor.
+  - destruct l' as [|a' l']; [inversion H|].
+    simpl; split; intros HImp; inversion HImp; subst; clear HImp; constructor; auto.
+    + apply IHl; auto.
+    + apply IHl; auto.
+Qed.
+
+Lemma Forall2_impl : forall (A B : Type) (P Q : A -> B -> Prop),
+    (forall a b, P a b -> Q a b) -> forall l l', Forall2 P l l' -> Forall2 Q l l'.
+Proof.
+  intros. induction H0; constructor; auto.
+Qed.
+
+Lemma map_injective {A B : Type} : forall (f : A -> B) l l',
+    (forall x y, f x = f y -> x = y) ->
+    map f l = map f l' -> l = l'.
+Proof.
+  intros f l l' HInj MapEq.
+  assert (length l = length l'). {
+    rewrite <- map_length with (f := f), MapEq, -> map_length.
+    easy.
+  }
+  assert (Forall2 (fun x y => f x = f y) l l'). {
+    apply Forall2_eq in MapEq.
+    apply (proj1 (Forall2_map eq f l l' H)) in MapEq.
+    apply MapEq.
+  }
+  apply Forall2_eq.
+  eapply Forall2_impl; [| apply H0].
+  cbv beta; intros. auto.
+Qed.
+
 Lemma map_forall_eq {A B : Type} : forall (l : list A) (f g : A -> B),
     Forall (fun x => f x = g x) l -> map f l = map g l.
 Proof.
