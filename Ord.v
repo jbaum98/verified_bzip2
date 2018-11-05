@@ -1,66 +1,145 @@
-Require Import Coq.omega.Omega.
 Require Import Coq.Relations.Relation_Definitions.
-Require Import Coq.Classes.EquivDec.
-Require compcert.lib.Integers.
+Require Import Coq.Classes.RelationClasses.
+Require Import Coq.Classes.Morphisms.
+Require Import Coq.Setoids.Setoid.
+Require Import Coq.Program.Basics.
 
-Require Import Instances.
+(** A type equipped with a total, decidable preorder. *)
 
-(* A class for decidable ordering *)
-Class LeDec (A : Type) (leA : relation A) :=
-   le_dec : forall x y, { leA x y } + { leA y x}.
-
-(* A class for decidable total order *)
-Class TotalOrderDec (A : Type) eqA `{E : EqDec A eqA} leA :=
-  { TotalOrder_Reflexive  :> Reflexive leA;
-    TotalOrder_Transitive :> Transitive leA;
-    TotalOrder_Antisymmetric :> Antisymmetric A eqA leA;
-    TotalOrder_dec :> LeDec A leA
+Class Ord (A : Type):=
+  { le : A -> A -> Prop;
+    le_trans : forall x y z, le x y -> le y z -> le x z;
+    le_total : forall x y, le x y \/ le y x;
+    le_dec : forall x y, {le x y} + {~le x y};
   }.
 
-Definition lt {A: Type} `{TotalOrderDec A} :=
-  fun x y => leA x y /\ ~ eqA x y.
+Notation "x <= y" := (le x y) (at level 70, no associativity) : ord_scope.
+Local Open Scope ord_scope.
 
-Instance LeDec_nat : LeDec nat Nat.le := Compare_dec.le_ge_dec.
-
-Instance TotalOrderDec_nat : TotalOrderDec nat eq Nat.le :=
-  { TotalOrder_Reflexive := Nat.le_refl;
-    TotalOrder_Transitive := PeanoNat.Nat.le_trans;
-    TotalOrder_Antisymmetric := Nat.le_antisymm;
-  }.
-
-Instance LeDec_Z : LeDec Z Z.le.
+Lemma le_refl {A} `{Ord A} : forall x, x <= x.
 Proof.
-  unfold LeDec.
+  intros. destruct (le_total x x); auto.
+Qed.
+
+Lemma le_not {A} `{Ord A} : forall x y, ~(x <= y) -> y <= x.
+Proof.
+  intros. destruct (le_total x y). contradiction. auto.
+Qed.
+
+Definition ge {A} `{Ord A} x y := y <= x.
+Definition lt {A} `{Ord A} x y := ~ (y <= x).
+Definition gt {A} `{Ord A} x y := ~ (x <= y).
+
+Notation "x >= y" := (ge x y) (at level 70, no associativity) : ord_scope.
+Notation "x < y" := (lt x y) (at level 70, no associativity) : ord_scope.
+Notation "x > y" := (gt x y) (at level 70, no associativity) : ord_scope.
+
+(** Two elements are equivalent if they compare [le] in both directions. *)
+
+Definition eqv {A} `{Ord A} (x y : A) : Prop := x <= y /\ y <= x.
+
+Notation " x === y " := (eqv x y) (at level 70, no associativity) : ord_scope.
+Notation " x =/= y " := (~ eqv x y) (at level 70, no associativity) : ord_scope.
+
+Program Definition eqv_dec {A} `{Ord A} (x y : A) : {x === y} + {x =/= y} :=
+  if le_dec x y then
+    if le_dec y x then left _
+    else right _
+  else right _.
+Solve All Obligations with unfold eqv; intuition eauto.
+
+Notation " x == y " := (eqv_dec (x :>) (y :>)) (no associativity, at level 70) : ord_scope.
+
+Section Equiv.
+  Context {A} `{Ord A}.
+
+  Theorem eqv_refl : forall x, x === x.
+  Proof.
+    intros.
+    unfold eqv. split; apply le_refl.
+  Qed.
+
+  Theorem eqv_sym : forall x y, eqv x y -> eqv y x.
+  Proof. intros. unfold eqv in *. intuition. Qed.
+
+  Theorem eqv_trans : forall x y z , eqv x y -> eqv y z -> eqv x z.
+  Proof. intros. unfold eqv in *. intuition (eapply le_trans; eauto). Qed.
+
+  (* Instance Equivalence_eqv : Equivalence eqv | 0 := *)
+  (*   { Equivalence_Reflexive := eqv_refl; *)
+  (*     Equivalence_Symmetric := eqv_sym; *)
+  (*     Equivalence_Transitive := eqv_trans; *)
+  (*   }. *)
+
+  Theorem eqv_def : forall x y,
+      x === y <-> x <= y /\ y <= x.
+  Proof. reflexivity. Qed.
+
+  (* Instance EqDec_eqv : EqDec A eqv | 0 := eqv_dec. *)
+
+  Theorem eqv_subst : forall x y, x === y -> forall z, x === z <-> y === z.
+  Proof.
+    intros.
+    repeat rewrite eqv_def in *.
+    intuition; eauto using le_trans.
+  Qed.
+End Equiv.
+
+Section Lt.
+  Context {A} `{Ord A}.
+
+  Theorem lt_spec : forall x y, x <= y <-> x < y \/ x === y.
+  Proof.
+    intros.
+    destruct (eqv_dec x y); unfold lt, eqv in *; intuition; eauto using le_not.
+  Qed.
+
+  Program Definition lt_eq_dec x y : {x < y} + {x === y} + {y < x} :=
+    match (le_dec x y, le_dec y x) with
+    | (_, right _) => inleft (left _)
+    | (right _, _) => inright _
+    | (left _, left _) => inleft (right _)
+    end.
+  Next Obligation. unfold eqv; eauto. Defined.
+
+  Theorem lt_irrefl : forall x, ~ (x < x).
+  Admitted.
+
+  Theorem lt_excl : forall x y, ~ (x < y /\ y < x).
+  Admitted.
+
+  Theorem lt_trans : forall x y z, x < y -> y < z -> x < z.
+  Proof.
+    intros. unfold lt in *.
+    match goal with [ H : ~ _ <= _ |- _ ] => apply le_not in H end.
+    intro.
+    eauto using le_trans.
+  Qed.
+
+  Theorem lt_not_eq : forall x y, x < y -> x =/= y.
+  Proof. unfold lt, eqv in *. intuition. Qed.
+
+  Theorem lt_le : forall x y, x < y -> x <= y.
+  Proof. unfold lt. intros. apply le_not. auto. Qed.
+
+End Lt.
+
+Add Parametric Relation {A} `{Ord A} : A eqv
+    reflexivity proved by eqv_refl
+    symmetry proved by eqv_sym
+    transitivity proved by eqv_trans
+  as eqv_rel.
+
+Add Parametric Morphism {A} `{Ord A} : le with
+  signature eqv ==> eqv ==> iff as le_mor.
+Proof.
   intros.
-  destruct (Z_le_dec x y).
-  - left; omega.
-  - right; omega.
-Defined.
+  unfold eqv in *. intuition; eauto using le_trans.
+Qed.
 
-Instance TotalOrderDec_Z : TotalOrderDec Z eq Z.le :=
-  { TotalOrder_Reflexive := Z.le_refl; }.
-
-Theorem int_EqDec {A : Type} `{EqDec A eq}
-        {unsigned : A -> Z} {repr : Z -> A}
-        (repr_unsigned : forall x, repr (unsigned x) = x) :
-  TotalOrderDec A eq (fun x y : A => Z.le (unsigned x) (unsigned y)).
+Add Parametric Morphism {A} `{Ord A} : lt with
+  signature eqv ==> eqv ==> iff as lt_mor.
 Proof.
-  apply Build_TotalOrderDec.
-  - intro x. apply TotalOrder_Reflexive.
-  - intros x y z. apply TotalOrder_Transitive.
-  - intros x y Lxy Lyx.
-    rewrite <- repr_unsigned at 1.
-    rewrite <- repr_unsigned.
-    f_equal.
-    apply TotalOrder_Antisymmetric; auto.
-  - intros x y. apply TotalOrder_dec.
-Defined.
-
-Instance Byte_EqDec : TotalOrderDec Integers.Byte.int _ _ :=
-  int_EqDec Integers.Byte.repr_unsigned.
-Instance Int_EqDec : TotalOrderDec Integers.Int.int _ _ :=
-  int_EqDec Integers.Int.repr_unsigned.
-Instance Int64_EqDec : TotalOrderDec Integers.Int64.int _ _ :=
-  int_EqDec Integers.Int64.repr_unsigned.
-Instance Ptrofs_EqDec : TotalOrderDec Integers.Ptrofs.int _ _ :=
-  int_EqDec Integers.Ptrofs.repr_unsigned.
+  intros.
+  unfold eqv, lt in *. intuition; eauto using le_trans.
+Qed.

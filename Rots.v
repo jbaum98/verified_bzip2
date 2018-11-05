@@ -63,14 +63,14 @@ Section Rots.
       apply rep_inv1_l. apply l_r_rot_inverse.
   Qed.
 
-  Lemma orig_in_rots `{EqDec (list A)}: forall l,
-      l <> [] -> Exists (equiv l) (rots l).
+  Lemma orig_in_rots : forall l,
+      l <> [] -> Exists (eq l) (rots l).
   Proof.
     intros. simpl.
     destruct (rots_destr l) as [x HCons]; auto.
     rewrite HCons.
-    apply Exists_cons_hd. apply equiv_reflexive.
-  Defined.
+    apply Exists_cons_hd. apply eq_refl.
+  Qed.
 
   Theorem rots_nonempty : forall l,
       Forall (fun x => ~ (x = [])) (rots l).

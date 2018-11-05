@@ -1,260 +1,20 @@
 (** * Merge sort over lists *)
 
+Require Import Sorted.
+
 Require Import Coq.Lists.List.
 Require Coq.Program.Wf.
 Require Coq.Program.Tactics.
 Require Import Coq.omega.Omega.
 Require Import Coq.Sorting.Permutation.
 
-Lemma Permutation_cons_in {A} : forall (x y : A) xs ys,
-    Permutation (x :: xs) (y :: ys) ->
-    (x = y \/ In x ys).
-Proof.
-  intros x y xs ys P.
-  eapply Permutation_in in P.
-  cbn in P. destruct P as [E | I]; eauto.
-  cbn; eauto.
-Qed.
+Require Import Ord.
 
-Section SORT.
+Section Sort.
 
 (** A type equipped with a total, decidable preorder. *)
-
-Variable A: Type.
-Variable le: A -> A -> Prop.
-Hypothesis le_trans: forall x y z, le x y -> le y z -> le x z.
-Hypothesis le_total: forall x y, le x y \/ le y x.
-Variable le_dec: forall (x y: A), {le x y} + {~le x y}.
-
-Lemma le_refl: forall x, le x x.
-Proof.
-  intros. destruct (le_total x x); auto.
-Qed.
-
-Lemma le_not: forall x y, ~le x y -> le y x.
-Proof.
-  intros. destruct (le_total x y). contradiction. auto.
-Qed.
-
-(** What it means for a list to be sorted in increasing order. *)
-
-Inductive Sorted: list A -> Prop :=
-  | Sorted_nil:
-      Sorted nil
-  | Sorted_cons: forall hd tl,
-      (forall x, In x tl -> le hd x) ->
-      Sorted tl ->
-      Sorted (hd :: tl).
-
-(** Lists of 1 element are sorted. *)
-
-Remark Sorted_1:
-  forall x, Sorted (x :: nil).
-Proof.
-  intros. constructor. intros. elim H. constructor.
-Qed.
-
-(** Lists of 2 ordered elements are sorted. *)
-
-Remark Sorted_2:
-  forall x y, le x y -> Sorted (x :: y :: nil).
-Proof.
-  intros. constructor.
-  intros. simpl in H0. destruct H0. subst x0. auto. contradiction.
-  apply Sorted_1.
-Qed.
-
-(** Two elements are equivalent if they compare [le] in both directions. *)
-
-Definition eqv (x y: A) : bool :=
-  if le_dec x y then if le_dec y x then true else false
-                else false.
-
-Lemma eqv_spec: forall x y, eqv x y = true <-> le x y /\ le y x.
-Proof.
-  intros. unfold eqv.
-  destruct (le_dec x y).
-  destruct (le_dec y x). tauto. intuition congruence.
-  intuition congruence.
-Qed.
-
-Theorem eqv_refl : forall x, eqv x x = true.
-Proof.
-  intros.
-  rewrite eqv_spec. split; apply le_refl.
-Qed.
-
-Theorem eqv_sym : forall x y, eqv x y = eqv y x.
-Proof.
-  intros.
-  destruct (eqv x y) eqn:E.
-  rewrite eqv_spec in E. destruct E.
-  unfold eqv.
-  destruct (le_dec y x); try contradiction.
-  destruct (le_dec x y); try contradiction.
-  auto.
-  unfold eqv.
-  destruct (le_dec y x); destruct (le_dec x y); auto.
-  assert (eqv x y = true) by (apply eqv_spec; auto).
-  congruence.
-Qed.
-
-Theorem eqv_subst : forall x y, eqv x y = true -> forall z, eqv x z = eqv y z.
-Proof.
-  intros.
-  apply eqv_spec in H.
-  destruct H.
-  unfold eqv.
-  destruct (le_dec x z).
-  - assert (le y z) by (eapply le_trans; eauto).
-    destruct (le_dec y z); try contradiction.
-    destruct (le_dec z x).
-    + destruct (le_dec z y). auto.
-      exfalso; apply n.
-      eapply le_trans; eauto.
-    + destruct (le_dec z y); auto.
-      exfalso; apply n.
-      eapply le_trans; eauto.
-  - destruct (le_dec y z).
-    + exfalso; apply n.
-      eapply le_trans; eauto.
-    + auto.
-Qed.
-
-(** Stable permutations.  Two lists are in the [Stable] relation if
-  equivalent elements appear in the same order in both lists.
-  That is, if the first list is of the form [ ... x ... y ... ]
-  with [x] and [y] being equivalent, the other list is also of
-  the form [ ... x ... y ... ].  *)
-
-Definition Stable (l l': list A) : Prop :=
-  forall x, filter (eqv x) l = filter (eqv x) l'.
-
-Lemma Stable_refl:
-  forall l, Stable l l.
-Proof.
-  intros; red; intros; auto.
-Qed.
-
-Lemma Stable_trans:
-  forall l1 l2 l3, Stable l1 l2 -> Stable l2 l3 -> Stable l1 l3.
-Proof.
-  intros; red; intros. transitivity (filter (eqv x) l2); auto.
-Qed.
-
-Remark filter_app:
-  forall (A: Type) (f: A -> bool) (l l': list A),
-  filter f (l ++ l') = filter f l ++ filter f l'.
-Proof.
-  induction l; intros; simpl. auto.
-  destruct (f a); simpl. f_equal; auto. auto.
-Qed.
-
-Lemma Stable_app:
-  forall l l' m m', Stable l l' -> Stable m m' -> Stable (l ++ m) (l' ++ m').
-Proof.
-  intros; red; intros. repeat rewrite filter_app. f_equal; auto.
-Qed.
-
-Lemma Stable_skip:
-  forall a l l', Stable l l' -> Stable (a::l) (a::l').
-Proof.
-  intros; red; intros. simpl.
-  destruct (eqv x a). f_equal; auto. auto.
-Qed.
-
-Lemma Stable_swap:
-  forall a b l, ~le b a -> Stable (a::b::l) (b::a::l).
-Proof.
-  intros; red; intros. simpl.
-  case_eq (eqv x a); intro; auto.
-  case_eq (eqv x b); intro; auto.
-  rewrite eqv_spec in H0. rewrite eqv_spec in H1. destruct H0; destruct H1.
-  elim H. eauto.
-Qed.
-
-Remark filter_empty:
-  forall (A: Type) (f: A -> bool) (l: list A),
-  (forall x, In x l -> f x = false) ->
-  filter f l = nil.
-Proof.
-  induction l; simpl; intros.
-  auto.
-  replace (f a) with false. apply IHl. auto. symmetry. auto.
-Qed.
-
-Lemma Stable_cons_app:
-  forall a l l1 l2,
-  Stable l (l1 ++ l2) ->
-  (forall b, In b l1 -> ~(le a b /\ le b a)) ->
-  Stable (a :: l) (l1 ++ a :: l2).
-Proof.
-  intros; red; intros. rewrite filter_app. simpl.
-  generalize (H x). rewrite filter_app.
-  case_eq (eqv x a); intro; auto.
-  rewrite (filter_empty _ (eqv x) l1). simpl. intro. congruence.
-  intros. case_eq (eqv x x0); intro; auto.
-  elim (H0 x0); auto.
-  rewrite eqv_spec in H1. destruct H1.
-  rewrite eqv_spec in H3. destruct H3.
-  split; eapply le_trans; eauto.
-Qed.
-
-Lemma Stable_cons_app':
-  forall a b l l1 l2,
-  Stable l (b :: l1 ++ l2) ->
-  Sorted (b :: l1) -> ~le b a ->
-  Stable (a :: l) (b :: l1 ++ a :: l2).
-Proof.
-  intros. change (Stable (a :: l) ((b :: l1) ++ a :: l2)).
-  apply Stable_cons_app. simpl; auto.
-  intros. simpl in H2. destruct H2. subst b0. tauto.
-  inversion H0; subst. red; intros [P Q]. elim H1. apply le_trans with b0; auto.
-Qed.
-
-Remark filter_sublist:
-  forall (A: Type) (f: A -> bool) (x: A) (l l1' l2': list A),
-  filter f l = l1' ++ x :: l2' ->
-  exists l1, exists l2, l = l1 ++ x :: l2 /\ filter f l1 = l1' /\ filter f l2 = l2'.
-Proof.
-  induction l; intros until l2'; simpl.
-  intro. destruct l1'; simpl in H; discriminate.
-  case_eq (f a); intros.
-  destruct l1'; simpl in H0; injection H0; clear H0; intros.
-  subst x. exists (@nil A0); exists l. auto.
-  subst a0. destruct (IHl _ _ H0) as [l1 [l2 [P [Q R]]]]. subst l.
-  exists (a :: l1); exists l2.
-  split. auto. split. simpl. rewrite H. congruence. auto.
-  destruct (IHl _ _ H0) as [l1 [l2 [P [Q R]]]]. subst l.
-  exists (a :: l1); exists l2.
-  split. auto. split. simpl. rewrite H. auto. auto.
-Qed.
-
-Lemma Stable_decomp:
-  forall l l',
-  Stable l l' ->
-  forall l1 x l2 y l3,
-  l = l1 ++ x :: l2 ++ y :: l3 ->
-  le x y -> le y x ->
-  exists l1', exists l2', exists l3',
-  l' = l1' ++ x :: l2' ++ y :: l3'.
-Proof.
-  intros.
-  generalize (H x). subst l. rewrite filter_app. simpl.
-  rewrite filter_app. simpl.
-  assert (eqv x x = true).
-    unfold eqv.
-    destruct (le_dec x x). auto. elim n. apply le_refl.
-  rewrite H0; clear H0.
-  assert (eqv x y = true).
-    unfold eqv. destruct (le_dec x y); try contradiction.
-    destruct (le_dec y x); try contradiction. auto.
-  rewrite H0; clear H0.
-  intro.
-  destruct (filter_sublist _ _ _ _ _ _ (sym_equal H0)) as [m1 [m2 [P [Q R]]]].
-  destruct (filter_sublist _ _ _ _ _ _ R) as [m3 [m4 [S [T U]]]].
-  exists m1; exists m3; exists m4. congruence.
-Qed.
+  Context {A} `{O : Ord A}.
+  Open Scope ord_scope.
 
 (** Merging two sorted lists. *)
 
@@ -308,6 +68,7 @@ Proof.
   change (Permutation (hd0 :: merge (hd :: tl) tl0) ((hd :: tl) ++ hd0 :: tl0)).
   apply Permutation_cons_app. auto.
   change (Stable (hd0 :: merge (hd :: tl) tl0) ((hd :: tl) ++ hd0 :: tl0)).
+  rewrite <- app_comm_cons.
   apply Stable_cons_app'. auto. constructor; auto. auto.
 Qed.
 
@@ -329,8 +90,8 @@ Program Fixpoint merge_pairs
       (forall l, In l ll' -> Sorted l)
       /\ Permutation (flatten ll') (flatten ll)
       /\ Stable (flatten ll') (flatten ll)
-      /\ length ll' <= length ll
-      /\ (length ll >= 2 -> length ll' < length ll) } :=
+      /\ (length ll' <= length ll)%nat
+      /\ (length ll >= 2 -> length ll' < length ll)%nat } :=
   match ll with
   | l1 :: l2 :: tl => merge l1 l2 :: merge_pairs tl _
   | _ => ll
@@ -472,44 +233,6 @@ Next Obligation.
   split. auto. split. eapply Permutation_trans; eauto. eapply Stable_trans; eauto.
 Qed.
 
-(** There is only one way to sort a list stably. *)
-
-Theorem stable_sort_unique : forall l l',
-    Sorted l -> Sorted l' ->
-    Permutation l l' -> Stable l l' ->
-    l = l'.
-Proof.
-  induction l as [|hd tl]; intros l' SL SL' P St.
-  - apply Permutation_nil in P. subst; auto.
-  - destruct l' as [|hd' tl'].
-    apply Permutation_sym in P. apply Permutation_nil_cons in P.
-    contradiction.
-    inversion SL; inversion SL'; subst; clear SL SL'.
-    assert (eqv hd hd' = true). {
-      pose proof (Permutation_sym P) as P'.
-      destruct (Permutation_cons_in hd hd' tl tl' P);
-      destruct (Permutation_cons_in hd' hd tl' tl P');
-      subst; try apply eqv_refl.
-      assert (le hd hd') by auto.
-      assert (le hd' hd) by auto.
-      unfold eqv; destruct (le_dec hd hd'); destruct (le_dec hd' hd);
-        try contradiction.
-      auto.
-    }
-    pose proof (St hd) as F. cbn in F.
-    rewrite H in F.
-    rewrite (eqv_refl hd) in F.
-    inversion F; subst; clear F.
-    f_equal.
-    apply IHtl; auto.
-    apply Permutation_cons_inv in P. auto.
-    unfold Stable in *.
-    intro x; specialize (St x).
-    cbn in St.
-    destruct (eqv x hd'); auto.
-    inversion St; auto.
-Qed.
-
 (** A property of permutations that is missing from the List library:
   a permutation of a list without duplicates is a list without duplicates. *)
 
@@ -529,4 +252,4 @@ Proof.
   auto.
 Qed.
 
-End SORT.
+End Sort.
