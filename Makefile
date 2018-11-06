@@ -20,9 +20,10 @@ Ord.vo: VST/compcert/lib/Integers.vo Instances.vo
 MergesortClass.vo: Ord.vo
 Prefix.vo: Ord.vo MergesortClass.vo
 BurrowsWheeler.vo: Ord.vo Rotation.vo Prefix.vo Rots.vo
-Rotation.vo: Repeat.vo
+Rotation.vo: Repeat.vo BWTactics.vo
 Iterate.vo: Repeat.vo
 Rots.vo: Iterate.vo Rotation.vo Repeat.vo
+Repeat.vo: BWTactics.vo
 
 VST/%.vo: VST/%.v
 	$(MAKE) -C VST $(patsubst VST/%,%,$@)

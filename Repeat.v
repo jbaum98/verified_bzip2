@@ -1,87 +1,93 @@
 Require Import Coq.Arith.PeanoNat.
 Require Import Coq.omega.Omega.
 
+Require Import BWTactics.
+
 Section Repeat.
   Context {A : Type}.
+  Open Scope program_scope.
 
-  Fixpoint rep (f : A -> A) (n : nat) (z : A) : A :=
-    match n with
-    | O => z
-    | S m => f (rep f m z)
-    end.
+  Definition rep (f : A -> A) : nat -> A -> A :=
+    fix rep n :=
+      match n with
+      | O => id
+      | S m => f ∘ rep m
+      end.
+
+  Theorem rep_l : forall f n,
+      f ∘ rep f n = rep f (S n).
+  Proof. reflexivity. Qed.
+
+  Theorem rep_r  : forall f n,
+      rep f n ∘ f = rep f (S n).
+  Proof.
+    induction n; intros.
+    - reflexivity.
+    - simpl rep at 1. crewrite IHn.
+      reflexivity.
+  Qed.
 
   Theorem rep_z : forall f n z,
       rep f (S n) z = rep f n (f z).
   Proof.
-    induction n; intros.
-    - reflexivity.
-    - remember (S n) as n'. simpl. subst.
-      rewrite IHn. easy.
+    intros.
+    pose proof rep_r f n.
+    eapply equal_f with (x := z) in H.
+    auto.
   Qed.
 
-  Theorem rep_l : forall f n z,
-      f (rep f n z) = rep f (S n) z.
-  Proof. reflexivity. Qed.
-
-  Theorem rep_r  : forall f n z,
-      rep f n (f z) = rep f (S n) z.
-  Proof.
-    intros. symmetry; apply rep_z.
-  Qed.
-
-  Theorem rep_split : forall f n m z,
-      rep f n (rep f m z) = rep f (n + m) z.
+  Theorem rep_split : forall f n m,
+      rep f n ∘ rep f m = rep f (n + m).
   Proof.
     intros.
     induction m.
     - simpl.
       rewrite Nat.add_0_r. reflexivity.
-    - simpl; rewrite rep_r. simpl; rewrite IHm.
-      rewrite rep_l.
-      f_equal. omega.
+    - simpl. crewrite rep_r. simpl; crewrite IHm.
+      rewrite rep_l. f_equal. omega.
   Qed.
 End Repeat.
 
 Section Invertible.
   Context {A : Type} (f g : A -> A).
-  Hypothesis HI: forall x, g (f x) = x.
+  Hypothesis HI: g ∘ f = id.
 
-  Lemma rep_inv1_l : forall n z,
-      g (rep f (S n) z) = rep f n z.
+  Lemma rep_inv1_l : forall n,
+      g ∘ rep f (S n) = rep f n.
   Proof.
     intros.
-    simpl. rewrite HI.
+    simpl. crewrite HI.
     easy.
   Qed.
 
-  Lemma rep_inv1_r : forall n z,
-      rep g (S n) (f z) = rep g n z.
+  Lemma rep_inv1_r : forall n,
+      rep g (S n) ∘ f = rep g n.
   Proof.
     intros. induction n.
     - simpl. auto.
     - remember (S n) as n'; simpl; subst.
-      rewrite IHn. apply rep_l.
+      crewrite IHn. apply rep_l.
   Qed.
 
-  Theorem rep_inv_l : forall n m z,
-      n >= m -> rep g m (rep f n z) = rep f (n - m) z.
+  Theorem rep_inv_l : forall n m,
+      n >= m -> rep g m ∘ rep f n  = rep f (n - m).
   Proof.
     intros n m. revert n. induction m; intros.
     - simpl. rewrite Nat.sub_0_r. reflexivity.
-    - simpl. rewrite IHm by omega.
+    - simpl. crewrite IHm by omega.
       destruct (n - m) as [|x] eqn:Hn; try omega.
       rewrite rep_inv1_l by auto.
       replace (n - S m) with x by omega.
       reflexivity.
   Qed.
 
-  Theorem rep_inv_r : forall n m z,
-      m >= n -> rep g m (rep f n z) = rep g (m - n) z.
+  Theorem rep_inv_r : forall n m,
+      m >= n -> rep g m ∘ rep f n = rep g (m - n).
   Proof.
     intros n m. induction n; intros.
     - simpl. rewrite Nat.sub_0_r.
       reflexivity.
-    - rewrite <- rep_r, IHn by omega.
+    - crewrite <- (rep_r f). crewrite (IHn) by omega.
       destruct (m - n) as [|x] eqn:Hm; try omega.
       rewrite rep_inv1_r by auto.
       replace (m - S n) with x by omega.
@@ -98,6 +104,6 @@ Section Preserves.
   Proof.
     intros z n Pz; revert z Pz.
     induction n; auto; intros.
-    simpl. auto.
+    simpl; unfold compose. auto.
   Qed.
 End Preserves.

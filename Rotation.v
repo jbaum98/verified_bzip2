@@ -3,8 +3,22 @@ Require Import Coq.Sorting.Permutation.
 Require Import Coq.omega.Omega.
 
 Require Import Repeat.
+Require Import BWTactics.
 
 Import ListNotations.
+
+Local Definition last {A} d l := @List.last A l d.
+Arguments last /.
+
+(* Automatically use A as type argument to rev *)
+Local Definition rev {A} := @rev A.
+Arguments rev /.
+
+Local Theorem rev_involutive {A} :
+  rev ∘ rev = @id (list A).
+Proof. extensionality l. apply List.rev_involutive. Qed.
+
+Local Definition nth {A} i d l := @List.nth A i l d.
 
 Section HeadTailInitLast.
   Context {A : Type}.
@@ -17,7 +31,7 @@ Section HeadTailInitLast.
     end.
 
   Lemma last2 : forall (l : list A) (a b d : A),
-      last (a :: b :: l) d = last (b :: l) d.
+      last d (a :: b :: l) = last d (b :: l).
   Proof.
     reflexivity.
   Qed.
@@ -50,7 +64,7 @@ Section HeadTailInitLast.
   Qed.
 
   Lemma last_app : forall (l: list A) (x d: A),
-      last (l ++ [x]) d = x.
+      last d (l ++ [x]) = x.
   Proof.
     induction l as [| x | a b tl IH] using list_ind2;
       intros; try reflexivity.
@@ -82,7 +96,7 @@ Section HeadTailInitLast.
   Qed.
 
   Lemma last_nonempty : forall (l: list A) d d',
-      l <> [] -> last l d = last l d'.
+      l <> [] -> last d l = last d' l.
   Proof.
     induction l as [| a | a b tl IH] using list_ind2;
       intros; try contradiction; clear H.
@@ -99,7 +113,7 @@ Section HeadTailInitLast.
   Qed.
 
   Lemma init_last_destr : forall xs x d,
-      x :: xs = init (x :: xs) ++ [last (x :: xs) d].
+      x :: xs = init (x :: xs) ++ [last d (x :: xs)].
   Proof.
     induction xs; intros.
     - reflexivity.
@@ -167,15 +181,13 @@ Section Permutations.
 End Permutations.
 
 Section Rot.
-  Open Scope program_scope.
-
   Context {A : Type}.
 
   (* Rotate a list to the right by moving the last element to the front. *)
   Definition rrot (l: list A) : list A :=
     match l with
     | [] => []
-    | hd :: tl => last l hd :: init l
+    | hd :: tl => last hd l :: init l
     end.
 
   (* Rotate a list to the left by moving the first element to the end. *)
@@ -209,44 +221,47 @@ Section Rot.
     apply app_assoc.
   Qed.
 
-  Theorem rrot_rev : forall l,
-    rrot (rev l) = rev (lrot l).
+  Theorem rrot_rev :
+    rrot ∘ rev = rev ∘ lrot.
   Proof.
+    extensionality l.
     destruct l.
     - reflexivity.
-    - simpl.
+    - unfold compose. cbn.
       rewrite rrot_app.
       unfold lrot. simpl.
       rewrite rev_app_distr.
       reflexivity.
   Qed.
 
-  Theorem lrot_rev : forall l,
-      lrot (rev l) = rev (rrot l).
+  Theorem lrot_rev :
+      lrot ∘ rev = rev ∘ rrot.
   Proof.
     intros.
-    rewrite <- rev_involutive at 1.
-    rewrite <- rrot_rev, -> rev_involutive.
+    crewrite <- rev_involutive.
+    crewrite <- rrot_rev.
+    crewrite -> rev_involutive.
     reflexivity.
   Qed.
 
-  Theorem l_r_rot_inverse : forall (l: list A),
-      rrot (lrot l) = l.
+  Theorem l_r_rot_inverse : rrot ∘ lrot = id.
   Proof.
+    extensionality l.
     destruct l.
     - reflexivity.
     - simpl. apply rrot_app.
   Qed.
 
-  Theorem r_l_rot_inverse : forall (l: list A),
-      lrot (rrot l) = l.
+  Theorem r_l_rot_inverse : lrot ∘ rrot = id.
   Proof.
-    intro l.
-    rewrite <- rev_involutive at 1.
-    rewrite <- rrot_rev.
-    replace (rev (rrot l)) with (lrot (rev l)) by apply lrot_rev.
-    rewrite l_r_rot_inverse.
-    apply rev_involutive.
+    extensionality l.
+    crewrite <- rev_involutive.
+    crewrite <- rrot_rev.
+    remember (rev ∘ rrot) as f.
+    crewrite <- lrot_rev. subst.
+    crewrite l_r_rot_inverse.
+    crewrite compose_id_left.
+    unfold compose. xrewrite rev_involutive. easy.
   Qed.
 
   Theorem lrot_perm : forall (l : list A),
@@ -255,7 +270,7 @@ Section Rot.
     destruct l as [|hd tl].
     - apply perm_nil.
     - simpl.
-      rewrite <- rev_involutive.
+      rewrite <- List.rev_involutive.
       rewrite rev_unit.
       apply Permutation_sym.
       eapply perm_trans.
@@ -282,8 +297,9 @@ Section Rot.
       Permutation l (rrot l).
   Proof.
     intros.
-    rewrite <- rev_involutive.
-    rewrite <- lrot_rev.
+    replace rrot with (id ∘ rrot) by apply compose_id_left.
+    crewrite <- rev_involutive.
+    crewrite <- lrot_rev.
     apply Permutation_sym. eapply perm_trans.
     apply Permutation_sym. apply Permutation_rev.
     eapply perm_trans. apply lrot_perm''.
@@ -337,7 +353,7 @@ Section Nth.
 
   Lemma nth_eq : forall l l' : list A,
       length l = length l' ->
-      (forall i d, i < length l -> nth i l d = nth i l' d) <-> l = l'.
+      (forall i d, i < length l -> nth i d l = nth i d l') <-> l = l'.
   Proof.
     induction l; intros l' L.
     - split; intros.
@@ -346,115 +362,122 @@ Section Nth.
     - split; intros.
       + destruct l'. simpl in L. omega.
       f_equal.
-        * apply (H 0 a). simpl; omega.
+        * apply (H 0 a). cbn. omega.
         * apply IHl; auto.
-          intros i d.
-          specialize (H (S i) d).
-          simpl in H. intro; apply H; omega.
+          intros i.
+          intros.
+          eapply (H (S i)). cbn. omega.
       + rewrite H. reflexivity.
   Qed.
 
-  Lemma nth_first : forall (l : list A) d,
-      nth 0 l d = hd d l.
+  Lemma nth_first : forall d : A,
+      nth 0 d = hd d.
   Proof.
-    destruct l; reflexivity.
+    intros. extensionality l. destruct l; reflexivity.
   Qed.
 
   Lemma nth_last : forall (l : list A) d,
-      nth (Nat.pred (length l)) l d = last l d.
+      nth (Nat.pred (length l)) d l = last d l.
   Proof.
     induction l using list_ind2; intros; try reflexivity.
-    replace (last (a :: b :: l)) with (last (b :: l)) by reflexivity.
+    replace (last d (a :: b :: l)) with (last d (b :: l)) by reflexivity.
     replace (length (a :: b :: l)) with (S (length (b :: l))) by reflexivity.
     unfold Nat.pred.
     replace (nth _ _ _)
-    with (nth (Nat.pred (length (b ::l))) (b :: l) d) by reflexivity.
+    with (nth (Nat.pred (length (b ::l))) d (b :: l)) by reflexivity.
     apply IHl.
   Qed.
 
-  Lemma nth_lrot : forall (l : list A) i d,
-      i < length l -> nth i (lrot l) d = nth ((i + 1) mod (length l)) l d.
+  Lemma nth_lrot : forall (l : list A) i n d,
+      n = length l -> i < n ->
+      (nth i d ∘ lrot) l = nth ((i + 1) mod n) d l.
   Proof.
-    destruct l as [|x xs]; intros.
+    destruct l as [|x xs]; intros i n d Hn H.
     - simpl lrot.
-      rewrite nth_overflow; try rewrite nth_overflow; auto.
-      simpl; omega.
+      unfold nth.
+      rewrite ?nth_overflow by (simpl; omega). destruct i; easy.
     - destruct (Nat.eq_dec i (Nat.pred (length (x :: xs)))).
-      + subst; clear H.
+      + subst i; clear H; rewrite <- Hn.
+
+        unfold compose at 1; rewrite Hn at 1;
         replace (length (x :: xs)) with (length (lrot (x :: xs))) at 1
-          by (symmetry; apply lrot_length).
+          by (symmetry; apply lrot_length);
         rewrite nth_last.
+
         simpl length; simpl Nat.pred; rewrite Nat.add_1_r.
-        rewrite Nat.mod_same; try omega.
-        rewrite nth_first.
-        simpl. apply last_app.
-      + simpl in H, n. assert (i < length xs) by omega; clear H n.
+        simpl in Hn. rewrite Nat.succ_pred_pos, Nat.mod_same by omega.
+        rewrite nth_first. apply last_app.
+
+      + cbn in Hn, n0. assert (i < length xs) by omega; clear H n0.
         rewrite Nat.mod_small by (simpl; omega).
         rewrite Nat.add_1_r. simpl nth.
         apply app_nth1; auto.
   Qed.
 
-  Lemma hd_last_rev : forall (l : list A) d,
-      hd d l = last (rev l) d.
+  Lemma hd_last_rev : forall d : A,
+      hd d = last d ∘ rev.
   Proof.
-    induction l; intros.
+    intros.
+    extensionality l; induction l.
     - reflexivity.
-    - simpl hd; simpl rev.
+    - unfold compose, hd, rev. simpl List.rev.
       rewrite last_app. reflexivity.
   Qed.
 
-  Lemma hd_rev_last : forall (l : list A) d,
-      hd d (rev l) = last l d.
+  Lemma hd_rev_last : forall d : A,
+      hd d ∘ rev = last d.
   Proof.
     intros.
-    rewrite <- rev_involutive with (l := l) at 2.
-    rewrite hd_last_rev.
+    crewrite hd_last_rev.
+    crewrite rev_involutive.
     reflexivity.
   Qed.
 
-  Lemma last_lrot : forall (l : list A) d,
-      last (lrot l) d = hd d l.
+  Lemma last_lrot : forall d : A,
+      last d ∘ lrot = hd d.
   Proof.
+    intros; extensionality l.
     destruct l; intros.
     - reflexivity.
-    - simpl. apply last_app.
+    - unfold compose, lrot. apply last_app.
   Qed.
 
-  Lemma hd_rrot : forall (l : list A) d,
-      hd d (rrot l) = last l d.
+  Lemma hd_rrot : forall d : A,
+      hd d ∘ rrot = last d.
   Proof.
     intros.
-    rewrite hd_last_rev.
-    rewrite <- lrot_rev.
-    rewrite last_lrot.
-    rewrite <- hd_rev_last.
+    crewrite hd_last_rev.
+    crewrite <- lrot_rev.
+    crewrite last_lrot.
+    crewrite hd_rev_last.
     reflexivity.
   Qed.
 
-  Lemma nth_rrot : forall (l : list A) i d,
-      i < length l -> nth i (rrot l) d = nth ((i + length l - 1) mod (length l)) l d.
+  Lemma nth_cons : forall (l : list A) x i d,
+      nth (S i) d (x :: l) = nth i d l.
+  Proof. reflexivity. Qed.
+
+  Lemma nth_rrot : forall (l : list A) i n d,
+      n = length l -> i < length l ->
+      (nth i d ∘ rrot) l = nth ((i + n - 1) mod n) d l.
   Proof.
     destruct l as [|x xs]; intros.
-    - simpl lrot.
-      rewrite nth_overflow; try rewrite nth_overflow; auto.
-      simpl; omega.
+    - unfold compose; simpl rrot; simpl nth at 1.
+      unfold nth; rewrite !nth_overflow by (simpl; omega).
+      destruct i; easy.
     - destruct i.
-      + simpl lrot. rewrite nth_first.
-        rewrite Nat.add_0_l.
-        rewrite Nat.mod_small by omega.
-        rewrite Nat.sub_1_r.
-        rewrite nth_last.
+      + simpl rrot. crewrite nth_first.
+        rewrite Nat.add_0_l, Nat.mod_small, Nat.sub_1_r by omega.
+        rewrite H, nth_last.
         rewrite hd_rrot.
         reflexivity.
-      + rewrite Nat.sub_1_r. simpl pred. simpl length.
-        replace (S (length (xs))) with (1 * S (length xs)) at 1 by omega.
-        rewrite Nat.mod_add; try omega.
-        simpl in H.
-        rewrite Nat.mod_small by omega.
-        unfold rrot.
-        replace (nth (S _) _ _) with (nth i (init (x :: xs)) d) by reflexivity.
-        rewrite init_last_destr with (d0 := d) at 2.
-        rewrite app_nth1 by (rewrite init_len; simpl; omega).
+      + rewrite Nat.sub_1_r; simpl pred; simpl length.
+        rewrite <- (Nat.mul_1_l n) at 1; rewrite Nat.mod_add by omega.
+        simpl in H, H0; rewrite Nat.mod_small by omega.
+        unfold compose, rrot.
+        rewrite nth_cons.
+        rewrite init_last_destr with (d0 := x) at 2.
+        unfold nth at 2; rewrite app_nth1 by (rewrite init_len; simpl; omega).
         reflexivity.
   Qed.
 End Nth.
@@ -462,8 +485,8 @@ End Nth.
 Section Repeats.
   Context {A : Type}.
 
-  Definition lastn (k : nat) (l : list A) : list A :=
-    rev (firstn k (rev l)).
+  Definition lastn (k : nat) : list A -> list A :=
+    rev ∘ firstn k ∘ rev.
 
   Theorem lastn_all : forall l : list A,
       lastn (length l) l = l.
@@ -471,8 +494,9 @@ Section Repeats.
     intros.
     unfold lastn.
     rewrite <- rev_length.
-    rewrite firstn_all.
-    apply rev_involutive.
+    unfold compose. rewrite firstn_all.
+    xrewrite rev_involutive.
+    easy.
   Qed.
 
   Theorem lastn_1_app : forall a l,
@@ -480,7 +504,7 @@ Section Repeats.
   Proof.
     induction l.
     - reflexivity.
-    - simpl. unfold lastn.
+    - simpl. unfold lastn, compose.
       simpl rev at 2.
       rewrite rev_unit. simpl firstn. reflexivity.
   Qed.
@@ -491,7 +515,7 @@ Section Repeats.
     induction k.
     - simpl. symmetry. apply lastn_1_app.
     - simpl.
-      unfold lastn.
+      unfold lastn, compose.
       rewrite rev_unit.
       remember (S k) as k'. simpl firstn at 2. subst.
       remember (firstn _ _) as F.
@@ -511,7 +535,7 @@ Section Repeats.
       k <= length l -> lastn k l = lastn k (l' ++ l).
   Proof.
     intros.
-    unfold lastn. f_equal.
+    unfold lastn, compose. f_equal.
     rewrite rev_app_distr.
     apply firstn_lt.
     rewrite rev_length; auto.
@@ -562,7 +586,8 @@ Section Repeats.
     replace (length (rep rrot (length l) l)) with (length l)
       by (eapply rep_preserves; [|reflexivity];
           intros x LenEq; rewrite LenEq; apply rrot_length).
-    rewrite rep_inv_l; [|apply r_l_rot_inverse|omega].
+    compose_var l.
+    crewrite (rep_inv_l); [|apply r_l_rot_inverse|omega].
     rewrite Nat.sub_diag. reflexivity.
   Qed.
 
@@ -576,7 +601,8 @@ Section Repeats.
     - replace l with (@nil A) by (symmetry; apply length_zero_iff_nil; auto).
       reflexivity.
     - simpl Nat.pred. rewrite <- HL; clear HL.
-      apply lrot_rep_id.
+      unfold compose. rewrite lrot_rep_id.
+      easy.
   Qed.
 
   Theorem rrot_rep_pred : forall (l : list A),
@@ -589,7 +615,8 @@ Section Repeats.
     - replace l with (@nil A) by (symmetry; apply length_zero_iff_nil; auto).
       reflexivity.
     - simpl Nat.pred. rewrite <- HL; clear HL.
-      apply rrot_rep_id.
+      unfold compose. rewrite rrot_rep_id.
+      easy.
   Qed.
 End Repeats.
 
@@ -600,17 +627,17 @@ Section Injective.
       lrot l = lrot l' -> l = l'.
   Proof.
     intros.
-    apply f_equal with (f := rrot) in H.
-    do 2 rewrite l_r_rot_inverse in H.
-    auto.
+    xrewrite <- l_r_rot_inverse with l.
+    xrewrite <- l_r_rot_inverse with l'.
+    f_equal. auto.
   Qed.
 
   Theorem rrot_injective : forall l l' : list A,
       rrot l = rrot l' -> l = l'.
   Proof.
     intros.
-    apply f_equal with (f := lrot) in H.
-    do 2 rewrite r_l_rot_inverse in H.
-    auto.
+    xrewrite <- r_l_rot_inverse with l.
+    xrewrite <- r_l_rot_inverse with l'.
+    f_equal. auto.
   Qed.
 End Injective.
