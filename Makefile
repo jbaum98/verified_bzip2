@@ -21,11 +21,12 @@ Ord.vo: VST/compcert/lib/Integers.vo
 Mergesort.vo: Ord.vo Sorted.vo
 Prefix.vo: Ord.vo Mergesort.vo
 BurrowsWheeler.vo: Ord.vo Rotation.vo Prefix.vo Rots.vo
-Rotation.vo: Repeat.vo BWTactics.vo
-Iterate.vo: Repeat.vo
+Rotation.vo: Repeat.vo BWTactics.vo Pointfree.vo
+Iterate.vo: Repeat.vo Pointfree.vo
 Rots.vo: Iterate.vo Rotation.vo Repeat.vo
-Repeat.vo: BWTactics.vo
+Repeat.vo: BWTactics.vo Pointfree.vo
 Sorted.vo: Ord.vo
+Pointfree.vo: BWTactics.vo Lib.vo
 
 VST/%.vo: VST/%.v
 	$(MAKE) -C VST $(patsubst VST/%,%,$@)

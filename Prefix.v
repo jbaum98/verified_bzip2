@@ -6,6 +6,8 @@ Require Import Coq.omega.Omega.
 Require Import Coq.Relations.Relation_Definitions.
 Require Import Coq.Classes.EquivDec.
 Require Import Coq.Sorting.Permutation.
+Require Import Coq.Program.Basics.
+Require Import Coq.Logic.FunctionalExtensionality.
 
 Require Import Ord.
 Require Import Mergesort.
@@ -112,7 +114,18 @@ Section Sort.
     apply Permutation_length.
     apply Permutation_sym. apply sort_perm.
   Qed.
+
+  Open Scope program_scope.
+
+  Theorem sort_length' : @length (list A) ∘ sort = @length (list A).
+  Proof. intros. extensionality l. apply sort_length. Qed.
 End Sort.
+
+Open Scope program_scope.
+
+Theorem sort_length'' {A} `{Ord A} : @length (list A) ∘ (fun l => sort (length l) l) = @length (list A).
+Proof. intros. extensionality l. apply sort_length. Qed.
+
 
 Theorem sort_zero {A} `{Ord A}: forall l : list (list A),
     sort 0 l = l.

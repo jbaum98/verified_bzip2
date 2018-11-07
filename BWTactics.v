@@ -5,6 +5,11 @@ Lemma compose_x_right {A B : Type} {p q : A -> B} :
   p = q -> forall (X : Type) (x : X -> A), p ∘ x = q ∘ x.
 Proof. intros. f_equal. auto. Qed.
 
+Ltac rhs H :=
+  match type of H with
+  | _ = ?rhs => constr:(rhs)
+  end.
+
 Ltac crewrite_main H' :=
   (* Reverse normalize H' *)
   rewrite ?compose_assoc in H';
@@ -91,6 +96,33 @@ Tactic Notation "xrewrite" "->" uconstr(P) "with" ident(x)
 Tactic Notation "xrewrite" "<-" uconstr(P) "with" ident(x)
   := xrewrite_back_id P idtac x.
 
+Ltac compose_pop_right :=
+  rewrite <- ?compose_assoc;
+  match goal with
+  | |- context [ (?f ∘ ?g) ?x] =>
+    let a := constr:((f ∘ g) x) in
+    let b := constr:(f (g x)) in
+    replace a with b by reflexivity
+  end.
+
+Ltac compose_pop_left :=
+  rewrite ?compose_assoc;
+  match goal with
+  | |- context [ (?f ∘ ?g) ?x] =>
+    let a := constr:((f ∘ g) x) in
+    let b := constr:(f (g x)) in
+    replace a with b by reflexivity
+  end.
+
+Ltac compose_push_left :=
+  rewrite ?compose_assoc;
+  match goal with
+  | |- context [?f ((?g ∘ ?h) ?x)] =>
+    let a := constr:(f ((g ∘ h) x)) in
+    let b := constr:((f ∘ g ∘ h) x) in
+    replace a with b by reflexivity
+  end.
+
 Ltac compose_var x :=
   match goal with
   | |- context [?f (?g x)] =>
@@ -108,7 +140,7 @@ Section Test.
   Goal c ∘ c ∘ id = a ∘ b ∘ a ∘ b.
   Proof.
     crewrite H.
-    crewrite <- H.
+    crewrite H.
     crewrite <- H.
     crewrite <- H.
     reflexivity.
