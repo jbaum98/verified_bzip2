@@ -6,9 +6,9 @@ Require Import Coq.Classes.EquivDec.
 Require Import compcert.lib.Integers.
 Require Import compcert.lib.Coqlib.
 
-Require Import NatEncode.
-Require Import SumboolIf.
-Require Import Instances.
+Require Import BWT.NatEncode.
+Require Import BWT.SumboolIf.
+Require Import BWT.Instances.
 
 Import ListNotations.
 

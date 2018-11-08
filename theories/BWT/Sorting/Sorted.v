@@ -1,7 +1,7 @@
 Require Import Coq.Lists.List.
 Require Import Coq.Sorting.Permutation.
 
-Require Import Ord.
+Require Import BWT.Sorting.Ord.
 
 Section Sorted.
   Context {A : Type} `{O: Ord A}.

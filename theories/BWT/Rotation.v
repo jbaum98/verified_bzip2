@@ -2,7 +2,7 @@ Require Import Coq.Lists.List.
 Require Import Coq.Sorting.Permutation.
 Require Import Coq.omega.Omega.
 
-Require Import Repeat.
+Require Import BWT.Repeat.
 
 Import ListNotations.
 

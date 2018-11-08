@@ -7,8 +7,8 @@ Require Import Coq.Relations.Relation_Definitions.
 Require Import Coq.Classes.EquivDec.
 Require Import Coq.Sorting.Permutation.
 
-Require Import Ord.
-Require Import Mergesort.
+Require Import BWT.Sorting.Ord.
+Require Import BWT.Sorting.Mergesort.
 
 Import ListNotations.
 

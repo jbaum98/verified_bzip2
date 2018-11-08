@@ -2,7 +2,7 @@ Require compcert.lib.Integers.
 Require Import Coq.ZArith.ZArith.
 Require Export Coq.Classes.EquivDec.
 
-Require Export Ord.
+Require Export BWT.Sorting.Ord.
 
 Instance Byte_EqDec   : EqDec Integers.Byte.int   eq := Integers.Byte.eq_dec.
 Instance Int_EqDec    : EqDec Integers.Int.int    eq := Integers.Int.eq_dec.

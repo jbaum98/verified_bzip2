@@ -1,1 +1,6 @@
--Q VST/msl VST.msl -Q VST/sepcomp VST.sepcomp -Q VST/veric VST.veric -Q VST/floyd VST.floyd -R VST/compcert compcert
+-Q theories/BWT BWT
+-Q theories/VST/msl VST.msl
+-Q theories/VST/sepcomp VST.sepcomp
+-Q theories/VST/veric VST.veric
+-Q theories/VST/floyd VST.floyd
+-R theories/VST/compcert compcert

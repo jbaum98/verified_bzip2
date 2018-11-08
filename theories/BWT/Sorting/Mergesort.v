@@ -1,14 +1,13 @@
 (** * Merge sort over lists *)
 
-Require Import Sorted.
-
 Require Import Coq.Lists.List.
 Require Coq.Program.Wf.
 Require Coq.Program.Tactics.
 Require Import Coq.omega.Omega.
 Require Import Coq.Sorting.Permutation.
 
-Require Import Ord.
+Require Import BWT.Sorting.Ord.
+Require Import BWT.Sorting.Sorted.
 
 Section Sort.
 

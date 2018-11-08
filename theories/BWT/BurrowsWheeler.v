@@ -9,12 +9,12 @@ Require Import Coq.Program.Combinators.
 
 Require Import Coq.Logic.FunctionalExtensionality.
 
-Require Import Rotation.
-Require Import Prefix.
-Require Import Ord.
-Require Import Repeat.
-Require Import Rots.
-Require Import Instances.
+Require Import BWT.Rotation.
+Require Import BWT.Sorting.Prefix.
+Require Import BWT.Sorting.Ord.
+Require Import BWT.Repeat.
+Require Import BWT.Rots.
+Require Import BWT.Instances.
 
 Import ListNotations.
 
