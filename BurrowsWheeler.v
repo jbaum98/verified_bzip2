@@ -39,7 +39,7 @@ Section SortRotations.
       sort (S k) ∘ map rrot = sort 1 ∘ map rrot ∘ sort k.
   Proof.
     intros.
-    pose proof rep_inv_r (@lrot A) rrot l_r_rot_inverse as rep_inv.
+    pose proof rep_inv_r _ lrot rrot (l_r_rot_inverse A) as rep_inv.
 
     replace rrot with (rep (@rrot A) 1) at 1 by reflexivity.
     replace 1 with (S k - k) at 1 by omega.
@@ -54,13 +54,13 @@ Section SortRotations.
     rewrite <- map_map', <- ?compose_assoc.
 
     f_equal.
-    symmetry; crewrite sort_rrot_k; symmetry.
+    crewrite (sort_rrot_k k).
     apply sort_rrot_k.
   Qed.
 End SortRotations.
 
 Section Cols.
-  Context {A : Type}.
+  Variable A : Type.
 
   Definition cols j := map (@firstn A j).
 
@@ -121,6 +121,8 @@ Section Cols.
   Qed.
 End Cols.
 
+Arguments cols {_}.
+
 Definition zipWith {A B C} (f : A -> B -> C) : (list A * list B) -> list C :=
   let zipWith' :=
       fix zipWith' a b :=
@@ -134,11 +136,11 @@ Section Fork.
   Definition fork {A B C} (p : (A -> B) * (A -> C)) : A -> (B * C)
     := fun a => let (f, g) := p in (f a, g a).
 
-  Theorem fork_compose {A B C D} : forall (h : A -> B) (f : B -> C) (g : B -> D),
+  Theorem fork_compose (A B C D : Type) : forall (h : A -> B) (f : B -> C) (g : B -> D),
       fork (f, g) ∘ h = fork (f ∘ h, g ∘ h).
   Proof. intros. extensionality x. reflexivity. Qed.
 
-  Theorem fork_map_zip {A B C D} :
+  Theorem fork_map_zip (A B C D : Type) :
     forall (f : A -> B) (g : A -> C) (h : B -> C -> D) a (l : list A),
       (zipWith h ∘ fork (map f, map g)) (a :: l)
       =
@@ -147,7 +149,7 @@ Section Fork.
 End Fork.
 
 Section PrependColumn.
-  Context {A : Type}.
+  Variable A : Type.
 
   Definition prepend_col : list A * list (list A) -> list (list A) :=
      zipWith cons.
@@ -174,8 +176,10 @@ Section PrependColumn.
   Admitted.
 End PrependColumn.
 
+Arguments prepend_col {_}.
+
 Section AppendCol.
-  Context {A : Type}.
+  Variable A : Type.
 
   Definition append_col : (list A * list (list A)) -> list (list A)
     := map lrot ∘ prepend_col.
@@ -236,8 +240,11 @@ Section AppendCol.
   Qed.
 End AppendCol.
 
+Arguments append_col {_}.
+
 Section Lexsort.
-  Context {A : Type} `{Ord A}.
+  Variable A : Type.
+  Context `{Ord A}.
 
   Lemma orig_in_sorted_rots : forall l k,
       l <> [] -> Exists (eq l) (sort k (rots l)).
@@ -258,7 +265,8 @@ Section Lexsort.
 End Lexsort.
 
 Section FindIndex.
-  Context {A : Type} `{EqDec A}.
+  Variable A : Type.
+  Context `{EqDec A}.
 
   Fixpoint findIndex (x : A) (ls : list A) : nat :=
     match ls with
@@ -299,8 +307,11 @@ Section FindIndex.
   Qed.
 End FindIndex.
 
+Arguments findIndex {_} {_} {_} {_}.
+
 Section Transform.
-  Context {A : Type} `{O: Ord A} `{E : EqDec A eq}.
+  Variable A : Type.
+  Context `{O: Ord A} `{E : EqDec A eq}.
 
   Definition lexsort l : list (list A) := sort (length l) l.
 
@@ -354,7 +365,11 @@ Section Transform.
   Qed.
 End Transform.
 
-Lemma map_const {A B} : forall (f : A -> B) c,
+Arguments lexsort {A} {O}.
+Arguments bwp {A} {O}.
+Arguments bwn {A} {O} {_} {_}.
+
+Lemma map_const (A B : Type) : forall (f : A -> B) c,
     (forall x, f x = c) -> map f = repeat c ∘ @length A.
 Proof.
   intros. extensionality l. unfold compose.
@@ -363,7 +378,7 @@ Proof.
 Qed.
 
 Section Recreate.
-  Context {A : Type} `{Ord A}.
+  Context (A : Type) `{Ord A}.
 
   Fixpoint recreate (j : nat) : list A -> list (list A) :=
     match j with
@@ -405,8 +420,7 @@ Section Recreate.
       rewrite <- HL in *.
       crewrite (recreate_inspiration j (length l) a) by omega.
       crewrite fork_compose.
-      unfold compose, fork; do 4 f_equal.
-      + erewrite bwp_nonempty. unfold compose, lexsort.
+      unfold compose, fork; do 4 f_equal. + erewrite bwp_nonempty. unfold compose, lexsort.
         rewrite rots_length. reflexivity. intro c. rewrite c in *. discriminate.
       + unfold compose in IHj. rewrite IHj. unfold lexsort. rewrite rots_length.
         reflexivity.
@@ -424,6 +438,8 @@ Section Recreate.
     cbv beta; intros; omega.
   Qed.
 End Recreate.
+
+Arguments recreate {A} {O} : rename.
 
 Section Unbwt.
   Context {A : Type} `{O : Ord A} `{E : EqDec A eq}.

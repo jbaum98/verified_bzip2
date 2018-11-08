@@ -12,7 +12,7 @@ Require Import Pointfree.
 Import ListNotations.
 
 Section Rots.
-  Context {A : Type}.
+  Variable A : Type.
 
   Definition rots (l : list A) : list (list A) :=
     iter lrot (length l) l.
@@ -73,7 +73,7 @@ Section Rots.
       rewrite Nat.mod_add, Nat.mod_small by omega.
       rewrite iter_nth by omega.
       rewrite rep_l.
-      crewrite rep_inv1_l by apply l_r_rot_inverse. reflexivity.
+      crewrite (rep_inv1_l _ _ _ (l_r_rot_inverse A)). reflexivity.
   Qed.
 
   Lemma orig_in_rots : forall l,
@@ -103,3 +103,5 @@ Section Rots.
       auto.
   Qed.
 End Rots.
+
+Arguments rots {_}.

@@ -168,7 +168,7 @@ Section Permutations.
 End Permutations.
 
 Section Rot.
-  Context {A : Type}.
+  Variable A : Type.
 
   (* Rotate a list to the right by moving the last element to the front. *)
   Definition rrot (l: list A) : list A :=
@@ -208,26 +208,24 @@ Section Rot.
     apply app_assoc.
   Qed.
 
-  Theorem rrot_rev :
-    rrot ∘ rev' = rev' ∘ lrot.
+  Theorem rrot_rev : rrot ∘ rev = rev ∘ lrot.
   Proof.
-    extensionality l.
+    intros. extensionality l.
     destruct l.
     - reflexivity.
     - unfold compose. cbn.
       rewrite rrot_app.
-      unfold lrot. simpl.
       rewrite rev_app_distr.
       reflexivity.
   Qed.
 
-  Theorem lrot_rev :
-      lrot ∘ rev' = rev' ∘ rrot.
+  Theorem lrot_rev : lrot ∘ rev = rev ∘ rrot.
   Proof.
     intros.
+    rewrite <- compose_id_right.
     crewrite <- rev_involutive'.
-    crewrite <- rrot_rev.
-    crewrite -> rev_involutive'.
+    crewrite rrot_rev.
+    crewrite rev_involutive'.
     reflexivity.
   Qed.
 
@@ -241,14 +239,14 @@ Section Rot.
 
   Theorem r_l_rot_inverse : lrot ∘ rrot = id.
   Proof.
-    extensionality l.
+    rewrite <- compose_id_left with (f := lrot).
     crewrite <- rev_involutive'.
     crewrite <- rrot_rev.
-    remember (rev' ∘ rrot) as f.
+    remember (rev ∘ rrot) as f.
     crewrite <- lrot_rev. subst.
     crewrite l_r_rot_inverse.
     crewrite compose_id_left.
-    unfold compose. xrewrite rev_involutive'. easy.
+    crewrite rev_involutive'. easy.
   Qed.
 
   Theorem lrot_perm : forall (l : list A),
@@ -306,7 +304,7 @@ Section Rot.
     exact (f_perm' rrot rrot_perm).
   Qed.
 
-  Theorem lrot_length : forall l,
+  Theorem lrot_length : forall l : list A,
         length l = length (lrot l).
   Proof.
     intros.
@@ -322,7 +320,7 @@ Section Rot.
     apply rrot_perm.
   Qed.
 
-  Theorem lrot_nonempty : forall l,
+  Theorem lrot_nonempty : forall l : list A,
       l <> [] -> lrot l <> [].
   Proof.
     exact (f_nonempty lrot lrot_perm).
@@ -334,6 +332,9 @@ Section Rot.
     exact (f_nonempty rrot rrot_perm).
   Qed.
 End Rot.
+
+Arguments rrot {_}.
+Arguments lrot {_}.
 
 Section Nth.
   Context {A : Type}.
@@ -401,29 +402,29 @@ Section Nth.
         apply app_nth1; auto.
   Qed.
 
-  Lemma hd_last_rev' : forall d : A,
-      hd d = last' d ∘ rev'.
+  Lemma hd_last_rev : forall d : A,
+      hd d = last' d ∘ rev.
   Proof.
     intros.
     extensionality l; destruct l.
     - reflexivity.
-    - unfold compose, hd, rev', last'. simpl rev.
+    - unfold compose, hd, rev, last'. simpl rev.
       rewrite last_app. reflexivity.
   Qed.
 
-  Lemma tl_init_rev' : @rev' A ∘ tl' = init ∘ rev'.
+  Lemma tl_init_rev : @rev A ∘ tl' = init ∘ rev.
     extensionality l; destruct l.
     - reflexivity.
-    - unfold compose, rev'. simpl rev.
+    - unfold compose, rev. simpl rev.
       rewrite init_app. cbn. rewrite app_nil_r.
       easy.
   Qed.
 
   Lemma hd_rev_last : forall d : A,
-      hd d ∘ rev' = last' d.
+      hd d ∘ rev = last' d.
   Proof.
     intros.
-    crewrite hd_last_rev'.
+    crewrite hd_last_rev.
     crewrite rev_involutive'.
     reflexivity.
   Qed.
@@ -496,7 +497,7 @@ Section Repeats.
   Context {A : Type}.
 
   Definition lastn (k : nat) : list A -> list A :=
-    rev' ∘ firstn k ∘ rev'.
+    rev ∘ firstn k ∘ rev.
 
   Theorem lastn_all : forall l : list A,
       lastn (length l) l = l.
@@ -515,7 +516,7 @@ Section Repeats.
     induction l.
     - reflexivity.
     - simpl. unfold lastn, compose.
-      simpl rev' at 2.
+      simpl rev at 2.
       rewrite rev_unit. simpl firstn. reflexivity.
   Qed.
 
@@ -597,7 +598,7 @@ Section Repeats.
       by (eapply rep_preserves; [|reflexivity];
           intros x LenEq; rewrite LenEq; apply rrot_length).
     compose_var l.
-    crewrite (rep_inv_l); [|apply r_l_rot_inverse|omega].
+    crewrite (rep_inv_l _ _ _ (r_l_rot_inverse A)) by omega.
     rewrite Nat.sub_diag. reflexivity.
   Qed.
 

@@ -7,7 +7,7 @@ Require Import Pointfree.
 Import ListNotations.
 
 Section Iterate.
-  Context {A : Type}.
+  Variable A : Type.
 
   Fixpoint iter (f : A -> A) (n : nat) (z : A) : list A :=
     match n with
@@ -48,3 +48,5 @@ Section Iterate.
     - simpl. f_equal. apply IHn.
   Qed.
 End Iterate.
+
+Arguments iter {_}.

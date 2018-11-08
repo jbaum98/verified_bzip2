@@ -4,7 +4,7 @@ Require Import Coq.omega.Omega.
 Require Import BWTactics.
 
 Section Repeat.
-  Context {A : Type}.
+  Variable A : Type.
   Open Scope program_scope.
 
   Definition rep (f : A -> A) : nat -> A -> A :=
@@ -43,13 +43,15 @@ Section Repeat.
     induction m.
     - simpl.
       rewrite Nat.add_0_r. reflexivity.
-    - simpl. crewrite rep_r. simpl; crewrite IHm.
+    - simpl. crewrite (rep_r f n). simpl; crewrite IHm.
       rewrite rep_l. f_equal. omega.
   Qed.
 End Repeat.
 
+Arguments rep {_}.
+
 Section Invertible.
-  Context {A : Type} (f g : A -> A).
+  Variables (A : Type) (f g : A -> A).
   Hypothesis HI: g ∘ f = id.
 
   Lemma rep_inv1_l : forall n,
@@ -74,7 +76,7 @@ Section Invertible.
   Proof.
     intros n m. revert n. induction m; intros.
     - simpl. rewrite Nat.sub_0_r. reflexivity.
-    - simpl. crewrite IHm by omega.
+    - simpl. crewrite (IHm n) by omega.
       destruct (n - m) as [|x] eqn:Hn; try omega.
       rewrite rep_inv1_l by auto.
       replace (n - S m) with x by omega.
@@ -87,7 +89,7 @@ Section Invertible.
     intros n m. induction n; intros.
     - simpl. rewrite Nat.sub_0_r.
       reflexivity.
-    - crewrite <- (rep_r f). crewrite (IHn) by omega.
+    - crewrite <- rep_r. crewrite IHn by omega.
       destruct (m - n) as [|x] eqn:Hm; try omega.
       rewrite rep_inv1_r by auto.
       replace (m - S n) with x by omega.

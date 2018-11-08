@@ -11,37 +11,34 @@ Section TlLast.
   Arguments last' /.
 End TlLast.
 
-Section Rev.
-  (* Automatically use A as type argument to rev *)
-  Definition rev' {A} := @rev A.
-  Arguments rev' /.
+Arguments rev {_}.
 
-  Theorem rev_involutive' {A} :
-    rev' ∘ rev' = @id (list A).
-  Proof. extensionality l. apply rev_involutive. Qed.
+Section Rev.
+  Theorem rev_involutive' : forall A,
+    rev ∘ rev = @id (list A).
+  Proof. intros. extensionality l. apply rev_involutive. Qed.
 
   Theorem rev_injective' {A} : forall x x' : list A,
-      rev' x = rev' x' -> x = x'.
+      rev x = rev x' -> x = x'.
   Proof.
     intros.
     rewrite <- rev_involutive.
-    replace (rev x') with (rev' x') by reflexivity.
     rewrite <- H.
     rewrite rev_involutive.
     reflexivity.
   Qed.
 
  Theorem rev_surjective {A} :
-   forall y : list A, exists x, rev' x = y.
+   forall y : list A, exists x, rev x = y.
  Proof.
    intros.
-   exists (rev' y).
-   unfold rev'. apply rev_involutive.
+   exists (rev y).
+   unfold rev. apply rev_involutive.
  Qed.
 End Rev.
 
 Section Nth.
-  Context {A : Type}.
+  Variable A : Type.
 
   Definition nth' i d l := @nth A i l d.
 
@@ -57,17 +54,19 @@ Section Nth.
   Qed.
 End Nth.
 
+Arguments nth' {_}.
+
 Section Map.
-  Lemma eq_map {A B : Type} (f g : A -> B) l :
+  Lemma eq_map (A B : Type) : forall (f g : A -> B) l,
     (f = g) -> map f l = map g l.
   Proof.
-    intros HE; induction l; try reflexivity.
+    intros f g l HE; induction l; try reflexivity.
     eapply equal_f in HE.
     simpl; rewrite HE, IHl.
     reflexivity.
   Qed.
 
-  Lemma map_map' {A B C : Type} : forall (f : A -> B) (g : B -> C),
+  Lemma map_map' (A B C : Type) : forall (f : A -> B) (g : B -> C),
     map g ∘ map f = map (g ∘ f).
   Proof.
     intros. extensionality l. unfold compose.
@@ -75,10 +74,10 @@ Section Map.
     reflexivity.
   Qed.
 
-  Lemma map_id' {A} : map id = @id (list A).
+  Lemma map_id' A : map id = @id (list A).
   Proof. extensionality l. rewrite map_id. reflexivity. Qed.
 
-  Lemma map_injective {A B : Type} : forall (f : A -> B) ,
+  Lemma map_injective (A B : Type) : forall (f : A -> B) ,
       (forall x y, f x = f y -> x = y) ->
       forall x y, map f x = map f y -> x = y.
   Proof.
@@ -99,7 +98,7 @@ Section Map.
 End Map.
 
 Section InjectiveSurjective.
-  Theorem inj_compose_left {A B C}: forall f : B -> C,
+  Theorem inj_compose_left (A B C : Type) : forall f : B -> C,
     (forall x x', f x = f x' -> x = x') ->
     forall g h : A -> B, f ∘ g = f ∘ h -> g = h.
   Proof.
@@ -110,7 +109,7 @@ Section InjectiveSurjective.
     apply E.
   Qed.
 
-  Theorem sur_compose_right {A B C}: forall f : A -> B,
+  Theorem sur_compose_right (A B C : Type) : forall f : A -> B,
       (forall y, exists x, f x = y) ->
       forall g h : B -> C, g ∘ f = h ∘ f -> g = h.
   Proof.
