@@ -1,23 +1,25 @@
 Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Coq.Lists.List.
+Require Basics.
 Import ListNotations.
 
-Require Import BWT.Pointwise.ComposeList.
+Require Import BWT.Pointwise.FList.
 
-Fixpoint constr_eq {A B} (constrs : list (A -> Prop)) (f g : [A --> B]) (x : A): Prop :=
-  match constrs with
-  | nil => capply f x = capply g x
-  | cons constr constrs => constr x -> constr_eq constrs f g x
-  end.
+Definition preconditions (premises: list Prop) (conc : Prop) : Prop
+  := fold_right Basics.impl conc premises.
 
-Definition constr_ext_eq {A B} constrs (f g : [A --> B]) : Prop
-  := forall x, constr_eq constrs f g x.
+Definition constr_eq {A B} (constrs : list (A -> Prop)) (f g : [A --> B]) : Prop
+  := forall x, preconditions (map (Basics.flip Basics.apply x) constrs) (fapply f x = fapply g x).
 
-Notation "f ≡ g 'given' c" := (constr_ext_eq c f g) (at level 100).
+Notation "f ≡ g" := (constr_eq [] f g) (at level 100) : flist_scope.
+Notation "f ≡ g 'given' c" := (constr_eq c f g) (at level 100) : flist_scope.
 
-Goal ((fun x => x) :∘: id{nat} ≡ (fun x => 2 * x) :∘: id{nat} given [fun x => x = 0]).
+Ltac destr_constr_eq
+  := cbv [constr_eq preconditions Basics.impl Basics.flip Basics.apply]; cbn;
+     autorewrite with flist; cbn.
+
+Goal ([fun x => x] ≡ [fun x => 2 * x] given [fun x => x = 0]).
 Proof.
-  unfold constr_ext_eq, constr_eq.
-  intros x Hx. simpl constr_eq. autorewrite with core. rewrite !Hx.
-  reflexivity.
+  destr_constr_eq.
+  intros x Hx. rewrite Hx. reflexivity.
 Qed.
