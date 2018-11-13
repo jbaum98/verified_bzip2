@@ -12,6 +12,7 @@ Require Import Coq.Logic.FunctionalExtensionality.
 Require Import BWT.Rotation.
 Require Import BWT.Sorting.Prefix.
 Require Import BWT.Sorting.Ord.
+Require Import BWT.Sorting.Sorted.
 Require Import BWT.Repeat.
 Require Import BWT.Rots.
 Require Import BWT.Instances.
@@ -124,23 +125,50 @@ End Permutations.
 Section SortRotations.
   Context {A : Type} `{O : Ord A}.
 
-  Theorem foo : forall k l,
-sort (S k) (map rrot l) = (sort 1 ∘ map rrot) (sort k l) ->
-      @sort A O (S k) (map rrot l) = @sort A O 1 (map rrot (sort k l)).
-  Proof. unfold compose in *. easy. Qed.
+  Local Arguments Sorted {_} _.
+  Local Arguments Stable {_} _.
+  Local Arguments eqv_dec {_} _.
 
-  Lemma sort_succ_k : forall k l,
-      sort (S k) l = sort 1 (map rrot (sort k (map lrot l))).
+  (*
+  Lemma prepend_sorted : forall k mat c,
+      Sorted (Ord_list_k k) mat ->
+      Sorted (Ord_list_k (S k)) (sort 1 (prepend_col (c, mat))).
+   *)
+
+  Lemma stable_S_k : forall k l,
+      Stable (Ord_list_k (S k))
+             (map (rep rrot (S k)) l)
+             (sort 1 (map rrot (sort k (map (rep rrot k) l)))).
   Proof.
+    intros k l.
+    induction l.
+    - compute. reflexivity.
+    - unfold Stable. intros. simpl.
+      destruct (eqv_dec (Ord_list_k (S k)) x (rrot (rep rrot k a))).
   Admitted.
 
   Theorem sort_rrot_k : forall k l,
-    sort k (map (rep rrot k) l)= rep (sort 1 ∘ map rrot) k l.
+    sort k (map (rep rrot k) l) = rep (sort 1 ∘ map rrot) k l.
   Proof.
+    induction k; intros; [simpl; rewrite map_id; apply sort_zero|].
+    simpl. unfold compose.
+    rewrite <- IHk; clear IHk.
+    replace (fun z => rrot (rep rrot k z)) with (rep (@rrot A) (S k))
+      by (extensionality z; symmetry; apply rep_l).
+    apply @stable_sort_unique with (O := Ord_list_k (S k)); auto.
+    - apply sort_sorted.
+    - admit.
+    - eapply Permutation_trans. apply sort_perm.
+      apply Permutation_sym.
+      eapply Permutation_trans. apply sort_perm.
+      eapply Permutation_trans. apply Permutation_map. apply sort_perm.
+      rewrite map_map. apply Permutation_refl.
+    - eapply Stable_trans. apply sort_stable.
+      apply stable_S_k.
   Admitted.
 
   Lemma sort_succ_rrot : forall k (l : list (list A)),
-      @sort A O (S k) (map rrot l) = @sort A O 1 (map rrot (sort k l)).
+      sort (S k) (map rrot l) = sort 1 (map rrot (sort k l)).
   Proof.
     intros.
     pose proof (sort_rrot_k (S k)) as E6.

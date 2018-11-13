@@ -6,9 +6,11 @@ Require Import Coq.omega.Omega.
 Require Import Coq.Relations.Relation_Definitions.
 Require Import Coq.Classes.EquivDec.
 Require Import Coq.Sorting.Permutation.
+Require Import Coq.Sorting.Sorted.
 
 Require Import BWT.Sorting.Ord.
 Require Import BWT.Sorting.Mergesort.
+Require Import BWT.Sorting.Sorted.
 
 Import ListNotations.
 
@@ -94,26 +96,84 @@ Section Sort.
   Context {A : Type} `{Ord A}.
 
   Variable k : nat.
+  Let Ok := Ord_list_k k.
 
   Program Definition sort :  list (list A) -> list (list A)
-    := @mergesort _ (Ord_list_k k).
+    := @mergesort _ Ok.
 
-  Theorem sort_perm : forall l, Permutation l (sort l).
+  Lemma sort_props : forall l,
+      @Sorted _ Ok (sort l) /\
+      Permutation (sort l) l /\
+      @Stable _ Ok (sort l) l.
   Proof.
     intros.
     unfold sort. case (mergesort l). intros l' [S [P St]].
-    cbn. apply Permutation_sym. apply P.
-  Defined.
+    cbn. intuition.
+  Qed.
+
+  Theorem sort_sorted : forall l,
+      @Sorted _ Ok (sort l).
+  Proof. apply sort_props. Qed.
+
+  Theorem sort_perm : forall l,
+      Permutation (sort l) l.
+  Proof. apply sort_props. Qed.
+
+  Theorem sort_stable : forall l,
+      @Stable _ Ok (sort l) l.
+  Proof. apply sort_props. Qed.
 
   Theorem sort_length : forall l,
       length (sort l) = length l.
   Proof.
     intros.
     apply Permutation_length.
-    apply Permutation_sym. apply sort_perm.
+    apply sort_perm.
   Qed.
 End Sort.
 
-Theorem sort_zero {A} `{Ord A}: forall l : list (list A),
+Section SortedK.
+  Context {A : Type} `{Ord A}.
+
+  Local Arguments Sorted {_} _.
+  Local Arguments le {_} _.
+
+  Theorem sorted_zero : forall l,
+      Sorted (Ord_list_k 0) l.
+  Proof.
+    intros.
+    apply Sorted_LocallySorted_iff.
+    induction l as [|a [|b l]]; constructor; auto.
+    apply le_zero.
+  Qed.
+
+  Theorem sort_zero : forall l : list (list A),
     sort 0 l = l.
-Admitted.
+  Proof.
+    intros.
+    unfold sort. case (mergesort l) as [l' [S [P St]]]; cbn.
+    apply @stable_sort_unique with (O := Ord_list_k 0); auto using sorted_zero.
+  Qed.
+
+  Theorem le_k_S : forall k x y,
+      le_k (S k) x y -> le_k k x y.
+  Proof.
+    intros k x y HL. remember (S k) as k'. generalize dependent k.
+    induction HL; intros; subst.
+    - constructor.
+    - discriminate.
+    - constructor; auto.
+    - destruct k0; [apply le_zero|].
+      apply le_cons_eq; auto.
+  Qed.
+
+  Theorem sorted_S : forall k l,
+      Sorted (Ord_list_k (S k)) l -> Sorted (Ord_list_k k) l.
+  Proof.
+    intros k l HS. remember (S k) as k'. generalize dependent k.
+    induction HS; intros; subst; constructor.
+    - intros. apply le_k_S. apply H0. apply H1.
+    - apply IHHS. auto.
+  Qed.
+
+End SortedK.
