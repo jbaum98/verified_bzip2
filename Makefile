@@ -15,7 +15,7 @@ clean:
 	fd --no-ignore-vcs -e vo -e glob -e d -x rm {}
 
 theories/VST/%.vo: theories/VST/%.v
-	$(MAKE) -C VST $(patsubst VST/%,%,$@)
+	$(MAKE) -C theories/VST $(patsubst theories/VST/%,%,$@)
 
 theories/BWT/%.vo: theories/BWT/%.v
 	$(COQC) $<
