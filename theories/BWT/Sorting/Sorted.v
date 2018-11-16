@@ -34,6 +34,11 @@ Section Sorted.
     intros. simpl in H0. destruct H0. subst x0. auto. contradiction.
     apply Sorted_1.
   Qed.
+
+  Theorem Sorted_uncons : forall hd tl,
+      Sorted (hd :: tl) ->
+      (forall x : A, In x tl -> le hd x) /\ Sorted tl.
+  Proof. intros hd tl H. inversion H. auto. Qed.
 End Sorted.
 
 Section Filter.
@@ -94,7 +99,34 @@ Section Filter.
     exists (a :: l1); exists l2.
     split. auto. split. simpl. rewrite H. auto. auto.
   Qed.
+
+  Theorem filter_Forall : forall l,
+      Forall T (filter l).
+  Proof.
+    induction l.
+    - constructor.
+    - simpl. destruct (f a).
+      constructor; auto.
+      auto.
+  Qed.
 End Filter.
+
+Section SortedFilter.
+  Context {A} `{Ord A}.
+
+  Theorem sorted_filter : forall l,
+      Sorted l -> (forall {F T} (f : forall y : A, {T y} + {F y}), Sorted (filter f l)).
+  Proof.
+    intros. induction l; [constructor|].
+    simpl. destruct (f a).
+    - inversion H0; subst; clear H0.
+      constructor.
+      + intros x Hx.
+        apply H3. apply filter_In in Hx. intuition.
+      + apply IHl. auto.
+    - apply IHl. apply Sorted_uncons in H0. intuition.
+  Qed.
+End SortedFilter.
 
 Lemma Permutation_cons_in {A} : forall (x y : A) xs ys,
     Permutation (x :: xs) (y :: ys) ->

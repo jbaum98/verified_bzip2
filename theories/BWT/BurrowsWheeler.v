@@ -122,142 +122,23 @@ Section Permutations.
   Qed.
 End Permutations.
 
-Section SortRotations.
-  Context {A : Type} `{O : Ord A}.
+Section ZipWith.
+  Context {A B C : Type} (f : A -> B -> C).
 
-  Local Arguments Sorted {_} _.
-  Local Arguments Stable {_} _.
-  Local Arguments eqv_dec {_} _.
+  Fixpoint zipWith (a : list A) (b : list B) : list C :=
+    match (a, b) with
+    | (ahd :: atl, bhd :: btl) => f ahd bhd :: zipWith atl btl
+    | _ => []
+    end.
 
-  (*
-  Lemma prepend_sorted : forall k mat c,
-      Sorted (Ord_list_k k) mat ->
-      Sorted (Ord_list_k (S k)) (sort 1 (prepend_col (c, mat))).
-   *)
+  Theorem zipWith_nil_l : forall b,
+      zipWith [] b = [].
+  Proof. reflexivity. Qed.
 
-  Lemma stable_S_k : forall k l,
-      Stable (Ord_list_k (S k))
-             (map (rep rrot (S k)) l)
-             (sort 1 (map rrot (sort k (map (rep rrot k) l)))).
-  Proof.
-    intros k l.
-    induction l.
-    - compute. reflexivity.
-    - unfold Stable. intros. simpl.
-      destruct (eqv_dec (Ord_list_k (S k)) x (rrot (rep rrot k a))).
-  Admitted.
-
-  Theorem sort_rrot_k : forall k l,
-    sort k (map (rep rrot k) l) = rep (sort 1 ∘ map rrot) k l.
-  Proof.
-    induction k; intros; [simpl; rewrite map_id; apply sort_zero|].
-    simpl. unfold compose.
-    rewrite <- IHk; clear IHk.
-    replace (fun z => rrot (rep rrot k z)) with (rep (@rrot A) (S k))
-      by (extensionality z; symmetry; apply rep_l).
-    apply @stable_sort_unique with (O := Ord_list_k (S k)); auto.
-    - apply sort_sorted.
-    - admit.
-    - eapply Permutation_trans. apply sort_perm.
-      apply Permutation_sym.
-      eapply Permutation_trans. apply sort_perm.
-      eapply Permutation_trans. apply Permutation_map. apply sort_perm.
-      rewrite map_map. apply Permutation_refl.
-    - eapply Stable_trans. apply sort_stable.
-      apply stable_S_k.
-  Admitted.
-
-  Lemma sort_succ_rrot : forall k (l : list (list A)),
-      sort (S k) (map rrot l) = sort 1 (map rrot (sort k l)).
-  Proof.
-    intros.
-    pose proof (sort_rrot_k (S k)) as E6.
-    simpl rep at 2 in E6.
-    specialize E6 with (l := map (rep lrot k) l).
-    rewrite <- sort_rrot_k in E6.
-    pose proof rep_inv_r (@lrot A) rrot l_r_rot_inverse as rep_inv.
-    do 2 rewrite map_map' in E6.
-    rewrite eq_map with (f := rep rrot (S k) ∘ rep lrot k) (g := rrot) in E6
-      by (intros; unfold compose;
-          rewrite rep_inv, Nat.sub_succ_l, Nat.sub_diag;
-          [reflexivity|apply Nat.le_refl|apply Nat.le_succ_diag_r]).
-    rewrite eq_map with (f := rep rrot k ∘ rep lrot k) (g := id)in E6
-      by (intros; unfold compose; rewrite rep_inv;
-          [rewrite Nat.sub_diag; reflexivity|apply Nat.le_refl]).
-    (* TODO For some reason hangs at the end *)
-    replace (sort 1 (map rrot (sort k l)))
-    with ((sort 1 ∘ map rrot) (sort k l)) by reflexivity.
-    rewrite map_id in E6.
-    apply E6.
-  Qed.
-
-End SortRotations.
-
-Section Cols.
-  Context {A : Type}.
-
-  Definition cols j := map (@firstn A j).
-
-  Context `{Ord A}.
-
-  Theorem cols_sort1 : forall k j l,
-      cols j (sort k l) = cols j (sort (Nat.min j k) l).
-  Admitted.
-
-  Theorem cols_sort2 : forall k j l,
-      cols j (sort k l) = sort (Nat.min j k) (cols j l).
-  Admitted.
-
-  Lemma cols_sort_lt : forall k j l,
-      j <= k -> cols j (sort k l) = sort j (cols j l).
-  Proof.
-    intros.
-    replace j with (Nat.min j k) at 2 by (apply Min.min_l; auto).
-    apply cols_sort2.
-  Qed.
-
-  Theorem cols_sort_perm : forall k j p l,
-      (forall l, Permutation l (p l)) -> cols j (sort k (p l)) = cols j (sort k l).
-  Admitted.
-
-  Theorem cols_sort_shift : forall k j l,
-      1 <= j <= k ->
-      cols j (sort k (rots l)) = sort 1 (cols j (map rrot (sort k (rots l)))).
-  Proof.
-    intros.
-    replace 1 with (Nat.min j 1) by (apply Min.min_r; omega).
-    rewrite <- cols_sort2, <- sort_succ_rrot, map_rrot_rots, cols_sort2.
-    rewrite cols_sort_perm by apply rrot_perm.
-    rewrite cols_sort2.
-    replace (Nat.min j (S k)) with (Nat.min j k) by (rewrite ?Nat.min_l; omega).
-    reflexivity.
-  Qed.
-
-  Theorem cols_id : forall n mat,
-      Forall (fun x => length x <= n) mat ->
-      cols n mat = mat.
-  Proof.
-    induction n; intros mat HL.
-    - unfold cols. unfold firstn.
-      rewrite <- map_id.
-      apply map_forall_eq.
-      eapply Forall_impl; [|apply HL].
-      simpl; intros.
-      assert (length a = 0) by omega.
-      symmetry. apply length_zero_iff_nil; auto.
-    - unfold cols. rewrite <- map_id.
-      apply map_forall_eq.
-      eapply Forall_impl; [|apply HL].
-      cbv beta. intros.
-      apply firstn_all2; auto.
-  Qed.
-End Cols.
-
-Fixpoint zipWith {A B C} (f : A -> B -> C) (a : list A) (b : list B) : list C :=
-  match (a, b) with
-  | (ahd :: atl, bhd :: btl) => f ahd bhd :: zipWith f atl btl
-  | _ => []
-  end.
+  Theorem zipWith_nil_r : forall a,
+      zipWith a [] = [].
+  Proof. destruct a; reflexivity. Qed.
+End ZipWith.
 
 Section PrependColumn.
   Context {A : Type}.
@@ -280,9 +161,16 @@ Section PrependColumn.
       reflexivity.
   Qed.
 
-  Lemma cols_rrot : forall j l d,
-      cols (S j) (map rrot l) = prepend_col (map (fun x => last x d) l) (cols j l).
-  Admitted.
+  Theorem prepend_map_tl : forall l c,
+      length c >= length l ->
+      map (@tl A) (prepend_col c l) = l.
+  Proof.
+    induction l; intros.
+    - unfold prepend_col. rewrite zipWith_nil_r. reflexivity.
+    - destruct c; [simpl in H; omega|].
+      rewrite prepend_cons. simpl.
+      f_equal. apply IHl. simpl in H. omega.
+  Qed.
 End PrependColumn.
 
 Section AppendCol.
@@ -342,6 +230,201 @@ Section AppendCol.
     unfold append_col in ALI. symmetry. auto.
   Qed.
 End AppendCol.
+
+Section SortRotations.
+  Context {A : Type} `{O : Ord A}.
+  Hypothesis Heqv : forall x y, eqv x y -> eq x y.
+
+  Local Arguments Sorted {_} _.
+  Local Arguments Stable {_} _.
+  Local Arguments eqv_dec {_} _.
+  Local Arguments eqv {_} _.
+  Local Arguments le {_} _.
+
+  Lemma prepend_sorted : forall k mat c,
+      length c >= length mat ->
+      Sorted (Ord_list_k k) mat ->
+      Sorted (Ord_list_k (S k)) (sort 1 (prepend_col c mat)).
+  Proof.
+    intros.
+    remember (sort 1 _) as s. generalize dependent c. generalize dependent mat.
+    induction s as [|a s]; intros mat HS c HL Heqs; constructor.
+    - intros.
+      destruct a as [|ah atl]; [apply le_nil|].
+      destruct x as [|xh xtl]; [exfalso; eapply sorted_hd_nonempty;
+                                [rewrite Heqs; apply sort_sorted|eauto|easy]|].
+      destruct (eqv_dec _ ah xh).
+      + apply le_cons_eq; auto. clear IHs Heqv.
+
+        assert (Stable (Ord_list_k 1) ((ah :: atl) :: s) (prepend_col c mat)). {
+          rewrite Heqs. apply sort_stable.
+        }
+        unfold Stable in H1.
+        specialize (H2 (ah :: atl)).
+        simpl in H2.
+        destruct (eqv_dec (Ord_list_k 1) (ah :: atl) (ah :: atl));
+          [|exfalso; apply n; apply eqv_refl].
+        simpl in H1.
+        remember (filter _ _) as f in H2 at 2.
+        destruct f. simpl in H2. inversion H2.
+        simpl in H2. inversion H2; clear H2.
+        assert (Sorted (Ord_list_k k) (map (@tl _) (prepend_col c mat))). {
+          rewrite prepend_map_tl; auto.
+        }
+        assert (Forall (fun x => exists t, x = ah :: t) (l :: f)). {
+          eapply Forall_impl with (P := eqv (Ord_list_k 1) (ah :: atl)).
+          intros. exists (tl a).
+          inversion H3.
+          apply eqv_k_correct in H3.
+          destruct a.
+          simpl in H3. inversion H3.
+          simpl in H3. inversion H3; subst; clear H3.
+          apply filter_Forall with (f0 := eqv_dec (Ord_list_k 1) (ah :: atl))
+                              ].
+        }
+        pose proof
+
+        apply map_injective in H1
+
+
+      destruct mat.
+      unfold prepend_col in Heqs. rewrite zipWith_nil_r in Heqs.
+      rewrite sort_nil in Heqs. discriminate.
+      destruct c.
+      unfold prepend_col in Heqs. rewrite zipWith_nil_l in Heqs.
+      rewrite sort_nil in Heqs. discriminate.
+      apply IHs with (mat := mat) (c := c).
+      inversion H; auto.
+      rewrite prepend_cons in Heqs.
+
+      +
+
+    induction c using list_ind2.
+
+    - apply LSorted_nil.
+    - destruct mat; [apply LSorted_nil|].
+      rewrite prepend_cons.
+
+  Lemma stable_S_k : forall k l,
+      Stable (Ord_list_k (S k))
+             (map (rep rrot (S k)) l)
+             (sort 1 (map rrot (sort k (map (rep rrot k) l)))).
+  Proof.
+    intros k l.
+    induction l.
+    - compute. reflexivity.
+    - unfold Stable. intros. simpl.
+      destruct (eqv_dec (Ord_list_k (S k)) x (rrot (rep rrot k a))).
+  Admitted.
+
+  Theorem sort_rrot_k : forall k l,
+    sort k (map (rep rrot k) l) = rep (sort 1 ∘ map rrot) k l.
+  Proof.
+    induction k; intros; [simpl; rewrite map_id; apply sort_zero|].
+    simpl. unfold compose.
+    rewrite <- IHk; clear IHk.
+    replace (fun z => rrot (rep rrot k z)) with (rep (@rrot A) (S k))
+      by (extensionality z; symmetry; apply rep_l).
+    apply @stable_sort_unique with (O := Ord_list_k (S k)); auto.
+    - apply sort_sorted.
+    - admit.
+    - eapply Permutation_trans. apply sort_perm.
+      apply Permutation_sym.
+      eapply Permutation_trans. apply sort_perm.
+      eapply Permutation_trans. apply Permutation_map. apply sort_perm.
+      rewrite map_map. apply Permutation_refl.
+    - eapply Stable_trans. apply sort_stable.
+      apply stable_S_k.
+  Admitted.
+
+  Lemma sort_succ_rrot : forall k (l : list (list A)),
+      sort (S k) (map rrot l) = sort 1 (map rrot (sort k l)).
+  Proof.
+    intros.
+    pose proof (sort_rrot_k (S k)) as E6.
+    simpl rep at 2 in E6.
+    specialize E6 with (l := map (rep lrot k) l).
+    rewrite <- sort_rrot_k in E6.
+    pose proof rep_inv_r (@lrot A) rrot l_r_rot_inverse as rep_inv.
+    do 2 rewrite map_map' in E6.
+    rewrite eq_map with (f := rep rrot (S k) ∘ rep lrot k) (g := rrot) in E6
+      by (intros; unfold compose;
+          rewrite rep_inv, Nat.sub_succ_l, Nat.sub_diag;
+          [reflexivity|apply Nat.le_refl|apply Nat.le_succ_diag_r]).
+    rewrite eq_map with (f := rep rrot k ∘ rep lrot k) (g := id)in E6
+      by (intros; unfold compose; rewrite rep_inv;
+          [rewrite Nat.sub_diag; reflexivity|apply Nat.le_refl]).
+    (* TODO For some reason hangs at the end *)
+    replace (sort 1 (map rrot (sort k l)))
+    with ((sort 1 ∘ map rrot) (sort k l)) by reflexivity.
+    rewrite map_id in E6.
+    apply E6.
+  Qed.
+End SortRotations.
+
+Section Cols.
+  Context {A : Type}.
+
+  Definition cols j := map (@firstn A j).
+
+  Context `{Ord A}.
+
+  Lemma cols_rrot : forall j l d,
+      cols (S j) (map rrot l) = prepend_col (map (fun x => last x d) l) (cols j l).
+  Admitted.
+
+  Theorem cols_sort1 : forall k j l,
+      cols j (sort k l) = cols j (sort (Nat.min j k) l).
+  Admitted.
+
+  Theorem cols_sort2 : forall k j l,
+      cols j (sort k l) = sort (Nat.min j k) (cols j l).
+  Admitted.
+
+  Lemma cols_sort_lt : forall k j l,
+      j <= k -> cols j (sort k l) = sort j (cols j l).
+  Proof.
+    intros.
+    replace j with (Nat.min j k) at 2 by (apply Min.min_l; auto).
+    apply cols_sort2.
+  Qed.
+
+  Theorem cols_sort_perm : forall k j p l,
+      (forall l, Permutation l (p l)) -> cols j (sort k (p l)) = cols j (sort k l).
+  Admitted.
+
+  Theorem cols_sort_shift : forall k j l,
+      1 <= j <= k ->
+      cols j (sort k (rots l)) = sort 1 (cols j (map rrot (sort k (rots l)))).
+  Proof.
+    intros.
+    replace 1 with (Nat.min j 1) by (apply Min.min_r; omega).
+    rewrite <- cols_sort2, <- sort_succ_rrot, map_rrot_rots, cols_sort2.
+    rewrite cols_sort_perm by apply rrot_perm.
+    rewrite cols_sort2.
+    replace (Nat.min j (S k)) with (Nat.min j k) by (rewrite ?Nat.min_l; omega).
+    reflexivity.
+  Qed.
+
+  Theorem cols_id : forall n mat,
+      Forall (fun x => length x <= n) mat ->
+      cols n mat = mat.
+  Proof.
+    induction n; intros mat HL.
+    - unfold cols. unfold firstn.
+      rewrite <- map_id.
+      apply map_forall_eq.
+      eapply Forall_impl; [|apply HL].
+      simpl; intros.
+      assert (length a = 0) by omega.
+      symmetry. apply length_zero_iff_nil; auto.
+    - unfold cols. rewrite <- map_id.
+      apply map_forall_eq.
+      eapply Forall_impl; [|apply HL].
+      cbv beta. intros.
+      apply firstn_all2; auto.
+  Qed.
+End Cols.
 
 Section Lexsort.
   Context {A : Type} `{Ord A}.

@@ -4,9 +4,13 @@
 Require Import Coq.Lists.List.
 Require Import Coq.omega.Omega.
 Require Import Coq.Relations.Relation_Definitions.
+Require Import Coq.Classes.Morphisms.
 Require Import Coq.Classes.EquivDec.
 Require Import Coq.Sorting.Permutation.
+Require Import Coq.Classes.RelationClasses.
 Require Import Coq.Sorting.Sorted.
+Require Import Coq.Logic.FunctionalExtensionality.
+Require Import Coq.Setoids.Setoid.
 
 Require Import BWT.Sorting.Ord.
 Require Import BWT.Sorting.Mergesort.
@@ -26,7 +30,8 @@ Section LeK.
   | le_cons_eq : forall x y xs ys k, x === y -> le_k k xs ys ->
                                 le_k (S k) (x :: xs) (y :: ys).
 
-  Notation "x <={ k } y" := (le_k k x y) (at level 70, no associativity) : ord_scope.
+  Notation "x <={ k } y" :=
+    (le_k k x y) (at level 70, no associativity, format "x  <={ k }  y") : ord_scope.
 
   Theorem le_k_trans : forall k x y z, x <={k} y -> y <={k} z -> x <={k} z.
   Proof.
@@ -83,6 +88,15 @@ Section LeK.
     - eapply lt_not_eq; eauto.
     - contradiction.
   Defined.
+
+  Theorem le_k_tl : forall k x y a,
+      a :: x <={S k} a :: y -> x <={k} y.
+  Proof.
+    intros k x y a HS.
+    inversion HS; subst; clear HS.
+    - exfalso; eapply lt_irrefl; eauto.
+    - simpl. auto.
+  Qed.
 End LeK.
 
 Instance Ord_list_k {A} `{Ord A} (k : nat) : Ord (list A) :=
@@ -91,6 +105,74 @@ Instance Ord_list_k {A} `{Ord A} (k : nat) : Ord (list A) :=
     le_total := le_k_total k;
     le_dec := le_k_dec k;
   }.
+
+Theorem le_uncons {A} `{Ord A} : forall k a b x y,
+    @le _ (Ord_list_k (S k)) (a :: x) (b :: y) ->
+    eqv a b -> @le _ (Ord_list_k k) x y.
+Proof.
+  intros k a b x y HE.
+  inversion HE; subst; clear HE; intros.
+  apply lt_not_eq in H2. contradiction.
+  auto.
+Qed.
+
+Theorem eqv_uncons {A} `{Ord A} : forall k a b x y,
+    @eqv _ (Ord_list_k (S k)) (a :: x) (b :: y) ->
+    eqv a b /\ @eqv _ (Ord_list_k k) x y.
+Proof.
+  intros k a b x y HE.
+  destruct HE as [LA LB].
+  inversion LA; inversion LB; subst; clear LA LB.
+  - exfalso. eapply lt_excl. intuition eauto.
+  - apply lt_not_eq in H2. apply eqv_sym in H10. contradiction.
+  - apply lt_not_eq in H9. apply eqv_sym in H4. contradiction.
+  - unfold eqv in *. intuition.
+Qed.
+
+Theorem eqv_cons {A} `{Ord A} : forall k a b x y,
+    @eqv _ (Ord_list_k  k) x y -> eqv a b ->
+    @eqv _ (Ord_list_k (S k)) (a :: x) (b :: y).
+Proof.
+  intros k a b x y HEtl HEhd.
+  split; apply le_cons_eq; auto using eqv_sym;
+  destruct HEtl; auto.
+Qed.
+
+Add Parametric Morphism {A} `{O : Ord A} {k} : cons with
+      signature (@eqv A O) ==>
+                 (@le (list A) (@Ord_list_k A O k)) ==>
+                 (@le (list A) (@Ord_list_k A O (S k))) as cons_eqv.
+Proof. intros. eapply le_cons_eq; auto. Qed.
+
+Theorem Forall2_uncons {A} : forall (P : A -> A -> Prop) a b x y,
+    Forall2 P (a :: x) (b :: y) ->
+    P a b /\ Forall2 P x y.
+Proof.
+  intros.
+  inversion H; subst; clear H.
+  intuition.
+Qed.
+
+Theorem eqv_k_correct {A} `{Ord A} : forall k x y,
+    length x >= k -> length y >= k ->
+    @eqv _ (Ord_list_k k) x y <-> Forall2 eqv (firstn k x) (firstn k y).
+Proof.
+  induction k; intros.
+  - simpl. split; constructor; apply le_zero.
+  - destruct x; destruct y.
+    + simpl. split; constructor; apply le_nil.
+    + simpl in *; omega.
+    + simpl in *; omega.
+    + split; intros.
+      * simpl. constructor.
+        eapply eqv_uncons; eauto.
+        apply IHk; simpl in *; try omega; auto.
+        eapply eqv_uncons; eauto.
+      * eapply eqv_cons.
+        apply IHk; simpl in *; try omega.
+        eapply Forall2_uncons. eauto.
+        eapply Forall2_uncons. eauto.
+Qed.
 
 Section Sort.
   Context {A : Type} `{Ord A}.
@@ -129,6 +211,11 @@ Section Sort.
     intros.
     apply Permutation_length.
     apply sort_perm.
+  Qed.
+
+  Theorem sort_nil : sort [] = [].
+  Proof.
+    apply Permutation_nil. apply Permutation_sym. apply sort_perm.
   Qed.
 End Sort.
 
@@ -176,4 +263,72 @@ Section SortedK.
     - apply IHHS. auto.
   Qed.
 
+  Theorem sorted_hd : forall k a l,
+      Sorted (Ord_list_k k) (a :: l) ->
+      forall x, In x l -> le_k k a x.
+  Proof.
+    intros k a l HS.
+    inversion HS; subst; clear HS.
+    intros. apply H2. apply H0.
+  Qed.
+
+  Lemma eq_hd_in_tl : forall a l x,
+      Forall (fun x => exists t, x = a :: t) l ->
+      In x (map (@tl A) l) -> In (a :: x) l.
+  Proof.
+    intro a. induction l; intros x Hhd HI; [contradiction HI|].
+    destruct HI.
+    - left. rewrite <- H0.
+      apply Forall_forall with (x := a0) in Hhd.
+      destruct Hhd.
+      rewrite H1. reflexivity.
+      intuition.
+    - right. apply IHl; auto.
+      inversion Hhd; auto.
+  Qed.
 End SortedK.
+
+Theorem Forall_tl {A} : forall (P : A -> Prop) l a,
+    Forall P (a :: l) -> Forall P l.
+Proof. intros P l a HF. inversion HF; auto. Qed.
+
+Section StartWith.
+  Context {A : Type}.
+
+  Lemma sorted_hd_nonempty `{Ord A} : forall k a l x s,
+      @Sorted _ (Ord_list_k (S k)) ((a :: l) :: s) ->
+      In x s -> x <> [].
+  Proof.
+    intros k a l x s HS HI.
+    assert (n: ~ @le _ (@Ord_list_k _ _ (S k)) (a :: l) []) by (intro c; inversion c).
+    intro c; apply n; clear n.
+    inversion HS; subst; clear HS.
+    apply H2. auto.
+  Qed.
+
+  Theorem sort_tl `{Ord A} : forall k mat a d,
+      @Sorted _ (Ord_list_k (S k)) mat ->
+      Forall (fun x => eqv a (hd d x)) mat ->
+      @Sorted _ (Ord_list_k k) (map (@tl _) mat).
+  Proof.
+    intros k.
+    induction mat as [|l mat IH]; intros a d HS Ha; [constructor|].
+    simpl. constructor.
+    - intros x HI.
+      destruct l as [|lhd ltl] eqn:HL; [constructor|].
+      simpl.
+      inversion Ha. subst x0 l0; clear Ha.
+      apply le_uncons with (a0 := lhd) (b := a); auto using eqv_sym.
+      destruct (proj1 (in_map_iff _ _ _) HI) as [xfull [Hx HI']].
+      destruct xfull as [|xhd xtl]; [exfalso; eapply sorted_hd_nonempty; eauto|].
+      simpl in Hx. subst x.
+      apply le_trans with (y := xhd :: xtl).
+      eapply Sorted_uncons. apply HS. auto.
+      apply le_cons_eq; [|apply (@le_refl _ (Ord_list_k k))].
+      eapply Forall_forall in H3; eauto.
+      simpl in H3. auto using eqv_sym.
+    - eapply IH.
+      eapply Sorted_uncons. eauto.
+      inversion Ha. eauto.
+  Qed.
+End StartWith.
