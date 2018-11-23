@@ -103,10 +103,9 @@ Section Lt.
   Next Obligation. unfold eqv; eauto. Defined.
 
   Theorem lt_irrefl : forall x, ~ (x < x).
-  Admitted.
-
-  Theorem lt_excl : forall x y, ~ (x < y /\ y < x).
-  Admitted.
+    intros x c.
+    apply c. apply le_refl.
+  Qed.
 
   Theorem lt_trans : forall x y z, x < y -> y < z -> x < z.
   Proof.
@@ -114,6 +113,12 @@ Section Lt.
     match goal with [ H : ~ _ <= _ |- _ ] => apply le_not in H end.
     intro.
     eauto using le_trans.
+  Qed.
+
+  Theorem lt_excl : forall x y, ~ (x < y /\ y < x).
+    intros x y [lxy lyx].
+    eapply lt_irrefl.
+    eapply lt_trans; eauto.
   Qed.
 
   Theorem lt_not_eq : forall x y, x < y -> x =/= y.
