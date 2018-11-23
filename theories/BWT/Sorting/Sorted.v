@@ -1,7 +1,12 @@
+Require Import Coq.Logic.FinFun.
 Require Import Coq.Lists.List.
 Require Import Coq.Sorting.Permutation.
+Require Import Coq.omega.Omega.
+Require Import Coq.Classes.EquivDec.
 
 Require Import BWT.Sorting.Ord.
+Require Import BWT.ZipWith.
+Require Import BWT.Filter.
 
 Section Sorted.
   Context {A : Type} `{O: Ord A}.
@@ -40,76 +45,6 @@ Section Sorted.
       (forall x : A, In x tl -> le hd x) /\ Sorted tl.
   Proof. intros hd tl H. inversion H. auto. Qed.
 End Sorted.
-
-Section Filter.
-  Context {A T F} (f : forall y : A, {T y} + {F y}).
-
-  Fixpoint filter l : list A :=
-    match l with
-    | nil => nil
-    | x :: tl => if f x then x :: filter tl else filter tl
-    end.
-
-  Theorem filter_In : forall l x,
-      In x (filter l) <-> In x l /\ exists PT, f x = left PT.
-  Proof.
-    induction l; intros.
-    - cbn. intuition.
-    - cbn. split; intros.
-      + destruct (f a) eqn:EF.
-        destruct H; subst; intuition; eauto; try apply IHl; auto.
-        right. apply IHl; auto.
-        split; [right|]; apply IHl; auto.
-      + destruct H as [[E | I] [PT HF]]; subst.
-        rewrite HF. intuition.
-        destruct (f a) eqn:EF; [right|]; apply IHl; eauto.
-  Qed.
-
-  Remark filter_app: forall (l l': list A),
-      filter (l ++ l') = filter l ++ filter l'.
-  Proof.
-    induction l; intros; simpl. auto.
-    destruct (f a); simpl. f_equal; auto. auto.
-  Qed.
-
-  Remark filter_empty: forall l,
-      (forall x, In x l -> exists PF, f x = right PF) ->
-      filter l = nil.
-  Proof.
-    induction l; simpl; intros.
-    auto.
-    destruct (H a) as [PF HF]; [eauto|].
-    rewrite HF. apply IHl. auto.
-  Qed.
-
-  Remark filter_sublist:
-    forall x (l l1' l2': list A),
-      filter l = l1' ++ x :: l2' ->
-      exists l1, exists l2, l = l1 ++ x :: l2 /\ filter l1 = l1' /\ filter l2 = l2'.
-  Proof.
-    induction l; intros until l2'; simpl.
-    intro. destruct l1'; simpl in H; discriminate.
-    case_eq (f a); intros.
-    destruct l1'; simpl in H0; injection H0; clear H0; intros.
-    subst x. exists (@nil A); exists l. auto.
-    subst a0. destruct (IHl _ _ H0) as [l1 [l2 [P [Q R]]]]. subst l.
-    exists (a :: l1); exists l2.
-    split. auto. split. simpl. rewrite H. congruence. auto.
-    destruct (IHl _ _ H0) as [l1 [l2 [P [Q R]]]]. subst l.
-    exists (a :: l1); exists l2.
-    split. auto. split. simpl. rewrite H. auto. auto.
-  Qed.
-
-  Theorem filter_Forall : forall l,
-      Forall T (filter l).
-  Proof.
-    induction l.
-    - constructor.
-    - simpl. destruct (f a).
-      constructor; auto.
-      auto.
-  Qed.
-End Filter.
 
 Section SortedFilter.
   Context {A} `{Ord A}.
@@ -326,3 +261,260 @@ Section LocallySorted.
         destruct H; subst; auto using le_refl.
   Qed.
 End LocallySorted.
+
+Section Index.
+  Context {A : Type} `{O: Ord A}.
+
+  Definition IndexSorted (l : list A) := forall i j d,
+      i <= j < length l ->
+      le (nth i l d) (nth j l d).
+
+  Theorem IndexSorted_uncons : forall l a, IndexSorted (a :: l) -> IndexSorted l.
+  Proof.
+    intros l a HS.
+    intros i j d HIJ.
+    replace (nth i l d) with (nth (S i) (a :: l) d) by reflexivity.
+    replace (nth j l d) with (nth (S j) (a :: l) d) by reflexivity.
+    apply HS. simpl. omega.
+  Qed.
+
+  Theorem Sorted_IndexSorted_iff : forall l, Sorted l <-> IndexSorted l.
+  Proof.
+    split.
+    - induction l as [|a l IH]; intros H;
+        intros i j d HIJ; simpl in HIJ.
+      + assert (i = 0 /\ j = 0) as HIJ0 by omega .
+        destruct HIJ0; subst.
+        apply le_refl.
+      + destruct i; destruct j; simpl in HIJ; [apply le_refl| |omega|].
+        * simpl nth at 1.
+          eapply Sorted_uncons. apply H.
+          simpl. apply nth_In. omega.
+        * simpl. apply IH. eapply Sorted_uncons; eauto. omega.
+    - induction l as [|a l IH]; intros H; constructor.
+      + intros x HI.
+        apply In_nth with (d := a) in HI.
+        destruct HI as [i [HI Hx]].
+        rewrite <- Hx.
+        replace a with (nth 0 (a :: l) a) at 1 by reflexivity.
+        replace (nth i l a) with (nth (S i) (a :: l) a) by reflexivity.
+        apply H. simpl. omega.
+      + apply IH. eapply IndexSorted_uncons. eauto.
+  Qed.
+
+  Definition IndexStable (l l': list A) := forall d,
+    (let n := length l in
+     length l' = n /\
+     (exists f : nat -> nat,
+         bFun n f /\
+         bInjective n f /\
+         (forall x : nat, x < n -> nth x l' d = nth (f x) l d) /\
+         (forall i j, eqv (nth i l' d) (nth j l' d) -> i <= j < n -> f i <= f j))).
+
+  Lemma perm_zipocc_fun `{EqDec A eq} : forall l l' da dn,
+      Permutation l l' ->
+      length l = length l' /\
+      exists p,
+        bFun (length l) p /\
+        bInjective (length l) p /\
+        (forall x : nat, x < length l ->
+                  nth x (zipOcc l') (da, dn) = nth (p x) (zipOcc l) (da, dn)) /\
+        (forall x : nat, x < length l -> nth x l' da = nth (p x) l da).
+  Proof.
+    intros l l' da dn HP.
+    assert (HL : length l = length l') by (apply Permutation_length; auto).
+    split; auto.
+    apply zipOcc_Permutation in HP.
+    destruct (proj1 (Permutation_nth _ _ (da, dn)) HP)
+        as [HLZ [p [pbound [pinj pcorrect]]]].
+    rewrite zipOcc_length in pbound, pinj, pcorrect.
+    exists p. repeat split; auto.
+    intros x Hx. specialize (pcorrect x Hx).
+    rewrite !zipOcc_correct, !combine_nth in pcorrect
+      by (symmetry; apply occs_length).
+    inversion pcorrect. auto.
+  Qed.
+
+  Hint Extern 1 =>
+  match goal with
+  | |- exists pf, ?f ?x = left pf => apply dec_exists_pf_left
+  end : dec_exists.
+
+  Hint Extern 1 =>
+  match goal with
+  | |- exists pf, ?f ?x = right pf => apply dec_exists_pf_right
+  end : dec_exists.
+
+  Lemma IndexStable_nil : forall l, IndexStable nil l -> l = nil.
+  Proof.
+    intros. destruct l. auto.
+    unfold IndexStable in H.
+    destruct (H a). simpl in H. discriminate.
+  Qed.
+
+  Lemma nth_eq : forall l l' : list A,
+      length l = length l' ->
+      (forall i d, i < length l -> nth i l d = nth i l' d) <-> l = l'.
+  Proof.
+    induction l; intros l' L.
+    - split; intros.
+      + symmetry. apply length_zero_iff_nil. auto.
+      + subst. reflexivity.
+    - split; intros.
+      + destruct l'. simpl in L. omega.
+      f_equal.
+        * apply (H 0 a). simpl; omega.
+        * apply IHl; auto.
+          intros i d.
+          specialize (H (S i) d).
+          simpl in H. intro; apply H; omega.
+      + rewrite H. reflexivity.
+  Qed.
+
+  Theorem bounded_mono_id : forall (f : nat -> nat) n,
+      bFun n f ->
+      bInjective n f ->
+      (forall x y, x <= y < n -> f x <= f y) ->
+      forall x, x < n -> f x = x.
+  Proof.
+    induction n; intros ffin finj fmono.
+    - intros; omega.
+    - assert (fsur: bSurjective (S n) f) by (apply bInjective_bSurjective; auto).
+      destruct (bSurjective_bBijective ffin fsur) as [g [gfin Hg]].
+      destruct (Nat.eq_dec (f n) n) as [Eq|Neq]; [|exfalso].
+      + assert (forall x, x < n -> f x <> n). {
+          intros x Hx. rewrite <- Eq.
+          intro c. apply finj in c; omega.
+        }
+        intros x Hx. destruct (Nat.eq_dec x n). subst. auto.
+        apply IHn.
+        * intros a Ha. specialize (H a Ha). specialize (ffin a). omega.
+        * intros a b Ha Hb Heq. apply finj; omega.
+        * intros. apply fmono. omega.
+        * omega.
+      + assert (f n < S n) by (apply ffin; omega).
+        assert (f n < n) by omega.
+        assert (g n < S n) by (apply gfin; omega).
+        assert (g n <> n). {
+          intro c. apply Neq. rewrite <- c at 1. apply Hg. omega.
+        }
+        assert (g n < n) by omega.
+        assert (g n <= n < S n) by omega.
+        specialize (fmono (g n) n H4).
+        replace (f (g n)) with n in fmono by (symmetry; apply Hg; omega). omega.
+  Qed.
+
+  Theorem perm_inversions_eq : forall (l l' : list A) d,
+    (let n := length l in
+     length l' = n /\
+     (exists f : nat -> nat,
+         FinFun.bFun n f /\
+         FinFun.bInjective n f /\
+         (forall x : nat, x < n -> nth x l' d = nth (f x) l d) /\
+         (forall i j, i <= j < n -> f i <= f j))) <-> l = l'.
+  Proof.
+    unfold FinFun.bFun, FinFun.bInjective.
+    split; [|intros; subst; split; auto; exists (fun x => x); intuition auto].
+    intros [HL [p [pbounded [pinj [pcorrect pmono]]]]].
+    apply nth_eq; auto.
+    intros i d' HI.
+    rewrite <- !nth_indep with (d := d) (d' := d') by omega.
+    rewrite pcorrect by omega.
+    rewrite bounded_mono_id with (n := length l); auto.
+  Qed.
+
+  Hint Extern 1 =>
+  match goal with
+  | H: length ?l = length ?l' |- unfilter_ix (eqv_dec ?x) ?l' ?i < length ?l =>
+    rewrite H
+  end : jake.
+
+  Theorem IndexStable_iff `{EqDec A eq}: forall l l',
+      (Stable l l' /\ Permutation l l') <-> IndexStable l l'.
+  Proof.
+    intros. split.
+    - intros [HS HP] d.
+      destruct (perm_zipocc_fun l l' d 0)
+        as [HL [p [pbounded [pinj [pcorrect_zip pcorrect]]]]]; auto.
+      split; [auto using Permutation_length, Permutation_sym|].
+      exists p. repeat split; auto.
+
+      intros i j HE HIJ.
+      specialize (HS (nth i l' d)).
+
+      eapply @filter_ix_monotonic
+        with (i := p i) (j := p j) (l := l) (f := eqv_dec (nth i l' d));
+        try rewrite <- pcorrect;
+        auto using pbounded, eqv_refl with zarith dec_exists.
+
+      erewrite <- @filter_ix_zipOcc with (l := l') (i := i) (i' := p i);
+        auto using eqv_refl with zarith.
+      erewrite <- @filter_ix_zipOcc with (l := l') (i := j) (i' := p j);
+        auto using eqv_refl with zarith.
+
+      eapply @filter_ix_monotonic
+        with (i := i) (j := j) (l := l') (f := eqv_dec (nth i l' d));
+        try rewrite <- pcorrect;
+        auto using pbounded, eqv_refl with zarith dec_exists.
+    - intros HI.
+      assert (HP: Permutation l l'). {
+        destruct l eqn:Hl;
+          [apply IndexStable_nil in HI; subst; constructor|
+           rewrite <- Hl in *; clear l0 Hl].
+        eapply Permutation_nth.
+        simpl. destruct (HI a) as [HL [p [pbounded [pinj pcorrect]]]].
+        split; [auto|]. exists p. intuition.
+      }
+      split; auto.
+
+      intro x.
+
+      assert (HPf: Permutation (filter (eqv_dec x) l) (filter (eqv_dec x) l')) by (apply filter_perm; auto).
+
+      assert (HL: length l = length l')
+        by (auto using Permutation_length, Permutation_sym).
+      assert (HLf: length (filter (eqv_dec x) l) = length (filter (eqv_dec x) l'))
+        by (auto using Permutation_length, Permutation_sym).
+
+      apply perm_inversions_eq with (d := x).
+      split; [auto using Permutation_length, Permutation_sym|].
+      destruct (HI x) as [_ [f [fbound [finj [fcorrect fmono]]]]].
+      exists (fun i => filter_ix (eqv_dec x) l (f (unfilter_ix (eqv_dec x) l' i))).
+      intuition.
+      + intros i Hi. apply filter_ix_bounded with (d := x). apply fbound.
+        rewrite HL. apply unfilter_ix_bounded. rewrite <- HLf. auto.
+        apply dec_exists_pf_left.
+        rewrite <- fcorrect by (rewrite HL; apply unfilter_ix_bounded; omega).
+        rewrite <- unfilter_ix_correct by omega.
+        eapply @filter_In with (f := eqv_dec x).
+        apply nth_In. unfold not. rewrite <- HLf. omega.
+      + intros i j Hi Hj Hfeq.
+        eapply filter_ix_inj in Hfeq. apply finj in Hfeq. apply unfilter_ix_inj in Hfeq. auto.
+        1-6, 7: auto using fbound, unfilter_ix_bounded with arith zarith jake.
+        1,2: apply dec_exists_pf_left;
+          rewrite <- fcorrect by (auto using fbound, unfilter_ix_bounded with zarith jake);
+          rewrite <- unfilter_ix_correct by (auto using fbound, unfilter_ix_bounded with zarith jake);
+        eapply @filter_In with (f := eqv_dec x);
+        apply nth_In; unfold not; rewrite <- HLf; omega.
+      + rewrite <- filter_ix_correct.
+        rewrite <- fcorrect.
+        rewrite <- unfilter_ix_correct.
+        reflexivity.
+        4: apply dec_exists_pf_left; rewrite <- fcorrect, <- unfilter_ix_correct;
+          auto; [eapply @filter_In with (f := eqv_dec x);
+            apply nth_In; unfold not; rewrite <- HLf; omega|..].
+        all: auto using fbound, unfilter_ix_bounded with zarith jake.
+      + rewrite <- filter_ix_monotonic.
+        apply fmono. rewrite <- !unfilter_ix_correct.
+        destruct (proj1 (filter_In (eqv_dec x) l' (nth i (filter (eqv_dec x) l') x))).
+        apply nth_In. unfold not; rewrite <- HLf; omega.
+        destruct (proj1 (filter_In (eqv_dec x) l' (nth j (filter (eqv_dec x) l') x))).
+        apply nth_In. unfold not; rewrite <- HLf; omega.
+        destruct H3, H5. 1,2: eauto using eqv_sym, eqv_trans.
+        5, 7: apply dec_exists_pf_left; rewrite <- fcorrect, <- unfilter_ix_correct;
+          auto; [eapply @filter_In with (f := eqv_dec x);
+            apply nth_In; unfold not; rewrite <- HLf; omega|..].
+        3: rewrite <- unfilter_ix_monotonic. intuition.
+        all: auto using fbound, unfilter_ix_bounded with zarith jake.
+  Qed.
+End Index.
