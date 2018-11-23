@@ -16,6 +16,7 @@ Require Import BWT.Sorting.Sorted.
 Require Import BWT.Repeat.
 Require Import BWT.Rots.
 Require Import BWT.Instances.
+Require Import BWT.ZipWith.
 
 Import ListNotations.
 
@@ -214,7 +215,7 @@ Section AppendCol.
 End AppendCol.
 
 Section SortRotations.
-  Context {A : Type} `{O : Ord A}.
+  Context {A : Type} `{O : Ord A} `{E : EqDec A eq}.
   Hypothesis Heqv : forall x y, eqv x y -> eq x y.
 
   Local Arguments Sorted {_} _.
@@ -234,151 +235,49 @@ Section SortRotations.
     remember (nth i _ _) as x.
     remember (nth j _ _) as y.
     destruct x as [|xhd xtl]; [constructor|].
-    destruct y as [|yhd ytl]; [admit|].
+    destruct y as [|yhd ytl]; [exfalso; eapply Sorted_before_nonempty;
+                               [eapply sort_sorted|eauto..]|].
 
-    assert (Stable (Ord_list_k 1)(sort 1 (prepend_col c mat)) (prepend_col c mat) /\
-            Permutation (sort 1 (prepend_col c mat)) (prepend_col c mat))
-      as HSt by (destruct (sort_props 1 (prepend_col c mat)); intuition).
-    apply IndexStable_iff in HSt.
+    assert (Stable (Ord_list_k 1) (prepend_col c mat) (sort 1 (prepend_col c mat)) /\
+            Permutation (prepend_col c mat) (sort 1 (prepend_col c mat)))
+      as HSt by (destruct (sort_props 1 (prepend_col c mat));
+                 split; [apply Stable_sym|apply Permutation_sym]; intuition).
+    eapply IndexStable_iff in HSt.
+
+    assert (length (prepend_col c mat) = length mat). {
+      unfold prepend_col.
+      rewrite zipWith_length.
+      rewrite Nat.min_r by auto. auto.
+    }
 
     destruct (eqv_dec O xhd yhd).
     - apply le_cons_eq. auto.
 
       unfold IndexStable in HSt.
-      specialize HSt with (i := i) (j := j) (d := d).
-      destruct HSt as [i' [j' [Hi' [Hj' HIJ']]]]; auto.
-      rewrite <- Heqy, <- Heqx.
-      admit.
-
-      rewrite <- Hi' in Heqx.
-      rewrite <- Hj' in Heqy.
-      apply f_equal with (f := (@tl _)) in Heqy.
-      rewrite <- map_nth in Heqy.
-      simpl in Heqy.
-      apply f_equal with (f := (@tl _)) in Heqx.
-      rewrite <- map_nth in Heqx.
-      simpl in Heqx.
-      rewrite prepend_map_tl in Heqx; [|auto].
-      rewrite prepend_map_tl in Heqy; [|auto].
-      rewrite Heqx, Heqy.
-      apply HS. rewrite sort_length in HIJ'.
-      admit.
+      destruct (HSt d) as [HeqL [p [pbound [pinj [pcorrect pmono]]]]].
+      pose proof Heqx as Hxtl; pose proof Heqy as Hytl.
+      apply f_equal with (f := (@tl _)) in Hytl.
+      apply f_equal with (f := (@tl _)) in Hxtl.
+      simpl in Hxtl; simpl in Hytl.
+      rewrite Hxtl, Hytl.
+      rewrite !pcorrect.
+      rewrite <- !map_nth with (f := @tl A).
+      rewrite prepend_map_tl.
+      apply HS.
+      split. apply pmono. unfold eqv, le, Ord_list_k.
+      rewrite <- Heqx, <- Heqy.
+      rewrite !le_k_1. unfold eqv in *; intuition.
+      omega. rewrite <- H. apply pbound. omega.
+      omega. omega. omega.
     - apply le_cons_lt.
       destruct (proj1 (lt_spec xhd yhd)); [|auto|contradiction]; clear n.
+      eapply le_k_1. rewrite Heqy, Heqx.
 
       assert (Sorted (Ord_list_k 1) (sort 1 (prepend_col c mat)))
         as HS1 by apply sort_sorted.
       apply Sorted_IndexSorted_iff in HS1.
-      apply f_equal with (f := hd xhd) in Heqx.
-      apply f_equal with (f := hd yhd) in Heqy.
-      rewrite <- map_nth in Heqy.
-      rewrite <- map_nth in Heqx.
-      simpl in Heqy; simpl in Heqx.
-      rewrite Heqy, Heqx.
-      eapply HS1.
-
-      eapply Sorted_uncons.
-
-
-
-    remember (sort 1 (prepend_col c mat)) as s.
-    assert (Sorted (Ord_list_k 1) s) by (subst; apply sort_sorted).
-    assert (Stable (Ord_list_k 1) s (prepend_col c mat)) by (subst; apply sort_stable).
-    clear Heqs. generalize dependent c. generalize dependent mat. generalize dependent s.
-    induction s as [|shd stl]; [constructor|].
-    constructor.
-    - admit.
-    - destruct c as [|chd ctl]; [admit|].
-      destruct mat as [|mathd mattl]; [admit|].
-      eapply IHstl. eapply Sorted_uncons. eauto.
-      eapply Sorted_uncons. apply H0. simpl in H.
-      instantiate (1 := ctl). omega.
-
-
-
-    - constructor.
-    generalize dependent c. induction H0; intros.
-    - unfold prepend_col. rewrite zipWith_nil_r. constructor.
-    - destruct c as [|chd ctl]; [simpl in *; omega|].
-      rewrite prepend_cons.
-      constructor.
-
-    remember (sort 1 _) as s. generalize dependent c. generalize dependent mat.
-    induction s as [|a s]; intros mat HS c HL Heqs; constructor.
-    - admit.
-    - eapply Sorted_uncons. rewrite Heqs.
-      eapply IHs. eauto.
-    - intros.
-      destruct a as [|ah atl]; [apply le_nil|].
-      destruct x as [|xh xtl]; [exfalso; eapply sorted_hd_nonempty;
-                                [rewrite Heqs; apply sort_sorted|eauto|easy]|].
-      destruct (eqv_dec _ ah xh).
-      + apply le_cons_eq; auto. clear Heqv.
-        assert (In xtl (map (@tl _) s))
-          by (replace xtl with (tl (xh :: xtl)) by reflexivity; apply in_map; auto).
-        clear H.
-        apply @Sorted_uncons with (O := Ord_list_k k) (tl := map (@tl _) s);
-          [|auto].
-        replace (atl :: map _ _) with (map (@tl _) ((ah :: atl) :: s))
-          by reflexivity.
-        eapply sort_tl.
-        constructor.
-        intros. destruct x; [admit|].
-        apply @le_cons_eq with (H := O).
-        admit.
-
-        assert (Sorted (Ord_list_k k) (map (@tl _)))
-
-        assert (Stable (Ord_list_k 1) ((ah :: atl) :: s) (prepend_col c mat))
-          as HSt by (rewrite Heqs; apply sort_stable).
-        specialize (HSt (ah :: atl)).
-        simpl in HSt.
-        destruct (eqv_dec (Ord_list_k 1) (ah :: atl) (ah :: atl));
-          [|exfalso; apply n; apply eqv_refl].
-        clear e0.
-
-        remember (filter _ _) as f in HSt at 2.
-        assert (Sorted (Ord_list_k k) f).
-        rewrite Heqf. apply sorted_filter.
-
-        destruct f. simpl in H2. inversion H2.
-        simpl in H2. inversion H2; clear H2.
-        assert (Sorted (Ord_list_k k) (map (@tl _) (prepend_col c mat))). {
-          rewrite prepend_map_tl; auto.
-        }
-        assert (Forall (fun x => exists t, x = ah :: t) (l :: f)). {
-          eapply Forall_impl with (P := eqv (Ord_list_k 1) (ah :: atl)).
-          intros. exists (tl a).
-          inversion H3.
-          apply eqv_k_correct in H3.
-          destruct a.
-          simpl in H3. inversion H3.
-          simpl in H3. inversion H3; subst; clear H3.
-          apply filter_Forall with (f0 := eqv_dec (Ord_list_k 1) (ah :: atl))
-                              ].
-        }
-        pose proof
-
-        apply map_injective in H1
-
-
-      destruct mat.
-      unfold prepend_col in Heqs. rewrite zipWith_nil_r in Heqs.
-      rewrite sort_nil in Heqs. discriminate.
-      destruct c.
-      unfold prepend_col in Heqs. rewrite zipWith_nil_l in Heqs.
-      rewrite sort_nil in Heqs. discriminate.
-      apply IHs with (mat := mat) (c := c).
-      inversion H; auto.
-      rewrite prepend_cons in Heqs.
-
-      +
-
-    induction c using list_ind2.
-
-    - apply LSorted_nil.
-    - destruct mat; [apply LSorted_nil|].
-      rewrite prepend_cons.
+      apply HS1. auto.
+  Qed.
 
   Lemma stable_S_k : forall k l,
       Stable (Ord_list_k (S k))

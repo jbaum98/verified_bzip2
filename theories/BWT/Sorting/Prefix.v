@@ -174,6 +174,18 @@ Proof.
         eapply Forall2_uncons. eauto.
 Qed.
 
+Theorem le_k_1 {A} `{O: Ord A} : forall x xs y ys,
+    le_k 1 (x :: xs) (y :: ys) <-> le x y.
+Proof.
+  intros. split; intro H.
+  - inversion H; subst; clear H.
+    apply lt_le. auto.
+    unfold eqv in *. intuition.
+  - destruct (le_dec y x).
+    + apply le_cons_eq. split; auto. constructor.
+    + apply le_cons_lt. auto.
+Qed.
+
 Section Sort.
   Context {A : Type} `{Ord A}.
 
@@ -304,6 +316,20 @@ Section StartWith.
     intro c; apply n; clear n.
     inversion HS; subst; clear HS.
     apply H2. auto.
+  Qed.
+
+  Theorem Sorted_before_nonempty `{Ord A} : forall k l i j a x d,
+      @Sorted _ (Ord_list_k (S k)) l ->
+      i <= j < length l ->
+      nth i l d = a :: x ->
+      nth j l d <> nil.
+  Proof.
+    intros k l i j a x d HS HIJ HI.
+    apply Sorted_IndexSorted_iff in HS.
+    specialize (HS i j d).
+    rewrite HI in HS.
+    specialize (HS HIJ).
+    inversion HS; subst; clear HS; easy.
   Qed.
 
   Theorem sort_tl `{Ord A} : forall k mat a d,
