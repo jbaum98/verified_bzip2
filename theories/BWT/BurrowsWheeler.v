@@ -301,7 +301,17 @@ Section SortRotations.
       by (extensionality z; symmetry; apply rep_l).
     apply @stable_sort_unique with (O := Ord_list_k (S k)); auto.
     - apply sort_sorted.
-    - admit.
+    - erewrite map_rrot_prepend.
+      apply prepend_sorted.
+      rewrite !map_length, sort_length, map_length. omega.
+      admit. (* Prove mapping init preserves sorted *)
+      eapply Permutation_forall.
+      apply Permutation_sym. apply sort_perm.
+      apply Forall_forall.
+      intros x Hin. apply in_map_iff in Hin.
+      destruct Hin.
+      admit.
+
     - eapply Permutation_trans. apply sort_perm.
       apply Permutation_sym.
       eapply Permutation_trans. apply sort_perm.
