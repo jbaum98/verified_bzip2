@@ -216,7 +216,6 @@ End AppendCol.
 
 Section SortRotations.
   Context {A : Type} `{O : Ord A} `{E : EqDec A eq}.
-  Hypothesis Heqv : forall x y, eqv x y -> eq x y.
 
   Local Arguments Sorted {_} _.
   Local Arguments Stable {_} _.
@@ -351,14 +350,93 @@ Section Cols.
 
   Definition cols j := map (@firstn A j).
 
-  Context `{Ord A}.
+  Context `{Ord A} `{EqDec A eq}.
+  Hypothesis Heq : forall x y, eqv x y -> x = y.
+
+  Local Arguments Sorted {_} _.
+  Local Arguments Stable {_} _.
+  Local Arguments IndexStable {_} _.
+  Local Arguments eqv_dec {_} _.
+  Local Arguments eqv {_} _.
+  Local Arguments le {_} _.
 
   Lemma cols_rrot : forall j l d,
       cols (S j) (map rrot l) = prepend_col (map (fun x => last x d) l) (cols j l).
   Admitted.
 
+  Lemma foo : forall j l l',
+     eqv (Ord_list_k j) (firstn j l) (firstn j l') <-> (firstn j l) = (firstn j l').
+  Proof.
+    induction j; intros.
+    - cbn. split; intros. reflexivity. apply eqv_zero.
+    - split; intros.
+  Admitted.
+
   Theorem cols_sort1 : forall k j l,
       cols j (sort k l) = cols j (sort (Nat.min j k) l).
+  Proof.
+    intros. destruct (le_gt_dec j k) as [LJK | LKJ]; unfold le, Ord_nat in *.
+    - rewrite Nat.min_l by omega.
+      apply @stable_sort_unique with (O := Ord_list_k j).
+      + apply @sorted_preserve with (OA := Ord_list_k k).
+        intros. eapply le_k_firstn_le; eauto.
+        apply sort_sorted.
+      + apply @sorted_preserve with (OA := Ord_list_k j).
+        intros. eapply le_k_firstn_le; [|apply H3]. omega.
+        apply sort_sorted.
+      + apply Permutation_map. eapply perm_trans. apply sort_perm.
+        apply Permutation_sym. apply sort_perm.
+      + apply IndexStable_iff.
+        assert (ISJ: IndexStable (Ord_list_k j) l (sort j l)). {
+          apply IndexStable_iff. split.
+          apply Stable_sym. apply sort_stable.
+          apply Permutation_sym. apply sort_perm.
+        }
+        assert (ISK: Stable (Ord_list_k k) (sort k l) l). {
+           apply sort_stable.
+        }
+        assert (ISK': IndexStable (Ord_list_k j) (cols j (sort k l)) (cols j l)). {
+          apply IndexStable_iff. split.
+          apply stable_map_equiv_eq; [|apply sort_perm].
+          intros. apply foo. auto.
+          apply Permutation_map. apply sort_perm.
+        }
+
+        intros d.
+        destruct (ISJ d) as [HLJ [fj [fjbound [fjinj [fjcorrect fjmono]]]]].
+        destruct (ISK' d) as [HLK [fk [fkbound [fkinj [fkcorrect fkmono]]]]].
+        pose proof (sort_length k l).
+        pose proof (sort_length j l).
+        split. unfold cols. rewrite !map_length. omega.
+        exists (fun x => fk (fj x)). unfold cols. rewrite !map_length.
+        repeat split.
+        * intros x Hx. rewrite <- map_length with (f := firstn j). unfold cols in *.
+          apply fkbound. rewrite <- HLK, map_length. apply fjbound. omega.
+        * intros x y Hx Hy Heq'.
+          apply fjinj; [rewrite <- HLJ; omega..|].
+          apply fkinj;
+            [rewrite <- HLK; unfold cols; rewrite map_length; apply fjbound; omega..|].
+          auto.
+        * intros.
+          rewrite <- fkcorrect.
+          rewrite !nth_indep with (d := d) (d' := firstn j d).
+          unfold cols.
+          rewrite !map_nth. f_equal.
+          rewrite <- fjcorrect. reflexivity.
+          1-4: unfold cols; rewrite ?map_length, ?HLJ; try omega; try apply fkbound;
+            rewrite ?sort_length; apply fjbound; omega.
+        * intros. apply fkmono. unfold cols.
+          rewrite !nth_indep with (d := d) (d' := firstn j d).
+          rewrite !map_nth. rewrite <- !fjcorrect.
+          rewrite <- !map_nth with (f := firstn j).
+          rewrite <- !nth_indep with (d := d) (d' := firstn j d).
+          apply H3.
+          1-7: unfold cols; rewrite ?map_length, ?HLJ; try split; try omega; try apply fkbound;
+            rewrite ?sort_length; try apply fjbound; try omega.
+
+          apply fjmono. admit.
+          admit.
+    - admit.
   Admitted.
 
   Theorem cols_sort2 : forall k j l,
@@ -418,7 +496,7 @@ Section Lexsort.
   Proof.
     intros.
     apply Permutation_exists with (l0 := rots l) (l' := sort k (rots l)).
-    apply sort_perm.
+    apply Permutation_sym. apply sort_perm.
     apply orig_in_rots. auto.
   Qed.
 
@@ -427,7 +505,7 @@ Section Lexsort.
   Proof.
     intros.
     eapply Permutation_forall.
-    apply sort_perm. apply rots_row_length.
+    apply Permutation_sym. apply sort_perm. apply rots_row_length.
   Qed.
 End Lexsort.
 
@@ -493,7 +571,7 @@ Section Transform.
       intros.
       assert (x <> []). {
         apply (Forall_forall (fun x => ~ x = []) (sort (length (a :: l)) (rots (a :: l)))); auto.
-        eapply Permutation_forall. apply sort_perm.
+        eapply Permutation_forall. apply Permutation_sym. apply sort_perm.
         apply rots_nonempty; auto.
       }
       apply last_nonempty; auto.
@@ -532,7 +610,7 @@ Proof.
 Qed.
 
 Section Recreate.
-  Context {A : Type} `{Ord A}.
+  Context {A : Type} `{Ord A} `{EqDec A eq}.
 
   Fixpoint recreate (j : nat) (l : list A) : list (list A) :=
     match j with
@@ -596,3 +674,5 @@ Section Unbwt.
     intro contra; inversion contra.
   Qed.
 End Unbwt.
+
+Print Assumptions unbwt_correct.

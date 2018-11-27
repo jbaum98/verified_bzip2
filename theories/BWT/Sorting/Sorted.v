@@ -120,6 +120,14 @@ Section Stable.
     destruct (eqv_dec x a). f_equal; auto. auto.
   Qed.
 
+  Lemma Stable_uncons:
+    forall a l l', Stable (a::l) (a::l') -> Stable l l'.
+  Proof.
+    intros; red; intros.
+    specialize (H x). simpl in H.
+    destruct (eqv_dec x a). inversion H; auto. auto.
+  Qed.
+
   Lemma Stable_swap:
     forall a b l, ~le b a -> Stable (a::b::l) (b::a::l).
   Proof.
@@ -517,4 +525,80 @@ Section Index.
         3: rewrite <- unfilter_ix_monotonic. intuition.
         all: auto using fbound, unfilter_ix_bounded with zarith jake.
   Qed.
+
+  Theorem IndexStable_trans `{EqDec A eq} : forall l1 l2 l3 : list A,
+      IndexStable l1 l2 -> IndexStable l2 l3 -> IndexStable l1 l3.
+  Proof.
+    intros. eapply IndexStable_iff.
+    eapply IndexStable_iff in H0.
+    eapply IndexStable_iff in H1.
+    destruct H0, H1. split.
+    eauto using Stable_trans. eauto using Permutation_trans.
+  Qed.
+
+  Theorem IndexStable_sym `{EqDec A eq} : forall l1 l2 : list A,
+      IndexStable l1 l2 -> IndexStable l2 l1.
+  Proof.
+    intros. eapply IndexStable_iff.
+    eapply IndexStable_iff in H0.
+    destruct H0. split.
+    eauto using Stable_sym. eauto using Permutation_sym.
+  Qed.
 End Index.
+
+Section Preserve.
+  Context {A B: Type} `{OA : Ord A} `{OB : Ord B}.
+
+  Theorem sorted_preserve : forall (f : A -> B) (l : list A),
+      (forall a1 a2 : A, In a1 l -> In a2 l -> le a1 a2 -> le (f a1) (f a2)) ->
+      Sorted l -> Sorted (map f l).
+  Proof.
+    induction l; [constructor|]; intros HF HS.
+    cbn. constructor.
+    - intros. apply in_map_iff in H.
+      destruct H as [xpre [Hxpre Hinxpre]].
+      rewrite <- Hxpre. apply HF; cbn; intuition.
+      eapply Sorted_uncons; eauto.
+    - apply IHl; [|eapply Sorted_uncons]; eauto.
+      intros. apply HF; cbn; intuition.
+  Qed.
+
+  Theorem stable_preserve `{ED: EqDec B eq} : forall (f : A -> B) (l l' : list A),
+      (forall a1 a2 : A, In a1 l -> In a2 l -> eqv (f a1) (f a2) -> eqv a1 a2) ->
+      IndexStable l l' -> IndexStable (map f l) (map f l').
+  Proof.
+    intros f l l' HF HS.
+    destruct l eqn:Hl. intro. apply IndexStable_nil in HS.
+    subst. eapply IndexStable_iff. cbn. split. apply Stable_refl. constructor.
+    rewrite <- Hl in *. clear Hl l0.
+    destruct (HS a) as [HL [p [pbound [pinj [pcorrect pmono]]]]].
+    split. rewrite !map_length. auto.
+    exists p. rewrite !map_length. intuition.
+    - rewrite !nth_indep with (d := d) (d' := f a)
+        by (rewrite map_length; auto using pbound with zarith).
+      rewrite !map_nth.
+      f_equal. apply pcorrect. omega.
+    - apply pmono.
+      rewrite !nth_indep with (d := d) (d' := f a) in H
+        by (rewrite map_length; auto using pbound with zarith).
+      rewrite !map_nth in H.
+      apply HF; rewrite pcorrect by omega; [apply nth_In; apply pbound; omega..|].
+      rewrite <- pcorrect by omega. apply H. omega.
+  Qed.
+
+  Theorem stable_map_equiv_eq : forall (f : A -> B) (l l' : list A),
+      (forall a1 a2 : A, In a1 l -> In a2 l -> eqv (f a1) (f a2) -> f a1 = f a2) ->
+      Permutation l l' -> Stable (map f l) (map f l').
+  Proof.
+    intros f l l' HF HP. induction HP.
+    - constructor.
+    - cbn. apply Stable_skip. apply IHHP; intuition.
+    - cbn. intro fz. cbn.
+      destruct (eqv_dec fz (f y)); destruct (eqv_dec fz (f x)); [|reflexivity..].
+      assert (eqv (f y) (f x)) by (eauto using eqv_sym, eqv_trans).
+      apply HF in H; intuition. rewrite H. reflexivity.
+    - eapply Stable_trans. apply IHHP1; eauto using Permutation_sym, Permutation_trans.
+      apply IHHP2; intuition.
+      apply HF; eauto using Permutation_in, Permutation_sym.
+  Qed.
+End Preserve.

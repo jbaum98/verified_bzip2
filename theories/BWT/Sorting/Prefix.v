@@ -174,6 +174,10 @@ Proof.
         eapply Forall2_uncons. eauto.
 Qed.
 
+Theorem eqv_zero {A} `{Ord A} : forall x y,
+    @eqv _ (Ord_list_k 0) x y .
+Proof. intros; split; apply le_zero. Qed.
+
 Theorem le_k_1 {A} `{O: Ord A} : forall x xs y ys,
     le_k 1 (x :: xs) (y :: ys) <-> le x y.
 Proof.
@@ -184,6 +188,38 @@ Proof.
   - destruct (le_dec y x).
     + apply le_cons_eq. split; auto. constructor.
     + apply le_cons_lt. auto.
+Qed.
+
+Theorem le_k_firstn_le {A} `{O: Ord A} : forall k j xs ys,
+    j <= k ->
+    le_k k xs ys -> le_k j (firstn j xs) (firstn j ys).
+Proof.
+  induction k; intros j xs ys HJK H.
+  - replace j with 0 by omega. constructor.
+  - destruct j; [constructor|].
+    destruct xs as [|xhd xtl]; [constructor|].
+    destruct ys as [|yhd xyl]; [inversion H|].
+    cbn. inversion H; subst; clear H.
+    + apply le_cons_lt. auto.
+    + apply le_cons_eq. auto. apply IHk. omega. auto.
+Qed.
+
+Theorem le_k_firstn {A} `{O: Ord A} : forall k xs ys,
+    le_k k (firstn k xs) (firstn k ys) -> le_k k xs ys.
+Proof.
+  induction k; intros xs ys H.
+  - constructor.
+  - destruct xs as [|xhd xtl]; [constructor|].
+    destruct ys as [|yhd xyl]; [inversion H|].
+    cbn in H. inversion H; subst; clear H.
+    + apply le_cons_lt. auto.
+    + apply le_cons_eq. auto. apply IHk. auto.
+Qed.
+
+Theorem eqv_firstn {A} `{Ord A} : forall k (xs ys : list A),
+    @eqv _ (Ord_list_k k) (firstn k xs) (firstn k ys) -> @eqv _ (Ord_list_k k) xs ys.
+Proof.
+  intros k xs ys []. split; apply le_k_firstn; auto.
 Qed.
 
 Section Sort.
@@ -236,6 +272,7 @@ Section SortedK.
 
   Local Arguments Sorted {_} _.
   Local Arguments le {_} _.
+  Local Arguments eqv {_} _.
 
   Theorem sorted_zero : forall l,
       Sorted (Ord_list_k 0) l.
@@ -266,6 +303,28 @@ Section SortedK.
       apply le_cons_eq; auto.
   Qed.
 
+  Theorem le_k_gt : forall k j x y,
+      k >= j ->
+      le_k k x y -> le_k j x y.
+  Proof.
+    induction k; intros.
+    - replace j with 0 by omega. constructor.
+    - destruct j; [constructor|].
+      destruct x; [constructor|].
+      destruct y; [inversion H1|].
+      inversion H1; subst; clear H1.
+      + apply le_cons_lt. auto.
+      + apply le_cons_eq. auto.
+        apply IHk. omega. auto.
+  Qed.
+
+  Theorem eqv_k_gt : forall k j x y,
+      k >= j ->
+      eqv (Ord_list_k k) x y -> eqv (Ord_list_k j) x y.
+  Proof.
+    intros k j x y HKJ []. split; eapply le_k_gt; eauto.
+  Qed.
+
   Theorem sorted_S : forall k l,
       Sorted (Ord_list_k (S k)) l -> Sorted (Ord_list_k k) l.
   Proof.
@@ -273,6 +332,18 @@ Section SortedK.
     induction HS; intros; subst; constructor.
     - intros. apply le_k_S. apply H0. apply H1.
     - apply IHHS. auto.
+  Qed.
+
+  Theorem sorted_le : forall k j l,
+      k >= j ->
+      Sorted (Ord_list_k k) l -> Sorted (Ord_list_k j) l.
+  Proof.
+    intros k l HS. remember (S k) as k'. generalize dependent k.
+    induction HS; intros; subst; constructor.
+    - intros. eapply le_k_gt; [apply H0|].
+      inversion H1; subst; clear H1. apply H5. auto.
+    - eapply IHHS; eauto.
+      inversion H1; subst; clear H1. auto.
   Qed.
 
   Theorem sorted_hd : forall k a l,
