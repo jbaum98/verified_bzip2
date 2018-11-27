@@ -2,11 +2,12 @@ Require Import Coq.omega.Omega.
 Require Import Coq.Lists.List.
 Require Import Coq.Logic.FinFun.
 Require Import Coq.Sorting.Permutation.
+Require Import FunInd.
 
 Section Filter.
   Context {A T F} (f : forall y : A, {T y} + {F y}).
 
-  Fixpoint filter l : list A :=
+  Function filter l : list A :=
     match l with
     | nil => nil
     | x :: tl => if f x then x :: filter tl else filter tl
@@ -14,7 +15,7 @@ Section Filter.
 
   Theorem filter_length : forall l,
       length (filter l) <= length l.
-  Proof. induction l; [|simpl; destruct (f a)]; simpl; omega. Qed.
+  Proof. intros; functional induction (filter l); cbn; omega. Qed.
 
   Theorem filter_length_cons : forall l a,
       length (filter (a :: l)) >= length (filter l).
@@ -35,11 +36,24 @@ Section Filter.
         destruct (f a) eqn:EF; [right|]; apply IHl; eauto.
   Qed.
 
+  Ltac sub_sumbool :=
+    match goal with
+    | H : ?x = left ?pf |- context ctx[if ?x then ?a else ?b] =>
+      let Hdestr := fresh "Hdestr" in
+      destruct x eqn:Hdestr;
+      [|try rewrite Hdestr in *; discriminate]; clear Hdestr H
+    | H : ?x = right ?pf |- context ctx[if ?x then ?a else ?b] =>
+      let Hdestr := fresh "Hdestr" in
+      destruct x eqn:Hdestr;
+      [try rewrite Hdestr in *; discriminate|]; clear Hdestr H
+    end.
+
   Remark filter_app: forall (l l': list A),
       filter (l ++ l') = filter l ++ filter l'.
   Proof.
-    induction l; intros; simpl. auto.
-    destruct (f a); simpl. f_equal; auto. auto.
+    intros l;
+      functional induction (filter l) as [|l a x _ prf HL IH|l a x _ prf HR IH];
+      intros; cbn; try sub_sumbool; try rewrite IH; easy.
   Qed.
 
   Remark filter_empty: forall l,
