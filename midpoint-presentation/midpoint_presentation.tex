@@ -1,15 +1,449 @@
 \documentclass{beamer}
-\usetheme{metropolis}           % Use metropolis theme
+\usetheme{metropolis}
+\usepackage{pgfplots}
+\usepackage{ulem}
+
 \title{Towards a Verified Bzip2}
 \subtitle{A Functional Specification for Burrows-Wheeler}
 \date{\today}
-\author{Matthias Vogelgesang}
-\institute{Centre for Modern Beamer Themes}
+\author{Jake Waksbaum '20\\Advisor: Prof. Andrew Appel}
+\institute{Princeton University}
+
+\setmonofont{Iosevka}
 
 \begin{document}
   \maketitle
-  \section{First Section}
-  \begin{frame}{First Frame}
-    Hello, world!
+
+  \section{Motivation \& Goal}
+  % Give a high-level introduction to your topic area and state
+  % specifically what problem you will be addressing. You should clearly
+  % state the goal of your project (i.e., “The goal of my project is
+  % …”). Explain why that goal is important and/or interesting. What
+  % people and/or applications would benefit? Giving some examples of
+  % the problem being addressed may help make it easier to understand.
+  \begin{frame}{Compression Software}
+    \begin{itemize}
+    \item<+-> Reduces the amount of disk space used by files
+    \item<+-> Often used to transfer files over the internet
+    \item<+-> \alert{Source of security vulnerabilities}
+    \end{itemize}
+  \end{frame}
+
+  \begin{frame}{Effect of Vulnerabilities in Compression Software}
+    \begin{figure}
+      \begin{tikzpicture}
+        \begin{axis}[
+            ybar stacked,
+            symbolic x coords={bzip2, 7zip, winRAR, unzip},
+            xtick=data,
+            cycle list name=mbarplot cycle,
+            axis y line*=none,
+            legend style={
+              draw=none,
+              fill=none,
+              cells={anchor=west},
+              anchor={north west},
+              at={(0.02,0.98)},
+            },
+            xmajorgrids=false,
+            ymajorgrids=true,
+            x tick label style={
+              font=\footnotesize
+            },
+            y tick label style={
+              font=\footnotesize
+            },
+            legend style={
+              font=\footnotesize
+            },
+            major grid style={
+              dotted,
+            },
+            axis x line*=bottom,
+          ]
+          \addplot+[ybar] plot coordinates {
+            (bzip2,  2)
+            (7zip,   5)
+            (winRAR, 7)
+            (unzip,  7)
+          };
+          \addplot+[ybar] plot coordinates {
+            (bzip2,  3)
+            (7zip,   1)
+            (winRAR, 1)
+            (unzip,  6)
+          };
+          \addplot+[ybar] plot coordinates {
+            (bzip2,  4)
+            (7zip,   3)
+            (winRAR, 5)
+            (unzip,  5)
+          };
+          \legend{\strut Code Exec, \strut DoS, \strut Other}
+        \end{axis}
+      \end{tikzpicture}
+    \end{figure}
+  \end{frame}
+
+  \begin{frame}{Cause of Vulnerabilities in Compression Software}
+    \begin{figure}
+      \begin{tikzpicture}
+        \begin{axis}[
+            ybar stacked,
+            symbolic x coords={bzip2, 7zip, winRAR, unzip},
+            xtick=data,
+            cycle list name=mbarplot cycle,
+            axis y line*=none,
+            legend style={
+              draw=none,
+              fill=none,
+              cells={anchor=west},
+              anchor={north west},
+              at={(0.02,0.98)},
+            },
+            xmajorgrids=false,
+            ymajorgrids=true,
+            x tick label style={
+              font=\footnotesize
+            },
+            y tick label style={
+              font=\footnotesize
+            },
+            legend style={
+              font=\footnotesize
+            },
+            major grid style={
+              dotted,
+            },
+            axis x line*=bottom,
+          ]
+          \addplot+[ybar] plot coordinates {
+            (bzip2,  2 )
+            (7zip,   5 )
+            (winRAR, 7 )
+            (unzip,  11)
+          };
+          \addplot+[ybar] plot coordinates {
+            (bzip2,  2)
+            (7zip,   0)
+            (winRAR, 0)
+            (unzip,  1)
+          };
+          \addplot+[ybar] plot coordinates {
+            (bzip2,  5)
+            (7zip,   4)
+            (winRAR, 6)
+            (unzip,  6)
+          };
+          \legend{\strut Mem. Management, \strut Race Cond., \strut Other}
+        \end{axis}
+      \end{tikzpicture}
+    \end{figure}
+  \end{frame}
+
+  \begin{frame}{Solution}
+    \alt<1>{{\Large\bf Be Smarter}}{\xout{{\Large\bf Be Smarter}}}
+    \only<2->{{\Large\bf Formal Methods}}
+    \begin{itemize}
+    \item<2-> Use math (checked by computers) to verify correctnesss
+    \end{itemize}
+  \end{frame}
+
+  \begin{frame}{Goal}
+    The \textbf{goals} of my work are:
+    \begin{itemize}
+    \item<1-> to lay the groundwork for a verified implementation of
+      bzip2
+      \begin{itemize}
+      \item<2-> a \textit{functional specification} for its main
+        algorithm, the Burrows-Wheeler transform
+      \end{itemize}
+    \item<3-> to find techniques that are useful in general for
+      machine-checked proofs in Coq
+    \end{itemize}
+  \end{frame}
+
+  \section{Problem Background \& Related Work}
+  % You probably are not the first person to work towards this goal,
+  % nor will you be the last. Give some background of what has been
+  % done before. Have academics already written papers on this topic?
+  % Are there already products on the market? Why do they not solve
+  % the problem? What aspects of the problem are still uninvestigated?
+  % It is always the case that someone has done something that can be
+  % related to what you are going to do. Find out the most closely
+  % related pieces of work and explain the relationship to your
+  % proposed project.
+
+  \subsection{Burrows-Wheeler}
+
+  \tableofcontents[
+    sectionstyle=show/shaded,
+    subsectionstyle=show/shaded,
+    subsubsectionstyle=show/show/hide/hide,
+  ]
+
+  \begin{frame}{The Burrows-Wheeler Transform}
+    \textit{A Block-sorting Lossless Data Compression Algorithm} (1994)
+    \begin{itemize}
+    \item<1-> A transformation of type \texttt{Ord a => [a] -> ([a], Nat)}
+    \item<2-> Makes it easier to compress
+    \item<4-> \textbf{Reversible}
+    \end{itemize}
+  \end{frame}
+
+  \subsubsection{The Transform}
+  \begin{frame}{The Transform}
+    Input text: \texttt{kaukapakapa}
+    \begin{columns}[c] % the "c" option specifies center vertical alignment
+      \column{.5\textwidth}
+      \begin{enumerate}
+      \item<2-> Form suffix matrix
+      \item<3-> Sort
+      \item<4-> Take the last column of the sorted suffix matrix\ldots
+        \only<5->{ and the index where the original string ends up}
+      \end{enumerate}
+
+      \column{.5\textwidth}
+      \only<2>{%
+        \begin{tabular}{rc}
+          0  & kaukapakapa \\
+          1  & aukapakapak \\
+          2  & ukapakapaka \\
+          3  & kapakapakau \\
+          4  & apakapakauk \\
+          5  & pakapakauka \\
+          6  & akapakaukap \\
+          7  & kapakaukapa \\
+          8  & apakaukapak \\
+          9  & pakaukapaka \\
+          10 & akaukapakap
+        \end{tabular}
+      }%
+      \only<3>{%
+        \begin{tabular}{rc}
+          0  & akapakaukap \\
+          1  & akaukapakap \\
+          2  & apakapakauk \\
+          3  & apakaukapak \\
+          4  & aukapakapak \\
+          5  & kapakapakau \\
+          6  & kapakaukapa \\
+          7  & kaukapakapa \\
+          8  & pakapakauka \\
+          9  & pakaukapaka \\
+          10 & ukapakapaka
+        \end{tabular}
+      }%
+      \only<4>{%
+        \begin{tabular}{rc}
+          0  & akapakauka\alert{p} \\
+          1  & akaukapaka\alert{p} \\
+          2  & apakapakau\alert{k} \\
+          3  & apakaukapa\alert{k} \\
+          4  & aukapakapa\alert{k} \\
+          5  & kapakapaka\alert{u} \\
+          6  & kapakaukap\alert{a} \\
+          7  & kaukapakap\alert{a} \\
+          8  & pakapakauk\alert{a} \\
+          9  & pakaukapak\alert{a} \\
+          10 & ukapakapak\alert{a}
+        \end{tabular}
+      }%
+      \only<5>{%
+        \begin{tabular}{rc}
+          0         & akapakauka\alert{p}          \\
+          1         & akaukapaka\alert{p}          \\
+          2         & apakapakau\alert{k}          \\
+          3         & apakaukapa\alert{k}          \\
+          4         & aukapakapa\alert{k}          \\
+          5         & kapakapaka\alert{u}          \\
+          6         & kapakaukap\alert{a}          \\
+          \alert{7} & \textbf{kaukapakap\alert{a}} \\
+          8         & pakapakauk\alert{a}          \\
+          9         & pakaukapak\alert{a}          \\
+          10        & ukapakapak\alert{a}
+        \end{tabular}
+      }%
+    \end{columns}
+  \end{frame}
+
+  \subsubsection{Why it works}
+  \begin{frame}[fragile]{Why it works}
+    \texttt{transform kaukapakapa = (ppkkkuaaaaa, 7)}
+
+    \only<1-2>{%
+    \begin{itemize}
+      \item<1-2> Groups characters based on context
+      \item<2-2> After MTF, perfect for RLE and Huffman
+    \end{itemize}
+    }%
+
+    \only<3->{%
+      \begin{figure}
+        \begin{tikzpicture}
+          \begin{axis}[
+              mbarplot,
+              cycle list name=mbarplot cycle,
+              xlabel={MTF Position},
+              height=6cm,
+              xtick=data,
+              yticklabel={\pgfmathprintnumber\tick\,\%},
+            ]
+            \addplot plot coordinates {
+              (0, 66.8)
+              (1, 9.0)
+              (2, 4.0)
+              (3, 2.9)
+              (4, 2.3)
+              (5, 1.8)
+              (6, 1.6)
+              (7, 1.4)
+            };
+          \end{axis}
+        \end{tikzpicture}
+      \end{figure}
+    }%
+  \end{frame}
+
+  \subsection{Verifying Programs}
+  \tableofcontents[
+    sectionstyle=show/shaded,
+    subsectionstyle=show/shaded,
+    subsubsectionstyle=show/show/hide/hide,
+  ]
+
+  \subsubsection{Coq \& VST}
+  \begin{frame}{Coq \& VST}
+    \begin{description}
+      \item[Coq] A theorem proving assistant
+      \item[CompCert] An optimizing C formally verified in Coq
+      \item[VST] Program logic for C
+    \end{description}
+  \end{frame}
+
+  \subsubsection{Program Calculation}
+  \begin{frame}{Program Calculation}
+    \begin{itemize}
+    \item<+-> A technique for deriving programs from specifications using
+      \alert{equational reasoning}
+    \item<+-> Programs are \alert{correct by construction}
+    \end{itemize}
+  \end{frame}
+
+  \section{Approach}
+  %  Clearly explain the key idea behind the approach you are taking
+  %  and explain why it is a good idea. What is your key insight to
+  %  solve the problem? What makes your approach unique in comparison
+  %  to previous work? It might be that you are asking a different
+  %  question than others have before, or attacking the problem in a
+  %  different way, or using different tools, or leveraging different
+  %  data sets. In any case, describe the most interesting “key idea”
+  %  behind your project and justify why you chose it.
+  \begin{frame}{Approach}
+    Use \textbf{VST} to produce a verifized implementation of bzip2
+    \begin{itemize}
+    \item Define a functional specification and prove ``correct''
+      \begin{itemize}
+      \item \alert{Burrows-Wheeler}
+      \item Move-to-Front
+      \item Run-length Encoding
+      \item Huffman Encoding
+      \end{itemize}
+    \item Write program in C and prove equivalent to specification
+    \end{itemize}
+
+    \visible<2->{Use \textbf{program calculation} to write specifications and
+      prove equivalence between implementations}
+  \end{frame}
+
+  \section{Implementation}
+  % Describe the steps you have completed and/or the subproblems you
+  % have solved to make progress on your project. For each of them,
+  % you may want to describe: What was the main issue? What options
+  % were available? What solution did you create/choose and why? How
+  % did you perform the implementation? What tools did you use? How
+  % well does your solution work? What is remaining to be done? If
+  % your implementation is not complete, outline any logistical or
+  % technical problems you anticipate and explain any contingency plan
+  % you have for avoiding or coping with them.
+  \begin{frame}[fragile]{Forwards Transform}
+    \begin{semiverbatim}
+transform    :: Ord a => [a] -> ([a], Nat)
+transform xs = (map last mat, findIndex xs mat)
+               where mat = sort (rots xs)
+
+rots    :: [a] -> [[a]]
+rots xs = iter lrot (length xs) xs
+
+lrot, rrot :: [a] -> [a]
+lrot xs = tl xs ++ hd xs
+rrot xs = last xs : init xs
+    \end{semiverbatim}
+  \end{frame}
+
+  \begin{frame}[fragile]{Inverse Transform}
+    \begin{semiverbatim}
+untransform         :: Ord a => ([a], Nat) -> [a]
+\alt<1>{untransform ∘ transform = id}{untransform (lc, i) = (recreate lc) !! i}
+
+\visible<2->{recreate :: Ord a => [a] -> [[a]]}
+\only<2>{recreate ∘ fst ∘ transform = sort ∘ rots}\only<3->{recreate ∘ map last ∘ sort ∘ rots = sort ∘ rots}
+    \end{semiverbatim}
+  \end{frame}
+
+  \begin{frame}[fragile]{\texttt{recreate}, recursively}
+    \begin{semiverbatim}
+\alt<2->{recreate ∘ map last ∘ sort ∘ rots = sort ∘ rots}{recreate j ∘ map last ∘ sort ∘ rots = cols j ∘ sort ∘ rots}
+    \end{semiverbatim}
+  \end{frame}
+
+  \begin{frame}[fragile]{\texttt{recreate}, Base case}
+    \begin{semiverbatim}
+      recreate 0 = map (const [])
+    \end{semiverbatim}
+  \end{frame}
+
+  \begin{frame}[fragile]{\texttt{recreate}, Inductive case}
+    \begin{semiverbatim}
+\alert<8->{recreate (j+1)} ∘ map last ∘ sort ∘ rots
+\uncover<2->{= cols (j+1) ∘ sort ∘ rots}
+\uncover<3->{= hdsort ∘ map rrot ∘ cols (j+1) ∘ sort ∘ rots}
+\uncover<4->{= cols (j+1) ∘ hdsort ∘ map rrot ∘ sort ∘ rots}
+\uncover<5->{= hdsort ∘ cols (j+1) ∘ map rrot ∘ sort ∘ rots}
+\uncover<6->{= hdsort ∘ consCol ∘ fork (map last, recreate j ∘ map last)
+  ∘ sort ∘ rots}
+\uncover<7->{= \alert<8->{hdsort ∘ consCol ∘ fork (id, recreate j)}
+  ∘ map last ∘ sort ∘ rots}
+    \end{semiverbatim}
+  \end{frame}
+
+  \section{Results}
+  % Every project should have some means of measuring success. Explain
+  % the methods you will use to evaluate how well your implementation
+  % achieves the goal articulated at the beginning of the talk.
+  % Perhaps you will need to describe your test data sets, your
+  % measurement techniques, your evaluation metrics, etc. If possible,
+  % provide some quantitative comparisons of your results to
+  % alternative methods (e.g., the previous state-of-the-art, random
+  % results, etc.). Part of (not the entire presentation) may involve
+  % giving a demo of your results.
+  \begin{frame}{Results}
+    \begin{itemize}
+    \item QED! (Almost)
+    \item Some lemmas are still unproven
+      \begin{itemize}
+      \item Stability is hard to reason about
+      \item Empty lists are annoying
+      \end{itemize}
+    \end{itemize}
+  \end{frame}
+
+  \section{Future Work}
+  \begin{frame}{Future Work}
+    \begin{itemize}
+      \item Finish proving lemmas
+      \item Add tools in Coq for working with chains of composed functions
+      \item Explore Birds' relational specifications for program calculation
+    \end{itemize}
   \end{frame}
 \end{document}

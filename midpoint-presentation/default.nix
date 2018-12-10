@@ -1,4 +1,4 @@
-{ lib, stdenv, callPackage, texlive, ghostscript, makeFontsConf, fira }:
+{ lib, stdenv, callPackage, texlive, ghostscript, makeFontsConf, fira, iosevka }:
 let
   tex = texlive.combine ({
     inherit (texlive)
@@ -11,11 +11,11 @@ let
       # misc
       xstring parskip etoolbox logreq titlesec
       # Beamer
-      beamer beamertheme-metropolis translator pgfopts
+      beamer beamertheme-metropolis translator pgfopts pgfplots ulem
       ;
   });
 
-  fonts = [ fira ];
+  fonts = [ fira iosevka ];
 
 in stdenv.mkDerivation rec {
   basename = "midpoint_presentation";
