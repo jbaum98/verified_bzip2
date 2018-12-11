@@ -11,6 +11,40 @@
 
 \setmonofont{Iosevka}
 
+\metroset{block=fill}
+
+\pgfplotsset{
+  barplot/.style={
+    %ybar stacked,
+    %symbolic x coords={bzip2, 7zip, winRAR, unzip},
+    % xtick=data,
+    cycle list name=mbarplot cycle,
+    axis y line*=none,
+    legend style={
+      draw=none,
+      fill=none,
+      cells={anchor=west},
+      anchor={north west},
+      % at={(0.02,0.98)},
+    },
+    xmajorgrids=false,
+    ymajorgrids=true,
+    x tick label style={
+      font=\footnotesize
+    },
+    y tick label style={
+      font=\footnotesize
+    },
+    legend style={
+      font=\footnotesize
+    },
+    major grid style={
+      dotted,
+    },
+    axis x line*=bottom,
+  }
+}
+
 \begin{document}
   \maketitle
 
@@ -34,32 +68,10 @@
       \begin{tikzpicture}
         \begin{axis}[
             ybar stacked,
+            barplot,
             symbolic x coords={bzip2, 7zip, winRAR, unzip},
             xtick=data,
-            cycle list name=mbarplot cycle,
-            axis y line*=none,
-            legend style={
-              draw=none,
-              fill=none,
-              cells={anchor=west},
-              anchor={north west},
-              at={(0.02,0.98)},
-            },
-            xmajorgrids=false,
-            ymajorgrids=true,
-            x tick label style={
-              font=\footnotesize
-            },
-            y tick label style={
-              font=\footnotesize
-            },
-            legend style={
-              font=\footnotesize
-            },
-            major grid style={
-              dotted,
-            },
-            axis x line*=bottom,
+            legend style={at={(0.02,0.98)}},
           ]
           \addplot+[ybar] plot coordinates {
             (bzip2,  2)
@@ -90,32 +102,10 @@
       \begin{tikzpicture}
         \begin{axis}[
             ybar stacked,
+            barplot,
             symbolic x coords={bzip2, 7zip, winRAR, unzip},
             xtick=data,
-            cycle list name=mbarplot cycle,
-            axis y line*=none,
-            legend style={
-              draw=none,
-              fill=none,
-              cells={anchor=west},
-              anchor={north west},
-              at={(0.02,0.98)},
-            },
-            xmajorgrids=false,
-            ymajorgrids=true,
-            x tick label style={
-              font=\footnotesize
-            },
-            y tick label style={
-              font=\footnotesize
-            },
-            legend style={
-              font=\footnotesize
-            },
-            major grid style={
-              dotted,
-            },
-            axis x line*=bottom,
+            legend style={at={(0.02,0.98)}},
           ]
           \addplot+[ybar] plot coordinates {
             (bzip2,  2 )
@@ -268,41 +258,38 @@
   \end{frame}
 
   \subsubsection{Why it works}
-  \begin{frame}[fragile]{Why it works}
+  \begin{frame}{Why it works}
     \texttt{transform kaukapakapa = (ppkkkuaaaaa, 7)}
 
-    \only<1-2>{%
     \begin{itemize}
-      \item<1-2> Groups characters based on context
-      \item<2-2> After MTF, perfect for RLE and Huffman
+      \item<+-> Groups characters based on context
+      \item<+-> After MTF, perfect for RLE and Huffman
     \end{itemize}
-    }%
+  \end{frame}
 
-    \only<3->{%
-      \begin{figure}
-        \begin{tikzpicture}
-          \begin{axis}[
-              mbarplot,
-              cycle list name=mbarplot cycle,
-              xlabel={MTF Position},
-              height=6cm,
-              xtick=data,
-              yticklabel={\pgfmathprintnumber\tick\,\%},
-            ]
-            \addplot plot coordinates {
-              (0, 66.8)
-              (1, 9.0)
-              (2, 4.0)
-              (3, 2.9)
-              (4, 2.3)
-              (5, 1.8)
-              (6, 1.6)
-              (7, 1.4)
-            };
-          \end{axis}
-        \end{tikzpicture}
-      \end{figure}
-    }%
+  \begin{frame}{Distribution of MTF Positions after BWT}
+    \begin{figure}
+      \begin{tikzpicture}
+        \begin{axis}[
+            ybar,
+            barplot,
+            xlabel={MTF Position},
+            xtick=data,
+            yticklabel={\pgfmathprintnumber\tick\,\%},
+          ]
+          \addplot+[ybar] plot coordinates {
+            (0, 66.8)
+            (1, 9.0)
+            (2, 4.0)
+            (3, 2.9)
+            (4, 2.3)
+            (5, 1.8)
+            (6, 1.6)
+            (7, 1.4)
+          };
+        \end{axis}
+      \end{tikzpicture}
+    \end{figure}
   \end{frame}
 
   \subsection{Verifying Programs}
@@ -316,7 +303,8 @@
   \begin{frame}{Coq \& VST}
     \begin{description}
       \item[Coq] A theorem proving assistant
-      \item[CompCert] An optimizing C formally verified in Coq
+      \item[CompCert] An optimizing C compiler formally verified in
+        Coq
       \item[VST] Program logic for C
     \end{description}
   \end{frame}
@@ -328,6 +316,24 @@
       \alert{equational reasoning}
     \item<+-> Programs are \alert{correct by construction}
     \end{itemize}
+  \end{frame}
+
+  \begin{frame}[fragile]{Program Calculation -- An Example}
+    \begin{semiverbatim}
+maximum = hd ∘ sort
+
+\uncover<+->{maximum [a]} \uncover<+->{= hd $ sort [a]}
+\uncover<+->{= hd [a]}
+\uncover<+->{= a}
+
+\uncover<+->{maximum (a :: x)} \uncover<+->{= hd $ sort (a :: x)}
+\uncover<+->{= hd $ if a > hd (sort x)
+       then a :: sort x
+       else hd (sort x) :: insert a (tail (sort x))}
+\uncover<+->{= if a > hd (sort x) then a else hd (sort x)}
+\uncover<+->{= if a > maximum x then a else maximum x}
+\uncover<+->{= max a (maximum x)}
+    \end{semiverbatim}
   \end{frame}
 
   \section{Approach}
@@ -368,42 +374,71 @@
   % you have for avoiding or coping with them.
   \begin{frame}[fragile]{Forwards Transform}
     \begin{semiverbatim}
-transform    :: Ord a => [a] -> ([a], Nat)
-transform xs = (map last mat, findIndex xs mat)
-               where mat = sort (rots xs)
+\uncover<+->{lrot, rrot : [a] -> [a]}
+\uncover<+->{lrot xs = tl xs ++ hd xs}
+\uncover<+->{rrot xs = last xs :: init xs}
 
-rots    :: [a] -> [[a]]
-rots xs = iter lrot (length xs) xs
+\uncover<+->{rots : [a] -> [[a]]}
+\uncover<+->{rots xs = iter lrot (length xs) xs}
 
-lrot, rrot :: [a] -> [a]
-lrot xs = tl xs ++ hd xs
-rrot xs = last xs : init xs
+\uncover<+->{bwp : [a] -> [a]}
+\uncover<+->{bwp = map last ∘ sort ∘ rots}
+
+\uncover<+->{bwn : [a] -> Nat}
+\uncover<+->{bwn xs = findIndex xs $ sort (rots xs)}
     \end{semiverbatim}
+  \end{frame}
+
+  \begin{frame}[fragile]{Properties of the Forwards Transform}
+    \begin{block}{\texttt{bwp} preserves length}
+      \texttt{length ∘ bwp = length}
+    \end{block}
+
+    \begin{block}{\texttt{bwn} correct}
+      \texttt{sort (rots xs) !! (bwn xs) = xs}
+    \end{block}
   \end{frame}
 
   \begin{frame}[fragile]{Inverse Transform}
     \begin{semiverbatim}
-untransform         :: Ord a => ([a], Nat) -> [a]
-\alt<1>{untransform ∘ transform = id}{untransform (lc, i) = (recreate lc) !! i}
-
-\visible<2->{recreate :: Ord a => [a] -> [[a]]}
-\only<2>{recreate ∘ fst ∘ transform = sort ∘ rots}\only<3->{recreate ∘ map last ∘ sort ∘ rots = sort ∘ rots}
+\uncover<1->{unbwt : Nat -> [a] -> [a]}
+\uncover<3->{unbwt t xs = \alert{recreate} xs !! t}
     \end{semiverbatim}
+
+    \uncover<2->{%
+      \begin{block}{\texttt{unbwt} correct}
+        \texttt{unbwt (bwn xs) (bwp xs) = xs}
+      \end{block}
+    }%
   \end{frame}
 
   \begin{frame}[fragile]{\texttt{recreate}, recursively}
-    \begin{semiverbatim}
-\alt<2->{recreate ∘ map last ∘ sort ∘ rots = sort ∘ rots}{recreate j ∘ map last ∘ sort ∘ rots = cols j ∘ sort ∘ rots}
-    \end{semiverbatim}
+    \begin{block}{\texttt{recreate} correct}
+      \texttt{%
+        recreate \only<2->{j }∘ map last ∘ sort ∘ rots\\
+        = \only<2->{cols j ∘ }sort ∘ rots
+      }%
+    \end{block}
   \end{frame}
 
   \begin{frame}[fragile]{\texttt{recreate}, Base case}
-    \begin{semiverbatim}
-      recreate 0 = map (const [])
-    \end{semiverbatim}
+    \texttt{%
+      recreate \alt<2->{0}{j} ∘ map last ∘ sort ∘ rots\\
+      = cols \alt<2->{0}{j} ∘ sort ∘ rots \\
+    }
+    \uncover<3->{\texttt{%
+      = map (const []) ∘ sort ∘ rots \\
+    }}
+    \uncover<4->{\texttt{%
+      = map (const []) \\
+    }}
   \end{frame}
 
   \begin{frame}[fragile]{\texttt{recreate}, Inductive case}
+    \texttt{%
+      recreate \alt<2->{(j+1)}{j} ∘ map last ∘ sort ∘ rots\\
+      = cols \alt<2->{(j+1)}{j} ∘ sort ∘ rots \\
+    }
     \begin{semiverbatim}
 \alert<8->{recreate (j+1)} ∘ map last ∘ sort ∘ rots
 \uncover<2->{= cols (j+1) ∘ sort ∘ rots}
