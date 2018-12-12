@@ -2,6 +2,7 @@
 \usetheme{metropolis}
 \usepackage{pgfplots}
 \usepackage{ulem}
+\usepackage{appendixnumberbeamer}
 
 \usepackage{pgfpages}
 \setbeameroption{show notes on second screen=bottom}
@@ -59,6 +60,196 @@
 
 \begin{document}
   \maketitle
+
+  \subsection{Burrows-Wheeler}
+
+  \begin{frame}{The Burrows-Wheeler Transform}
+    \textit{A Block-sorting Lossless Data Compression Algorithm} (1994)
+    \begin{itemize}
+    \item<+-> A transformation of type \texttt{[a] -> ([a], Nat)}
+    \item<+-> Makes it easier to compress
+    \item<+-> \textbf{Reversible}
+    \end{itemize}
+  \end{frame}
+
+  \subsubsection{The Transform}
+  \begin{frame}{The Transform}
+    Input text: \texttt{abracadabra!}
+    \begin{columns}[c] % the "c" option specifies center vertical alignment
+      \column{.5\textwidth}
+      \begin{enumerate}
+      \item<2-> Form rotation matrix
+      \item<3-> Sort rotation matrix
+      \item<4-> Take the last column of the sorted rotation matrix\ldots
+        \only<5->{ and the index where the original string ends up}
+      \end{enumerate}
+
+      \column{.5\textwidth}
+      \only<2>{%
+        \begin{tabular}{rc}
+          0  & abracadabra! \\
+          1  & bracadabra!a \\
+          2  & racadabra!ab \\
+          3  & acadabra!abr \\
+          4  & cadabra!abra \\
+          5  & adabra!abrac \\
+          6  & dabra!abraca \\
+          7  & abra!abracad \\
+          8  & bra!abracada \\
+          9  & ra!abracadab \\
+          10 & a!abracadabr \\
+          11 & !abracadabra
+        \end{tabular}
+      }%
+      \only<3->{%
+        \begin{tabular}{rc}
+          0  & !abracadabr\alert<4->{a} \\
+          1  & a!abracadab\alert<4->{r} \\
+          2  & abra!abraca\alert<4->{d} \\
+          \textbf<5->{3} & \textbf<5->{abracadabra\alert<4->{!}} \\
+          4  & acadabra!ab\alert<4->{r} \\
+          5  & adabra!abra\alert<4->{c} \\
+          6  & bra!abracad\alert<4->{a} \\
+          7  & bracadabra!\alert<4->{a} \\
+          8  & cadabra!abr\alert<4->{a} \\
+          9  & dabra!abrac\alert<4->{a} \\
+          10 & ra!abracada\alert<4->{b} \\
+          11 & racadabra!a\alert<4->{b}
+        \end{tabular}
+      }%
+    \end{columns}
+  \end{frame}
+
+  \section{Implementation}
+  % Describe the steps you have completed and/or the subproblems you
+  % have solved to make progress on your project. For each of them,
+  % you may want to describe: What was the main issue? What options
+  % were available? What solution did you create/choose and why? How
+  % did you perform the implementation? What tools did you use? How
+  % well does your solution work? What is remaining to be done? If
+  % your implementation is not complete, outline any logistical or
+  % technical problems you anticipate and explain any contingency plan
+  % you have for avoiding or coping with them.
+  \begin{frame}[fragile]{Forwards Transform}
+    \begin{semiverbatim}
+\uncover<+->{lrot, rrot : [a] -> [a]}
+\uncover<+->{lrot xs = tl xs ++ [hd xs]}
+\uncover<+->{rrot xs = last xs :: init xs}
+
+\uncover<+->{rots : [a] -> [[a]]}
+\uncover<+->{rots xs = iter lrot (length xs) xs}
+
+\uncover<+->{bwl : [a] -> [a]}
+\uncover<+->{bwl = map last ∘ sort ∘ rots}
+
+\uncover<+->{bwn : [a] -> Nat}
+\uncover<+->{bwn xs = findIndex xs $ sort (rots xs)}
+    \end{semiverbatim}
+  \end{frame}
+
+  \begin{frame}[fragile]{Properties of the Forwards Transform}
+    \begin{block}{\texttt{bwl} preserves length}
+      \texttt{length ∘ bwl = length}
+    \end{block}
+
+    \begin{block}{\texttt{bwn} correct}
+      \texttt{sort (rots xs) !! (bwn xs) = xs}
+    \end{block}
+  \end{frame}
+
+  \begin{frame}[fragile]{Inverse Transform}
+    \begin{semiverbatim}
+\uncover<1->{unbwt : Nat -> [a] -> [a]}
+\uncover<3->{unbwt t xs = \alert{recreate} xs !! t}
+    \end{semiverbatim}
+
+    \uncover<2->{%
+      \begin{block}{\texttt{unbwt} correct}
+        \texttt{unbwt (bwn xs) (bwl xs) = xs}
+      \end{block}
+    }%
+  \end{frame}
+
+  \begin{frame}[fragile]{\texttt{recreate}, recursively}
+    \begin{block}{\texttt{recreate} correct}
+      \texttt{%
+        recreate \only<2->{j }∘ bwl
+        = recreate \only<2->{j }∘ map last ∘ sort ∘ rots\\
+        = \only<2->{cols j ∘ }sort ∘ rots
+      }%
+    \end{block}
+  \end{frame}
+
+  \begin{frame}[fragile]{\texttt{recreate}, Base case}
+    \uncover<+->{\texttt{%
+      \alert<+>{cols 0} ∘ sort ∘ rots \\
+    }}
+    \uncover<.->{\texttt{%
+      = map (const []) ∘ sort ∘ rots \\
+    }}
+    \uncover<+->{\texttt{%
+      = \textbf<+->{map (const [])} ∘ bwl \\
+    }}
+    \uncover<.->{\texttt{%
+      = recreate 0 ∘ bwl
+    }}
+  \end{frame}
+
+  \begin{frame}[fragile]{\texttt{recreate}, Inductive case}
+    \uncover<+->{\texttt{%
+        cols (j+1) ∘ \alert<+>{sort ∘ rots} \\
+    }}
+    \uncover<.->{\texttt{%
+        = \alert<+>{cols (j+1) ∘ hdsort} ∘ map rrot ∘ sort ∘ rots \\
+    }}
+    \uncover<.->{\texttt{%
+        = hdsort ∘ \alert<+>{cols (j+1) ∘ map rrot} ∘ sort ∘ rots \\
+    }}
+    \uncover<.->{\texttt{%
+        = hdsort ∘ ppCol ∘ fork (\alert<+>{map last}, \alert<+>{cols j})
+        \alert<.(-1),.>{∘ sort ∘ rots} \\
+    }}
+    \uncover<.(-1)->{\texttt{%
+        = hdsort ∘ ppCol ∘ fork (bwl, \uncover<.->{recreate j ∘ bwl}) \\
+    }}
+    \uncover<+->{\texttt{%
+        = \textbf<+->{hdsort ∘ ppCol ∘ fork (id, recreate j)} ∘ bwl \\
+    }}
+    \uncover<.->{\texttt{%
+        = recreate (j+1) ∘ bwl
+    }}
+  \end{frame}
+
+  \section{Results}
+  % Every project should have some means of measuring success. Explain
+  % the methods you will use to evaluate how well your implementation
+  % achieves the goal articulated at the beginning of the talk.
+  % Perhaps you will need to describe your test data sets, your
+  % measurement techniques, your evaluation metrics, etc. If possible,
+  % provide some quantitative comparisons of your results to
+  % alternative methods (e.g., the previous state-of-the-art, random
+  % results, etc.). Part of (not the entire presentation) may involve
+  % giving a demo of your results.
+  \begin{frame}{Results}
+    QED! \uncover<2->{(Almost)}
+    \begin{itemize}
+    \item<2-> Some lemmas unproven
+    \item<3-> Stability is hard to reason about
+    \item<4-> Empty lists are annoying
+    \end{itemize}
+  \end{frame}
+
+  \section{Future Work}
+  \begin{frame}{Future Work}
+    \begin{itemize}
+      \item<+-> Finish proving lemmas
+      \item<+-> Prove more optimal implementations
+      \item<+-> Add tools in Coq for working with chains of composed functions
+      \item<+-> Explore Birds' relational specifications for program calculation
+    \end{itemize}
+  \end{frame}
+
+  \appendix
 
   \section{Motivation \& Goal}
   % Give a high-level introduction to your topic area and state
@@ -179,109 +370,6 @@
   % related pieces of work and explain the relationship to your
   % proposed project.
 
-  \subsection{Burrows-Wheeler}
-
-  \tableofcontents[
-    sectionstyle=show/shaded,
-    subsectionstyle=show/shaded,
-    subsubsectionstyle=show/show/hide/hide,
-  ]
-
-  \begin{frame}{The Burrows-Wheeler Transform}
-    \textit{A Block-sorting Lossless Data Compression Algorithm} (1994)
-    \begin{itemize}
-    \item<+-> A transformation of type \texttt{Ord a => [a] -> ([a], Nat)}
-    \item<+-> Makes it easier to compress
-    \item<+-> \textbf{Reversible}
-    \end{itemize}
-  \end{frame}
-
-  \subsubsection{The Transform}
-  \begin{frame}{The Transform}
-    Input text: \texttt{kaukapakapa}
-    \begin{columns}[c] % the "c" option specifies center vertical alignment
-      \column{.5\textwidth}
-      \begin{enumerate}
-      \item<2-> Form suffix matrix
-      \item<3-> Sort
-      \item<4-> Take the last column of the sorted suffix matrix\ldots
-        \only<5->{ and the index where the original string ends up}
-      \end{enumerate}
-
-      \column{.5\textwidth}
-      \only<2>{%
-        \begin{tabular}{rc}
-          0  & kaukapakapa \\
-          1  & aukapakapak \\
-          2  & ukapakapaka \\
-          3  & kapakapakau \\
-          4  & apakapakauk \\
-          5  & pakapakauka \\
-          6  & akapakaukap \\
-          7  & kapakaukapa \\
-          8  & apakaukapak \\
-          9  & pakaukapaka \\
-          10 & akaukapakap
-        \end{tabular}
-      }%
-      \only<3>{%
-        \begin{tabular}{rc}
-          0  & akapakaukap \\
-          1  & akaukapakap \\
-          2  & apakapakauk \\
-          3  & apakaukapak \\
-          4  & aukapakapak \\
-          5  & kapakapakau \\
-          6  & kapakaukapa \\
-          7  & kaukapakapa \\
-          8  & pakapakauka \\
-          9  & pakaukapaka \\
-          10 & ukapakapaka
-        \end{tabular}
-      }%
-      \only<4>{%
-        \begin{tabular}{rc}
-          0  & akapakauka\alert{p} \\
-          1  & akaukapaka\alert{p} \\
-          2  & apakapakau\alert{k} \\
-          3  & apakaukapa\alert{k} \\
-          4  & aukapakapa\alert{k} \\
-          5  & kapakapaka\alert{u} \\
-          6  & kapakaukap\alert{a} \\
-          7  & kaukapakap\alert{a} \\
-          8  & pakapakauk\alert{a} \\
-          9  & pakaukapak\alert{a} \\
-          10 & ukapakapak\alert{a}
-        \end{tabular}
-      }%
-      \only<5>{%
-        \begin{tabular}{rc}
-          0         & akapakauka\alert{p}          \\
-          1         & akaukapaka\alert{p}          \\
-          2         & apakapakau\alert{k}          \\
-          3         & apakaukapa\alert{k}          \\
-          4         & aukapakapa\alert{k}          \\
-          5         & kapakapaka\alert{u}          \\
-          6         & kapakaukap\alert{a}          \\
-          \alert{7} & \textbf{kaukapakap\alert{a}} \\
-          8         & pakapakauk\alert{a}          \\
-          9         & pakaukapak\alert{a}          \\
-          10        & ukapakapak\alert{a}
-        \end{tabular}
-      }%
-    \end{columns}
-  \end{frame}
-
-  \subsubsection{Why it works}
-  \begin{frame}{Why it works}
-    \texttt{transform kaukapakapa = (ppkkkuaaaaa, 7)}
-
-    \begin{itemize}
-      \item<+-> Groups characters based on context
-      \item<+-> After MTF, perfect for RLE and Huffman
-    \end{itemize}
-  \end{frame}
-
   \begin{frame}{Distribution of MTF Positions after BWT}
     \begin{figure}
       \begin{tikzpicture}
@@ -306,13 +394,6 @@
       \end{tikzpicture}
     \end{figure}
   \end{frame}
-
-  \subsection{Verifying Programs}
-  \tableofcontents[
-    sectionstyle=show/shaded,
-    subsectionstyle=show/shaded,
-    subsubsectionstyle=show/show/hide/hide,
-  ]
 
   \subsubsection{Coq \& VST}
   \begin{frame}{Coq \& VST}
@@ -377,132 +458,14 @@ maximum = hd ∘ sort
       prove equivalence between implementations}
   \end{frame}
 
-  \section{Implementation}
-  % Describe the steps you have completed and/or the subproblems you
-  % have solved to make progress on your project. For each of them,
-  % you may want to describe: What was the main issue? What options
-  % were available? What solution did you create/choose and why? How
-  % did you perform the implementation? What tools did you use? How
-  % well does your solution work? What is remaining to be done? If
-  % your implementation is not complete, outline any logistical or
-  % technical problems you anticipate and explain any contingency plan
-  % you have for avoiding or coping with them.
-  \begin{frame}[fragile]{Forwards Transform}
-    \begin{semiverbatim}
-\uncover<+->{lrot, rrot : [a] -> [a]}
-\uncover<+->{lrot xs = tl xs ++ hd xs}
-\uncover<+->{rrot xs = last xs :: init xs}
-
-\uncover<+->{rots : [a] -> [[a]]}
-\uncover<+->{rots xs = iter lrot (length xs) xs}
-
-\uncover<+->{bwp : [a] -> [a]}
-\uncover<+->{bwp = map last ∘ sort ∘ rots}
-
-\uncover<+->{bwn : [a] -> Nat}
-\uncover<+->{bwn xs = findIndex xs $ sort (rots xs)}
-    \end{semiverbatim}
-  \end{frame}
-
-  \begin{frame}[fragile]{Properties of the Forwards Transform}
-    \begin{block}{\texttt{bwp} preserves length}
-      \texttt{length ∘ bwp = length}
-    \end{block}
-
-    \begin{block}{\texttt{bwn} correct}
-      \texttt{sort (rots xs) !! (bwn xs) = xs}
-    \end{block}
-  \end{frame}
-
-  \begin{frame}[fragile]{Inverse Transform}
-    \begin{semiverbatim}
-\uncover<1->{unbwt : Nat -> [a] -> [a]}
-\uncover<3->{unbwt t xs = \alert{recreate} xs !! t}
-    \end{semiverbatim}
-
-    \uncover<2->{%
-      \begin{block}{\texttt{unbwt} correct}
-        \texttt{unbwt (bwn xs) (bwp xs) = xs}
-      \end{block}
-    }%
-  \end{frame}
-
-  \begin{frame}[fragile]{\texttt{recreate}, recursively}
-    \begin{block}{\texttt{recreate} correct}
-      \texttt{%
-        recreate \only<2->{j }∘ bwp
-        = recreate \only<2->{j }∘ map last ∘ sort ∘ rots\\
-        = \only<2->{cols j ∘ }sort ∘ rots
-      }%
-    \end{block}
-  \end{frame}
-
-  \begin{frame}[fragile]{\texttt{recreate}, Base case}
-    \uncover<+->{\texttt{%
-      \alert<+>{cols 0} ∘ sort ∘ rots \\
-    }}
-    \uncover<.->{\texttt{%
-      = map (const []) ∘ sort ∘ rots \\
-    }}
-    \uncover<+->{\texttt{%
-      = \textbf<+->{map (const [])} ∘ bwp \\
-    }}
-    \uncover<.->{\texttt{%
-      = recreate 0 ∘ bwp
-    }}
-  \end{frame}
-
-  \begin{frame}[fragile]{\texttt{recreate}, Inductive case}
-    \uncover<+->{\texttt{%
-        cols (j+1) ∘ \alert<+>{sort ∘ rots} \\
-    }}
-    \uncover<.->{\texttt{%
-        = \alert<+>{cols (j+1) ∘ hdsort} ∘ map rrot ∘ sort ∘ rots \\
-    }}
-    \uncover<.->{\texttt{%
-        = hdsort ∘ \alert<+>{cols (j+1) ∘ map rrot} ∘ sort ∘ rots \\
-    }}
-    \uncover<.->{\texttt{%
-        = hdsort ∘ ppCol ∘ fork (\alert<+>{map last}, \alert<+>{cols j})
-        \alert<.(-1),.>{∘ sort ∘ rots} \\
-    }}
-    \uncover<.(-1)->{\texttt{%
-        = hdsort ∘ ppCol ∘ fork (bwp, \uncover<.->{recreate j ∘ bwp}) \\
-    }}
-    \uncover<+->{\texttt{%
-        = \textbf<+->{hdsort ∘ prependCol ∘ fork (id, recreate j)} ∘ bwp \\
-    }}
-    \uncover<.->{\texttt{%
-        = recreate (j+1) ∘ bwp
-    }}
-  \end{frame}
-
-  \section{Results}
-  % Every project should have some means of measuring success. Explain
-  % the methods you will use to evaluate how well your implementation
-  % achieves the goal articulated at the beginning of the talk.
-  % Perhaps you will need to describe your test data sets, your
-  % measurement techniques, your evaluation metrics, etc. If possible,
-  % provide some quantitative comparisons of your results to
-  % alternative methods (e.g., the previous state-of-the-art, random
-  % results, etc.). Part of (not the entire presentation) may involve
-  % giving a demo of your results.
-  \begin{frame}{Results}
-    QED! \uncover<2->{(Almost)}
+  \subsubsection{Why it works}
+  \begin{frame}{Why it works}
+    \texttt{transform abracadabra! = (ard!rcaaaabb, 7)}
     \begin{itemize}
-    \item<2-> Some lemmas unproven
-    \item<3-> Stability is hard to reason about
-    \item<4-> Empty lists are annoying
+      \item<+-> Groups characters based on context
+      \item<+-> After MTF, perfect for RLE and Huffman
     \end{itemize}
   \end{frame}
 
-  \section{Future Work}
-  \begin{frame}{Future Work}
-    \begin{itemize}
-      \item<+-> Finish proving lemmas
-      \item<+-> Prove more optimal implementations
-      \item<+-> Add tools in Coq for working with chains of composed functions
-      \item<+-> Explore Birds' relational specifications for program calculation
-    \end{itemize}
-  \end{frame}
+
 \end{document}

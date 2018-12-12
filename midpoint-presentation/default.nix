@@ -11,7 +11,7 @@ let
       # misc
       xstring parskip etoolbox logreq titlesec
       # Beamer
-      beamer beamertheme-metropolis translator pgfopts pgfplots ulem
+      beamer beamertheme-metropolis translator pgfopts pgfplots ulem appendixnumberbeamer
       ;
   });
 
