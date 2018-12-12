@@ -3,6 +3,17 @@
 \usepackage{pgfplots}
 \usepackage{ulem}
 
+\usepackage{pgfpages}
+\setbeameroption{show notes on second screen=bottom}
+
+\makeatletter
+\def\beamer@framenotesbegin{% at beginning of slide
+     \usebeamercolor[fg]{normal text}
+      \gdef\beamer@noteitems{}%
+      \gdef\beamer@notes{}%
+}
+\makeatother
+
 \title{Towards a Verified Bzip2}
 \subtitle{A Functional Specification for Burrows-Wheeler}
 \date{\today}
@@ -13,6 +24,7 @@
 
 \metroset{block=fill}
 
+\pgfplotsset{compat=1.16}
 \pgfplotsset{
   barplot/.style={
     %ybar stacked,
@@ -56,6 +68,9 @@
   % people and/or applications would benefit? Giving some examples of
   % the problem being addressed may help make it easier to understand.
   \begin{frame}{Compression Software}
+    \note[item]{Motivation comes from security and compression software.}
+    \note[item]{Compression software reduces the amount of space it takes to
+      store information, like a ZIP file.}
     \begin{itemize}
     \item<+-> Reduces the amount of disk space used by files
     \item<+-> Often used to transfer files over the internet
@@ -175,9 +190,9 @@
   \begin{frame}{The Burrows-Wheeler Transform}
     \textit{A Block-sorting Lossless Data Compression Algorithm} (1994)
     \begin{itemize}
-    \item<1-> A transformation of type \texttt{Ord a => [a] -> ([a], Nat)}
-    \item<2-> Makes it easier to compress
-    \item<4-> \textbf{Reversible}
+    \item<+-> A transformation of type \texttt{Ord a => [a] -> ([a], Nat)}
+    \item<+-> Makes it easier to compress
+    \item<+-> \textbf{Reversible}
     \end{itemize}
   \end{frame}
 
@@ -415,41 +430,51 @@ maximum = hd ∘ sort
   \begin{frame}[fragile]{\texttt{recreate}, recursively}
     \begin{block}{\texttt{recreate} correct}
       \texttt{%
-        recreate \only<2->{j }∘ map last ∘ sort ∘ rots\\
+        recreate \only<2->{j }∘ bwp
+        = recreate \only<2->{j }∘ map last ∘ sort ∘ rots\\
         = \only<2->{cols j ∘ }sort ∘ rots
       }%
     \end{block}
   \end{frame}
 
   \begin{frame}[fragile]{\texttt{recreate}, Base case}
-    \texttt{%
-      recreate \alt<2->{0}{j} ∘ map last ∘ sort ∘ rots\\
-      = cols \alt<2->{0}{j} ∘ sort ∘ rots \\
-    }
-    \uncover<3->{\texttt{%
+    \uncover<+->{\texttt{%
+      \alert<+>{cols 0} ∘ sort ∘ rots \\
+    }}
+    \uncover<.->{\texttt{%
       = map (const []) ∘ sort ∘ rots \\
     }}
-    \uncover<4->{\texttt{%
-      = map (const []) \\
+    \uncover<+->{\texttt{%
+      = \textbf<+->{map (const [])} ∘ bwp \\
+    }}
+    \uncover<.->{\texttt{%
+      = recreate 0 ∘ bwp
     }}
   \end{frame}
 
   \begin{frame}[fragile]{\texttt{recreate}, Inductive case}
-    \texttt{%
-      recreate \alt<2->{(j+1)}{j} ∘ map last ∘ sort ∘ rots\\
-      = cols \alt<2->{(j+1)}{j} ∘ sort ∘ rots \\
-    }
-    \begin{semiverbatim}
-\alert<8->{recreate (j+1)} ∘ map last ∘ sort ∘ rots
-\uncover<2->{= cols (j+1) ∘ sort ∘ rots}
-\uncover<3->{= hdsort ∘ map rrot ∘ cols (j+1) ∘ sort ∘ rots}
-\uncover<4->{= cols (j+1) ∘ hdsort ∘ map rrot ∘ sort ∘ rots}
-\uncover<5->{= hdsort ∘ cols (j+1) ∘ map rrot ∘ sort ∘ rots}
-\uncover<6->{= hdsort ∘ consCol ∘ fork (map last, recreate j ∘ map last)
-  ∘ sort ∘ rots}
-\uncover<7->{= \alert<8->{hdsort ∘ consCol ∘ fork (id, recreate j)}
-  ∘ map last ∘ sort ∘ rots}
-    \end{semiverbatim}
+    \uncover<+->{\texttt{%
+        cols (j+1) ∘ \alert<+>{sort ∘ rots} \\
+    }}
+    \uncover<.->{\texttt{%
+        = \alert<+>{cols (j+1) ∘ hdsort} ∘ map rrot ∘ sort ∘ rots \\
+    }}
+    \uncover<.->{\texttt{%
+        = hdsort ∘ \alert<+>{cols (j+1) ∘ map rrot} ∘ sort ∘ rots \\
+    }}
+    \uncover<.->{\texttt{%
+        = hdsort ∘ ppCol ∘ fork (\alert<+>{map last}, \alert<+>{cols j})
+        \alert<.(-1),.>{∘ sort ∘ rots} \\
+    }}
+    \uncover<.(-1)->{\texttt{%
+        = hdsort ∘ ppCol ∘ fork (bwp, \uncover<.->{recreate j ∘ bwp}) \\
+    }}
+    \uncover<+->{\texttt{%
+        = \textbf<+->{hdsort ∘ prependCol ∘ fork (id, recreate j)} ∘ bwp \\
+    }}
+    \uncover<.->{\texttt{%
+        = recreate (j+1) ∘ bwp
+    }}
   \end{frame}
 
   \section{Results}
@@ -463,22 +488,21 @@ maximum = hd ∘ sort
   % results, etc.). Part of (not the entire presentation) may involve
   % giving a demo of your results.
   \begin{frame}{Results}
+    QED! \uncover<2->{(Almost)}
     \begin{itemize}
-    \item QED! (Almost)
-    \item Some lemmas are still unproven
-      \begin{itemize}
-      \item Stability is hard to reason about
-      \item Empty lists are annoying
-      \end{itemize}
+    \item<2-> Some lemmas unproven
+    \item<3-> Stability is hard to reason about
+    \item<4-> Empty lists are annoying
     \end{itemize}
   \end{frame}
 
   \section{Future Work}
   \begin{frame}{Future Work}
     \begin{itemize}
-      \item Finish proving lemmas
-      \item Add tools in Coq for working with chains of composed functions
-      \item Explore Birds' relational specifications for program calculation
+      \item<+-> Finish proving lemmas
+      \item<+-> Prove more optimal implementations
+      \item<+-> Add tools in Coq for working with chains of composed functions
+      \item<+-> Explore Birds' relational specifications for program calculation
     \end{itemize}
   \end{frame}
 \end{document}

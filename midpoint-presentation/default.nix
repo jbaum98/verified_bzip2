@@ -1,4 +1,4 @@
-{ lib, stdenv, callPackage, texlive, ghostscript, makeFontsConf, fira, iosevka }:
+{ lib, stdenv, callPackage, texlive, ghostscript, makeFontsConf, fira, iosevka, fira-mono }:
 let
   tex = texlive.combine ({
     inherit (texlive)
@@ -15,7 +15,7 @@ let
       ;
   });
 
-  fonts = [ fira iosevka ];
+  fonts = [ fira iosevka fira-mono ];
 
 in stdenv.mkDerivation rec {
   basename = "midpoint_presentation";
