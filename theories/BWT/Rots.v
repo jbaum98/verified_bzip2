@@ -8,6 +8,11 @@ Require Import BWT.Iterate.
 Require Import BWT.Rotation.
 Require Import BWT.Repeat.
 
+Require Import BWT.Sorting.Ord.
+Require Import BWT.Sorting.Prefix.
+
+Require Import BWT.Permutations.
+
 Import ListNotations.
 
 Section Rots.
@@ -90,3 +95,24 @@ Section Rots.
       auto.
   Qed.
 End Rots.
+
+Section SortedRots.
+  Context {A : Type} `{Ord A}.
+
+  Lemma orig_in_sorted_rots : forall l k,
+      l <> [] -> Exists (eq l) (sort k (rots l)).
+  Proof.
+    intros.
+    apply Permutation_exists with (l0 := rots l) (l' := sort k (rots l)).
+    apply sort_perm.
+    apply orig_in_rots. auto.
+  Qed.
+
+  Lemma sort_rots_len : forall k l,
+      Forall (fun x => length x = length l) (sort k (rots l)).
+  Proof.
+    intros.
+    eapply Permutation_forall.
+    apply sort_perm. apply rots_row_length.
+  Qed.
+End SortedRots.
