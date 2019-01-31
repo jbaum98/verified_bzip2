@@ -1,3 +1,6 @@
 [submodule "VST"]
 	path = theories/VST
 	url = https://github.com/jbaum98/VST
+[submodule "theories/math-comp"]
+	path = theories/math-comp
+	url = https://github.com/math-comp/math-comp

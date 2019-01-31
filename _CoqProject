@@ -4,3 +4,4 @@
 -Q theories/VST/veric VST.veric
 -Q theories/VST/floyd VST.floyd
 -R theories/VST/compcert compcert
+-Q theories/math-comp/mathcomp mathcomp
