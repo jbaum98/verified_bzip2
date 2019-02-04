@@ -24,25 +24,25 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Section Stable.
-  Variable (T : Type) (e : rel T).
+  Variable (T : eqType) (e : rel T).
 
-  Definition stable {n} (s t : n.-tuple T) :=
-    exists p : 'S_n, [forall i : 'I_n, forall (j : 'I_n | i < j),
-                      e (tnth s i) (tnth s j) ==> (p i < p j)].
+  Definition stable_perm {n} (p : {perm 'I_n}) (s : n.-tuple T) : bool :=
+    [forall i : 'I_n, forall j : 'I_n,
+          (i < j) && (e (tnth s i) (tnth s j)) ==> (p i < p j)].
 End Stable.
 
-Section Sort.
-  Variable sort : forall T : eqType, rel T -> seq T -> seq T.
+Section StableSort.
+  Implicit Types T : eqType.
+  Variable sort : forall T, rel T -> seq T -> seq T.
 
-  Hypothesis perm_sort
-    : forall (T : eqType) (leT : rel T) (s : seq T), perm_eql (sort leT s) s.
+  Hypothesis perm_sort : forall T (leT : rel T) (s : seq T),
+      perm_eql (sort leT s) s.
 
-  Lemma size_sort : forall (T : eqType) (leT : rel T) (s : seq T),
+  Lemma size_sort : forall T (leT : rel T) (s : seq T),
       size (sort leT s) = size s.
   Proof. by move=> T leT s; apply /perm_eq_size /perm_eqlE /perm_sort. Qed.
 
-  Variables n : nat.
-  Variables (T : eqType) (leT : rel T) (s : n.-tuple T).
+  Variables (n : nat) (T : eqType) (leT : rel T) (s : n.-tuple T).
 
   Definition perm_ixs : seq 'I_n :=
      sort [rel i j | leT (tnth s i) (tnth s j)] (ord_enum n).
@@ -57,14 +57,7 @@ Section Sort.
     - by apply /perm_eqlE /perm_sort.
     by rewrite (perm_eq_uniq Hperm_eq) ord_enum_uniq.
   Qed.
-End Sort.
-
+End StableSort.
 
 Definition perm_of {T : eqType} sort perm_sort (leT : rel T) (s : seq T) :=
   perm (@perm_ixs_inj sort perm_sort _ T leT (in_tuple s)).
-
-Check perm_of.
-
-
-
-End Stable.
