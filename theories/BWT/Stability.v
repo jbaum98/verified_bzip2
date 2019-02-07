@@ -23,41 +23,90 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
+Section Permuter.
+  Variable T : eqType.
+
+  Definition permuter := forall {n} (s : n.-tuple T), 'S_n.
+
+  Section FromFun.
+    Variable f : seq T -> seq T.
+    Implicit Type s : seq T.
+
+    Hypothesis perm_f : forall s, perm_eql (f s) s.
+
+    Program Fixpoint perm_ixs s : seq nat :=
+      match s with
+      | [::] => [::]
+      | [:: x & t] =>
+        let: RotToSpec k _ _ := rot_to (_ : x \in s) in
+        rotr k (0 :: map succn (perm_ixs t))
+      end.
+    Next Obligation. by rewrite /in_mem /= eq_refl. Defined.
+
+    Lemma perm_ixsE : forall x s,
+        perm_ixs (x s) =
+
+    Theorem perm_ixs_iota : forall s,
+        perm_eq (perm_ixs s) (iota 0 (size s)).
+    Proof.
+      elim => [|x s IHs]; first done.
+      rewrite .
+
+  Program Definition
+
+  (* Program Definition to_permuter (f : seq T -> seq T) (perm_f : forall s, perm_eql (f s) s) *)
+  (*   : permuter := *)
+  (*   fun n s => *)
+  (*     match n with *)
+  (*     | 0 => 1 *)
+  (*     | S n => *)
+
+
 Section Stable.
   Variable (T : eqType) (e : rel T).
 
   Definition stable_perm {n} (p : {perm 'I_n}) (s : n.-tuple T) : bool :=
     [forall i : 'I_n, forall j : 'I_n,
           (i < j) && (e (tnth s i) (tnth s j)) ==> (p i < p j)].
+
+  Definition stable (f : permuter) : Prop := forall {n} (s : n.-tuple T),
+      stable_perm (f n s) s.
 End Stable.
 
 Section StableSort.
   Implicit Types T : eqType.
-  Variable sort : forall T, rel T -> seq T -> seq T.
+  Variable n : nat.
+  Variable sort : forall T, rel T -> n.-tuple T -> n.-tuple T.
 
-  Hypothesis perm_sort : forall T (leT : rel T) (s : seq T),
+  Hypothesis perm_sort : forall T (leT : rel T) (s : n.-tuple T),
       perm_eql (sort leT s) s.
 
-  Lemma size_sort : forall T (leT : rel T) (s : seq T),
+  Lemma size_sort : forall T (leT : rel T) (s : n.-tuple T),
       size (sort leT s) = size s.
-  Proof. by move=> T leT s; apply /perm_eq_size /perm_eqlE /perm_sort. Qed.
+  Proof. by move=> T leT s; rewrite !size_tuple. Qed.
 
-  Variables (n : nat) (T : eqType) (leT : rel T) (s : n.-tuple T).
+  Section SortPerm.
+    Variables (T : eqType) (leT : rel T) (s : n.-tuple T).
 
-  Definition perm_ixs : seq 'I_n :=
-     sort [rel i j | leT (tnth s i) (tnth s j)] (ord_enum n).
+    Definition perm_ixs : seq 'I_n :=
+      sort [rel i j | leT (tnth s i) (tnth s j)] (ord_tuple n).
 
-  Lemma size_perm_ixs : size perm_ixs == n.
-  Proof. by rewrite size_sort -(size_map val) val_ord_enum size_iota. Qed.
+    Lemma size_perm_ixs : size perm_ixs == n.
+    Proof. by rewrite size_sort size_tuple. Qed.
 
-  Theorem perm_ixs_inj : injective (tnth (Tuple size_perm_ixs)).
-  Proof.
-    apply/injectiveP; rewrite /injectiveb /dinjectiveb map_tnth_enum.
-    have Hperm_eq : perm_eq perm_ixs (ord_enum n).
-    - by apply /perm_eqlE /perm_sort.
-    by rewrite (perm_eq_uniq Hperm_eq) ord_enum_uniq.
-  Qed.
+    Theorem perm_ixs_inj : injective (tnth (Tuple size_perm_ixs)).
+    Proof.
+      apply/injectiveP; rewrite /injectiveb /dinjectiveb map_tnth_enum.
+      have Hperm_eq : perm_eq perm_ixs (ord_tuple n).
+      - by apply /perm_eqlE /perm_sort.
+          by rewrite (perm_eq_uniq Hperm_eq) val_ord_tuple enum_uniq.
+    Qed.
+
+    Definition perm_of_sort : 'S_n := perm perm_ixs_inj.
+  End SortPerm.
+
+  Definition stable_sort_tuple {T} leT (s : n.-tuple T) :=
+      stable_perm leT (perm_of_sort leT s) s.
 End StableSort.
 
-Definition perm_of {T : eqType} sort perm_sort (leT : rel T) (s : seq T) :=
-  perm (@perm_ixs_inj sort perm_sort _ T leT (in_tuple s)).
+Definition stable_sort {T : eqType} (sort : forall T, rel T -> n.-tuple)

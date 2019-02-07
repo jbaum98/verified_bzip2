@@ -32,8 +32,7 @@ Section HilbertSaxiom.
     move=> hAiBiC hAiB hA.
     move: hAiBiC.
     apply.
-    - by [].
-    by apply: hAiB.
+    - by []. by apply: hAiB.
   Qed.
 
   Hypotheses (hAiBiC : A -> B -> C) (hAiB : A -> B) (hA : A).
@@ -200,20 +199,11 @@ End Relates.
 
 Let n := 3.
 
-Lemma zero_lt_n : 0 < n.
-Proof. by []. Defined.
+Program Definition zero : 'I_n := Ordinal (_ : 0 < n).
+Program Definition one  : 'I_n := Ordinal (_ : 1 < n).
+Program Definition two  : 'I_n := Ordinal (_ : 2 < n).
 
-Lemma one_lt_n : 1 < n.
-Proof. by []. Defined.
-
-Lemma two_lt_n : 2 < n.
-Proof. by []. Defined.
-
-Let zero := Ordinal zero_lt_n.
-Let one := Ordinal one_lt_n.
-Let two := Ordinal two_lt_n.
-
-Let p := tperm zero one.
+Definition p := tperm zero one.
 
 Goal p zero == one.
 Proof. by case: tpermP. Qed.
@@ -224,10 +214,16 @@ Proof. by case: tpermP. Qed.
 Goal p two == two.
 Proof. by case: tpermP. Qed.
 
-Let x :=  [tuple of [:: 1; 2; 3]].
-Let y :=  [tuple of [:: 2; 1; 3]].
+Eval compute in ((tperm zero one) zero).
+(*
+     = perm (can_inj (tperm_proof (Ordinal is_true_true) (Ordinal is_true_true)))
+         (Ordinal is_true_true)
+     : ordinal_finType n
+ *)
+
 
 Check @forallP (ordinal_finType 3) _.
+
 
 Goal perm_relates _ p x y.
 Proof. apply/forallP => i.
@@ -237,15 +233,4 @@ Proof. apply/forallP => i.
          move => HZ HO.
          suff thm: i = two.
            by rewrite {}thm.
-
-  apply/forallP => i.
-       rewrite H =>H. by [].
-Let x : n.-tuple := tuple n x (njkj)
-
-Definition f (x : 'S_10) : 'S_10 := x.
-
-Check (Ordinal one_lt_three).
-
-Check (2 : 'I_3).
-
-Check (tperm 'I_3 'I_3).
+Admitted.
