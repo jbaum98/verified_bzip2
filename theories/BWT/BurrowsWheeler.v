@@ -29,7 +29,7 @@ Section Transform.
   Definition bwp (l: list A) : list A :=
     match l with
     | [] => []
-    | hd :: tl => List.map (fun x => last x hd) (lexsort (rots l))
+    | hd :: _ => List.map (fun x => last x hd) (lexsort (rots l))
     end.
 
   Lemma bwp_nonempty : forall l d,
@@ -133,8 +133,8 @@ End Recreate.
 Section Unbwt.
   Context {A : Type} `{O : Ord A} `{E : EqDec A eq}.
 
-  Definition unbwt (t : nat) (l : list A) : list A :=
-    nth t (recreate (length l) l) l.
+  Definition unbwt (i : nat) (l : list A) : list A :=
+    nth i (recreate (length l) l) l.
 
   Theorem unbwt_correct : forall xs : list A,
       unbwt (bwn xs) (bwp xs) = xs.

@@ -13,7 +13,7 @@ Section FindIndex.
     | hd :: tl =>
       match x == hd with
       | left _ => 0
-      | right Neq => S (findIndex x tl)
+      | right _ => S (findIndex x tl)
       end
     end.
 

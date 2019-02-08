@@ -42,24 +42,18 @@ Section Rots.
   Theorem map_rrot_rots : forall l,
       map rrot (rots l) = rrot (rots l).
   Proof.
-    intros; unfold rots.
-    apply nth_eq. rewrite -> map_length, rrot_length; reflexivity.
-    intros.
+    intros; apply nth_eq; [rewrite -> map_length, rrot_length; reflexivity|].
+    intros i d HI.
     rewrite -> nth_indep with (d' := rrot d), map_nth by auto.
-    rewrite -> map_length, iter_length in H.
-    rewrite iter_nth by omega.
-    rewrite nth_rrot by (rewrite iter_length; omega).
-    rewrite iter_length.
+    unfold rots in HI; rewrite -> map_length, iter_length in HI.
+    unfold rots; rewrite iter_nth by omega.
+    rewrite nth_rrot, iter_length by (rewrite iter_length; omega).
     destruct i; simpl Nat.add; simpl Repeat.rep; simpl id.
-    - rewrite Nat.mod_small by omega.
-      rewrite iter_nth by omega.
-      simpl. rewrite Nat.sub_1_r.
+    - rewrite Nat.mod_small, iter_nth, Nat.sub_1_r by omega.
       symmetry; apply lrot_rep_pred.
     - remember (length l) as L.
       replace (S (i + L) - 1) with (i + 1 * L) by omega.
-      rewrite Nat.mod_add, Nat.mod_small by omega.
-      rewrite iter_nth by omega.
-      rewrite rep_l.
+      rewrite Nat.mod_add, Nat.mod_small, iter_nth, rep_l by omega.
       apply rep_inv1_l. apply l_r_rot_inverse.
   Qed.
 

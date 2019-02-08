@@ -1,0 +1,590 @@
+\documentclass[11pt]{article}
+
+\usepackage{graphicx}
+\usepackage{grffile}
+\usepackage{longtable}
+\usepackage{wrapfig}
+\usepackage{rotating}
+\usepackage[normalem]{ulem}
+\usepackage{amsmath}
+\usepackage{textcomp}
+\usepackage{amssymb}
+\usepackage{capt-of}
+\usepackage{hyperref}
+
+\usepackage{amsthm}
+\usepackage{thmtools}
+\declaretheorem[style=plain,numberwithin=section]{theorem}
+\declaretheorem[style=plain,sibling=theorem]{proposition}
+\declaretheorem[style=plain,sibling=theorem]{lemma}
+\declaretheorem[style=plain,sibling=theorem]{corollary}
+
+\declaretheorem[style=definition,numberwithin=section]{definition}
+\declaretheorem[style=definition,numberwithin=section]{example}
+\declaretheorem[style=definition,numberwithin=section]{remark}
+
+\setlength{\parskip}{1em}
+\setlength{\parindent}{0em}
+\usepackage[letterpaper,margin=1in]{geometry}
+
+\author{Jake Waksbaum}
+\date{\today}
+\title{Thesis}
+\hypersetup{
+ pdfauthor={Jake Waksbaum},
+ pdftitle={Thesis},
+ pdfkeywords={},
+ pdfsubject={},
+ pdfcreator={Emacs 26.1 (Org mode 9.1.9)},
+ pdflang={English}}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+\section{Introduction}
+\label{sec:intro}
+
+The Burrows-Wheeler transform (BWT) is a reversible transformation
+that makes a string more amenable to compression by other
+methods \cite{bw}. The forwards-transform is straightforward to
+describe: for a string of length \(n\), form the \(n \times n\) matrix of
+all cyclic shifts of the original string, sort it lexicographically,
+and take the last column of the matrix. In addition, we note that
+index where the original string appears in the sorted rotation matrix.
+As shown in \autoref{fig:bw_ex}, applying the algorithm to the string
+\verb|abracadabra!| produces the new string \verb|ard!rcaaabb| and the
+index \verb|3|. The tendency of the transformation to group the same
+character together is what makes the resulting restring easier to
+compress. Although it is not at all obvious, the transformed string,
+together with the index, provide enough information to recover the the
+original string. BWT is discussed more in \autoref{sec:bwt}.
+
+\begin{figure}
+  \centering
+  \begin{tabular}{rc}
+    0  & abracadabra! \\
+    1  & bracadabra!a \\
+    2  & racadabra!ab \\
+    3  & acadabra!abr \\
+    4  & cadabra!abra \\
+    5  & adabra!abrac \\
+    6  & dabra!abraca \\
+    7  & abra!abracad \\
+    8  & bra!abracada \\
+    9  & ra!abracadab \\
+    10 & a!abracadabr \\
+    11 & !abracadabra
+  \end{tabular}
+  $\rightarrow$
+  \begin{tabular}{rc}
+    0  & !abracadabr\textbf{a} \\
+    1  & a!abracadab\textbf{r} \\
+    2  & abra!abraca\textbf{d} \\
+    \textit{3} & \textit{abracadabra\textbf{!}} \\
+    4  & acadabra!ab\textbf{r} \\
+    5  & adabra!abra\textbf{c} \\
+    6  & bra!abracad\textbf{a} \\
+    7  & bracadabra!\textbf{a} \\
+    8  & cadabra!abr\textbf{a} \\
+    9  & dabra!abrac\textbf{a} \\
+    10 & ra!abracada\textbf{b} \\
+    11 & racadabra!a\textbf{b}
+  \end{tabular}
+  \caption{BWT acting on \texttt{abracadabra!}}
+  \label{fig:bw_ex}
+\end{figure}
+
+Bird and Mu \cite{birdmu,pearls} analyze the Burrows-Wheeler algorithm
+in a functional setting by expressing the algorithm as a composition
+of many smaller functions. Then, they derive an expression for the
+inverse-transform from the specification that it invert the
+forwards-transform. In addition to providing an intuitive derivation
+of the inverse-transform, this provides the outline of a proof of the
+correctness of the Burrows-Wheeler algorithm. We give our version of
+their derivation in \autoref{sec:deriv}
+
+Our contribution is a formalization in the Coq proof assistant of the
+derivations in \cite{birdmu,pearls}. This is useful in its own right
+as a functional specification for a potential verified implementation
+of a program that relies on Burrows-Wheeler \cite{appel-func-spec}.
+More generally, this provides evidence that Bird's approach of
+program calculation, in which programs are derived from their
+specifications via algebraic manipulations, is useful for proving the
+correctness of algorithms in a machine-checked setting. Bird has
+applied this approach to greedy algorithms, the Boyer-Moore algorithm,
+the Knuth-Morris-Pratt algoirthm, Sudoku solvers, arithmetic coding,
+and the Schorr-Waite algorithm, the Johnson-Trotter algorithm, and
+many more problems throughout his career \cite{pearls}. Finally, as a
+part of this proof we develop a theory of stable sorts, proving
+equivalence between different definitions of sorted lists and stable
+sorts, as well as the equivalence of all stable sort algorithms to
+each other.
+
+\section{Burrows-Wheeler}
+\label{sec:bw}
+
+The Burrows-Wheeler transform was originally introduced as a pass in a
+compression algorithm. First the input is transformed with BWT, which
+tends to group together characters. The intuition for why this happens
+is that all adjacent characters in the output string are followed in
+the input string by characters that are adjacent in the sorted first
+column. If there is any correlation between a character and the
+character preceeding it, bringing together the characters in the first
+column will tend to bring together similar characters in the last
+column.
+
+The next pass is a Move-to-Front (MTF) encoding, in which a character
+is represented by the number of different characters encountered since
+the last occurence of this character. This creates many runs of zeroes
+from the runs in the output of BWT. On English texts, often 50-60\% of
+the values produced by the MTF pass are zeroes
+\cite{fenwick2007,bw-analysis}. Often a Run-Length Encoding (RLE) pass
+is then used to encode only the runs of zeroes with their lengths,
+using a bijective base-2 encoding \cite{bw-analysis, tsai_2016}.
+Finally, some sort of zeroth-order coder like a Huffman coder is used.
+
+BWT is also at the heart of algorithms that exploit the relationship
+between the rotation matrix in BWT and the suffix array data structure
+in order to search for patterns in a compressed text
+\cite{ferragina_index}.
+
+\section{The Derivation}
+\label{sec:deriv}
+In this section, we give an overview of the derivation without delving
+into the proofs of the lemmas. We only derive the simples version of
+the algorithm, although the derivations in \cite{birdmu,pearls}
+provide additional optimizations that bring the final implementation
+closer to the imperative implementation in \cite{bw} and other texts.
+
+\subsection{Forwards-Transform}
+\label{subsec:ft}
+In general, the Burrows-Wheeler transform can be applied to lists of
+any type that can be sorted, so we define our functions to operate on
+\verb|list A|. We will discuss the sortable constraint in
+Section~\autoref{sec:sort_stable}.
+
+First, we define left and right rotations of a list.
+\begin{verbatim}
+Definition lrot (l: list A) : list A :=
+  match l with
+  | [] => []
+  | hd :: tl => tl ++ [hd]
+  end.
+
+Definition rrot (l: list A) : list A :=
+  match l with
+  | [] => []
+  | hd :: tl => last l hd :: init l
+  end.
+\end{verbatim}
+
+Now we can produce the rotation matrix by repeatedly applying \verb|lrot|.
+\begin{verbatim}
+Fixpoint iter (f : A -> A) (n : nat) (z : A) : list A :=
+  match n with
+  | O   => []
+  | S m => z :: iter f m (f z)
+  end.
+
+Definition rots (l : list A) : list (list A) :=
+  iter lrot (length l) l.
+\end{verbatim}
+
+Finally, we produce the transformed string by taking the last column
+of the sorted rotation matrix. \verb|lexsort| sorts the rotation matrix
+lexicographically; it's precise implementation is not important.
+\begin{verbatim}
+Definition bwp (l: list A) : list A :=
+  match l with
+  | [] => []
+  | hd :: _ => List.map (fun x => last x hd) (lexsort (rots l))
+  end.
+\end{verbatim}
+
+We also need to find the index in the sorted rotation matrix where the
+original string appears.
+\begin{verbatim}
+Fixpoint findIndex (x : A) (ls : list A) : nat :=
+  match ls with
+  | [] => 0
+  | hd :: tl =>
+    match x == hd with
+    | left _ => 0
+    | right _ => S (findIndex x tl)
+    end
+  end.
+\end{verbatim}
+\begin{verbatim}
+Definition bwn (l : list A) : nat :=
+  findIndex l (lexsort (rots l)).
+\end{verbatim}
+
+Without proof, we note that we should have for any nonempty
+\verb|x : list A| and \verb|d : A|,
+\begin{verbatim}
+nth (bwn x) (lexsort (rots x)) d = x
+\end{verbatim}
+
+\subsection{Inverse-Transform}
+\label{subsec:invt}
+
+Now we have to construct a function \verb|unbwt| such that
+\begin{verbatim}
+unbwt (bwn xs) (bwp xs) = xs.
+\end{verbatim}
+If we could recreate the entire sorted rotation matrix from
+\verb|bwp x|, it woiuld be simple to recover \verb|x| by indexing into
+the matrix at \verb|bwn x|. That is, we would like a function
+\verb|recreate| such that
+\begin{verbatim}
+recreate (bwp l) = lexsort (rots l).
+\end{verbatim}
+
+Then, we could define \verb|unbwt| as
+\begin{verbatim}
+Definition unbwt (i : nat) (l : list A) : list A :=
+  nth i (recreate l) l.
+\end{verbatim}
+and we would have the correctness of \verb|unbwt| as a result of the
+correctness of \verb|bwn|.
+
+\subsubsection{\texttt{recreate}}
+We will recreate the sorted rotation matrix column by column, so
+\verb|recreate j| will recreate the first \verb|j| columns of the sorted
+rotation matrix.
+\begin{verbatim}
+Definition cols (j : nat) (l : list A) : list A := map (firstn j) l.
+
+Theorem recreate_correct_ind : forall j l,
+    j <= length l ->
+    recreate j (bwp l) = cols j (lexsort (rots l)).
+\end{verbatim}
+
+To derive an implementation of \verb|recreate| from this correctness
+specification, we need an expression for \verb|recreate 0| and
+\verb|recreate (S j)|. We can substitute for \verb|j| on the
+right-hand side and manipulate that expression algebraically until it
+is in the form \verb|_ (bwp l)|. Then we can define \verb|recreate 0|
+and \verb|recreate (S j)| to be precisely the \verb|_|, and by
+running our derivation in reverse, we obtain a proof for the base and
+inductive cases that uses only rewrites.
+
+We start with the base case, \verb|recreate 0|:
+\begin{verbatim}
+  cols 0 (lexsort (rots l))
+= { by unfold cols }
+  map (firstn 0) (lexsort (rots l))
+= { by firstn_O}
+  map (const []) (lexsort (rots l))
+= { by map_const }
+  repeat [] (length (lexsort (rots l)))
+= { by bwp_length, rots_length, lexsort_length }
+  repeat [] (length (bwp l))
+= { by map_const }
+  map (const []) (bwp l)
+\end{verbatim}
+
+From this, we can define \verb|recreate 0 l = map (const []) l| and
+we already have the proof for the base case of the correctness
+specification.
+
+For the inductive case, we have the expression
+\begin{verbatim}
+  cols (S j) (lexsort (rots l))
+\end{verbatim}
+on the right-hand side. Our plan is to express \verb|cols (S j)|
+in terms of \verb|cols j|, and then to use the inductive hypothesis
+\begin{verbatim}
+  cols j (lexsort (rots l)) = recreate j
+\end{verbatim}
+to produce a well-formed recursive definition.
+
+One way to do this is to say that taking the first \verb|S j| columns
+of a matrix is the same as moving the first column to the back, taking
+the first \verb|j| columns, and then sticking the last column back on
+the front:
+\begin{verbatim}
+  cols (S j) l = prepend_col (map last (map lrot l)) (cols j (map lrot l))
+\end{verbatim}
+If we substitute \verb|map rrot l| for \verb|l| we find a simpler
+expression
+\begin{verbatim}
+  cols (S j) (map rrot l) = prepend_col (map last l) (cols j l)
+\end{verbatim}
+
+Now we would like to find a way of introducing a \verb|map rrot|
+before the \verb|lexsort (rots l)|. The insight here is that we can
+assume that \verb|lexsort| is actually a radix-sort. That is, that
+\begin{verbatim}
+lexsort xs = rep (length xs) (hdsort ∘ map rrot) xs
+\end{verbatim}
+where \verb|hdsort| sorts the matrix stably on the the first column
+and \verb|rep| is defined as
+\begin{verbatim}
+Fixpoint rep (f : A -> A) (n : nat) (z : A) : A :=
+  match n with
+  | O => z
+  | S m => f (rep f m z)
+  end.
+\end{verbatim}
+
+We can do this because there is only one way to sort the matrix, so
+assuming \verb|lexsort| and the radix-sort are correct, they must be
+doing the same thing. We will specify precisely when and why this is
+valid later.
+
+Stepping back, it is important to say that this insight, whether
+explicitly stated or not, is always the crucial step in inverting the
+Burrows-Wheeler transform. Because radix-sort only needs one column at
+a time, this transformation will allow us to reconstruct the sorted
+rotation matrix one column at a time.
+
+In seeking to introduce an extra \verb|map rrot| term, we can note
+that rotating and sorting an extra time doesn't change anything when
+we are sorting the rotation matrix. This works because rotating the
+last column to the front produces a matrix that is sorted on its last
+\verb|n - 1| characters, so sorting stably on the first column will
+re-sort the matrix. Crucially though, rotating the last column
+forwards also permutes the entire matrix, so in addition to having a
+sorted list, we have a sorted list of the same elements.
+
+More precisely, we can characterize how \verb|map rrot| permutes
+\verb|rots|
+\begin{verbatim}
+map rrot (rots x) = rrot (rots x)
+\end{verbatim}
+
+Using that we can show
+\begin{verbatim}
+  lexsort (rots x)
+= { because rrot permutes its elements }
+  lexsort (rrot (rots x))
+= { because hdsort permutes its elements }
+  lexsort (hdsort (rrot (rots x)))
+= { radix-sort }
+  rep n (hdsort ∘ rrot) (hdsort (rrot (rots x)))
+= { rep_absorb_r }
+  rep (S n) (hdsort ∘ rrot) (rots x)
+= { rep_split_l }
+  hdsort (rrot (rep n (hdsort ∘ rrot) (rots x)))
+= { radix-sort }
+  hdsort (rrot (lexsort (rots x)))
+\end{verbatim}
+
+From here we can calculate
+\begin{verbatim}
+  cols (S j) (lexsort (rots l))
+= cols (S j) (hdsort (map rrot (lexsort (rots l))))
+= { hdsort commutes with cols (S j) }
+  hdsort (cols (S j) (map rrot (lexsort (rots l))))
+= { reduce cols (S j) }
+  hdsort (prepend_col (map last (lexsort (rots l))) (cols j (lexsort (rots l)))
+= { by IH and def of bwp }
+  hdsort (prepend_col (bwp l) (recreate j (bwp l)))
+= (fun x => hdsort (prepend_col x (recreate j x))) bwp
+\end{verbatim}
+
+We can use this to define \verb|recreate|:
+\begin{verbatim}
+Fixpoint recreate (j : nat) (l : list A) : list (list A) :=
+  match j with
+  | O    => map (const []) l
+  | S j' => hdsort (prepend_col l (recreate j' l))
+  end.
+\end{verbatim}
+
+\section{Proving the Lemmas}
+\label{sec:lemmas}
+
+In this section we prove the lemmas from the previous section:
+\begin{enumerate}
+\item
+\begin{verbatim}
+map rrot (rots x) = rrot (rots x)
+\end{verbatim}
+
+\item \verb|hdsort| commutes with \verb|cols (S j)|
+  This proof is cool because in theory it can be proven via
+  parametricity, but that's a metatheorem in Coq.
+
+\item
+\begin{verbatim}
+cols (S j) (map rrot l) = prepend_col (map last l) (cols j l)
+\end{verbatim}
+\end{enumerate}
+
+\section{Sorting \& Stability}
+\label{sec:sort_stable}
+
+\subsection{Sorting}
+\label{subsec:sorting}
+What do we mean by the constraint that \verb|A| is sortable? We say
+that a type must be equppied with a total, decidable preorder in order
+to be sorted.
+\begin{verbatim}
+Class Preord (A : Type):=
+  { le : A -> A -> Prop;
+    le_trans : forall x y z, le x y -> le y z -> le x z;
+    le_total : forall x y, le x y \/ le y x;
+    le_dec : forall x y, {le x y} + {~le x y};
+  }.
+\end{verbatim}
+The type of a sorting algorithm will be
+\begin{verbatim}
+sort : forall (A : Type), Preord A -> list A -> list A
+\end{verbatim}
+
+A correct sorting algorithm should satisfy
+\begin{verbatim}
+forall x, Sorted (sort x) /\ Permutation x (sort x)
+\end{verbatim}
+where we define the \verb|Sorted| relation on lists:
+\begin{verbatim}
+Inductive Sorted: list A -> Prop :=
+| Sorted_nil:
+    Sorted nil
+| Sorted_cons: forall hd tl,
+    (forall x, In x tl -> le hd x) ->
+    Sorted tl ->
+    Sorted (hd :: tl).
+\end{verbatim}
+
+We can also have defined \verb|Sorted| like this
+\begin{verbatim}
+Inductive LocallySorted : list A -> Prop :=
+| LSorted_nil : LocallySorted nil
+| LSorted_cons1 a : LocallySorted (a :: nil)
+| LSorted_consn a b l :
+    LocallySorted (b :: l) -> le a b -> LocallySorted (a :: b :: l).
+\end{verbatim}
+
+\begin{theorem}[Sorted-LocallySorted Equivalent]
+\begin{verbatim}
+forall l, Sorted l <-> LocallySorted l.
+\end{verbatim}
+\end{theorem}
+
+\begin{proof}
+  First we prove the forwards direction by induction on the evidence
+  \verb|Sorted l|. For the base case, we have \verb|Lsorted_nil|. In
+  the inductive case, we consider when \verb|tl| is empty and when it
+  is \verb|b :: tl|. If it is empty, we have \verb|Lsorted_cons1 hd|.
+  If it is not, we have \verb|LocallySorted (b :: tl)| by the
+  inductive hypothesis. We also have that
+  \verb|forall x, In x (b :: tl) -> le hd x)|, and because clearly
+  \verb|In b (b :: tl)| we have \verb|le hd b|. This means we can
+  apply \verb|Lsorted_consn| and we are done.
+
+  Now we prove the backwards direction by induction on the evidence
+  \verb|LocallySorted l|. The nil case is given by \verb|Sorted_nil|,
+  and the singleton case is given by the \verb|Sorted_cons| followed
+  by \verb|Sorted_nil|, using the fact that \verb|In x []| is
+  \verb|False|. In the inductive case we have \verb|Sorted (b :: tl)|
+  by the inductive hypothesis, which implies \verb|Sorted tl|. It
+  suffices to show \verb|forall x, In x (b :: tl) -> le a x|.
+  \verb|Sorted (b :: tl)| implies that
+  \verb|forall x, In x tl -> le b x|, and we have that \verb|le a b|,
+  so by the transitive property of \verb|le| we are done.
+\end{proof}
+
+We could also define sorted based on indexes:
+\begin{verbatim}
+Definition IndexSorted (l : list A) := forall i j d,
+    i <= j < length l ->
+    le (nth i l d) (nth j l d).
+\end{verbatim}
+
+\begin{theorem}[Sorted-IndexSorted Equivalent]
+\begin{verbatim}
+forall l, Sorted l <-> IndexSorted l.
+\end{verbatim}
+\end{theorem}
+
+\begin{theorem}[Permutation-IndexPermutation Equivalent]
+  The built-in \verb|Permutation xs ys| relation is equivalent to saying
+  that there exists some permutation function \verb|p : 'S_n| such that
+\begin{verbatim}
+forall i : 'I_n, nth i xs = nth (p i) ys
+\end{verbatim}
+\end{theorem}
+
+\subsection{Stability}
+Any preorder induces a decidable equivalence relation:
+\begin{verbatim}
+Definition eqv {A} `{Preord A} (x y : A) : Prop := le x y /\ le y x.
+\end{verbatim}
+A stable sort is a sort that preserves the relative order of
+equivalent elements. We can state this naturally in terms of the
+permutations. We say that a permutation \verb|p| is stable on a list
+\verb|l| if
+\begin{verbatim}
+forall i j : 'I_n, i < j -> eqv (nth i l) (nth j l) -> p i < p j
+\end{verbatim}
+Then, a sort is stable if for all \verb|l|, there exists a stable
+permutation between \verb|l| and \verb|sort l|.
+
+We can also say that two lists are stably related if
+\begin{verbatim}
+forall x, filter (eqv_dec x) l = filter (eqv_dec x) l'
+\end{verbatim}
+
+\begin{theorem}[PermStable-FilterStable Equivalent]
+\begin{verbatim}
+forall l,
+  PermStable l l' <-> (FilterStable l l' /\ Permutation l l')
+\end{verbatim}
+\end{theorem}
+
+Stability is important because we can prove that there is only one way
+to stably sort any list. This also means that any two correct stable
+sorting algorithms must agree always, and can be substituted for one another.
+
+\begin{theorem}[StableUnique]
+\begin{verbatim}
+forall l l',
+  Sorted l' -> Permutation l l' -> Stable l l' -> l = l'
+\end{verbatim}
+\end{theorem}
+
+If we have a antisymmetric total preorder, also known simply as a
+total order, then we have the important result that all sorts are
+stable sorts. Antisymmetricity means that
+\begin{equation*}
+  \forall x y, x \leq y \wedge y \leq x \implies x = y
+\end{equation*}
+or in terms of equivalence
+\begin{equation*}
+  \forall x y, x \equiv y \implies x = y
+\end{equation*}
+
+\begin{theorem}[OrderStable]
+\begin{verbatim}
+forall (O : Preorder A) (l l' : A),
+  (forall x y, eqv x y -> x = y) ->
+  Permutation l l' -> Sorted l -> Sorted l' -> Stable l l'
+\end{verbatim}
+\end{theorem}
+
+We require that the type \verb|A| be equipped with a decidable total
+order. If \verb|A| has a decidable total order, then the lexicographic
+preorder on \verb|list A| is also an order. This means that any
+sorting algorithm using lexicographic order is stable, including
+radix-sort. This is what allows us to conclude that \verb|lexsort| is
+equivalent to radix-sort.
+
+\begin{theorem}[RadixSort Correct]
+\begin{verbatim}
+forall x,
+  Sorted (radixsort x) /\ Permutation x (radixsort x)
+\end{verbatim}
+\end{theorem}
+
+\nocite{*}
+
+\bibliography{thesis}{}
+
+\bibliographystyle{plain}
+
+\end{document}
