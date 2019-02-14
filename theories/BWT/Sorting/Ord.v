@@ -148,3 +148,19 @@ Proof.
   intros.
   unfold eqv, lt in *. intuition; eauto using le_trans.
 Qed.
+
+Section Projection.
+  Context {A B : Type} `{Ord B}.
+
+  Variable proj : A -> B.
+
+  Instance Ord_proj : Ord A :=
+    { le := fun x y => le (proj x) (proj y);}.
+  Proof.
+    - intros. eapply le_trans; eauto.
+    - intros. eapply le_total.
+    - intros. destruct (le_dec (proj x) (proj y)).
+      + left. auto.
+      + right. auto.
+  Defined.
+End Projection.
