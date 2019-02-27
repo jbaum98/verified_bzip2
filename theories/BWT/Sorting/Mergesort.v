@@ -8,6 +8,7 @@ Require Import Coq.Sorting.Permutation.
 
 Require Import BWT.Sorting.Ord.
 Require Import BWT.Sorting.Sorted.
+Require Import BWT.Sorting.Stable.
 
 Section Sort.
 
@@ -230,25 +231,6 @@ Next Obligation.
   case (presort l). simpl.
   intros l' [P [Q R]] [S [T U]].
   split. auto. split. eapply Permutation_trans; eauto. eapply Stable_trans; eauto.
-Qed.
-
-(** A property of permutations that is missing from the List library:
-  a permutation of a list without duplicates is a list without duplicates. *)
-
-Lemma Permutation_NoDup:
-  forall (l l': list A), Permutation l l' -> NoDup l -> NoDup l'.
-Proof.
-  induction 1; intros.
-  constructor.
-
-  inversion H0; subst. constructor; auto.
-  red; intro; elim H3. apply Permutation_in with l'; auto. apply Permutation_sym; auto.
-
-  inversion H; subst. inversion H3; subst.
-  constructor. simpl. simpl in H2. intuition.
-  constructor. simpl in H2. intuition. auto.
-
-  auto.
 Qed.
 
 End Sort.

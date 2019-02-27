@@ -71,3 +71,33 @@ Section Preserve.
     rewrite HF in H. contradiction.
   Qed.
 End Preserve.
+
+Lemma Permutation_cons_in {A} : forall (x y : A) xs ys,
+    Permutation (x :: xs) (y :: ys) ->
+    (x = y \/ In x ys).
+Proof.
+  intros x y xs ys P.
+  eapply Permutation_in in P.
+  cbn in P. destruct P as [E | I]; eauto.
+  cbn; eauto.
+Qed.
+
+
+(** A property of permutations that is missing from the List library:
+  a permutation of a list without duplicates is a list without duplicates. *)
+
+Lemma Permutation_NoDup {A}:
+  forall (l l': list A), Permutation l l' -> NoDup l -> NoDup l'.
+Proof.
+  induction 1; intros.
+  constructor.
+
+  inversion H0; subst. constructor; auto.
+  red; intro; elim H3. apply Permutation_in with l'; auto. apply Permutation_sym; auto.
+
+  inversion H; subst. inversion H3; subst.
+  constructor. simpl. simpl in H2. intuition.
+  constructor. simpl in H2. intuition. auto.
+
+  auto.
+Qed.

@@ -10,7 +10,7 @@ Require Import Coq.Sorting.Permutation.
 Require Import BWT.Sorting.Ord.
 Require Import BWT.Sorting.Mergesort.
 
-Import ListNotations.
+Import Coq.Lists.List.ListNotations.
 
 Section LeK.
 
