@@ -70,7 +70,6 @@ End FilterDec.
 Section Stable.
   Import FilterDec.
   Context {A : Type} `{O : Ord A}.
-  Open Scope ord_scope.
 
   (** Stable permutations.  Two lists are in the [Stable] relation if
   equivalent elements appear in the same order in both lists.
@@ -126,7 +125,7 @@ Section Stable.
   Lemma Stable_cons_app:
     forall a l l1 l2,
       Stable l (l1 ++ l2) ->
-      (forall b, In b l1 -> ~(a <= b /\ b <= a)) ->
+      (forall b, In b l1 -> ~eqv a b) ->
       Stable (a :: l) (l1 ++ a :: l2).
   Proof.
     intros; red; intros. rewrite filter_app. simpl.
@@ -144,12 +143,12 @@ Section Stable.
   Lemma Stable_cons_app':
     forall a b l l1 l2,
       Stable l (b :: l1 ++ l2) ->
-      Sorted (b :: l1) -> ~(b <= a) ->
+      Sorted (b :: l1) -> lt a b ->
       Stable (a :: l) (b :: l1 ++ a :: l2).
   Proof.
     intros. change (Stable (a :: l) ((b :: l1) ++ a :: l2)).
     apply Stable_cons_app. simpl; auto.
-    intros. simpl in H2. destruct H2. subst b0. tauto.
+    intros. simpl in H2. destruct H2. subst b0. apply lt_not_eq. auto.
     inversion H0; subst. red; intros [P Q]. elim H1.
     apply le_trans with b0; eauto using lt_le.
   Qed.

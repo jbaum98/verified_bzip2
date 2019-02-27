@@ -14,7 +14,6 @@ Section Sort.
 
 (** A type equipped with a total, decidable preorder. *)
   Context {A} `{O : Ord A}.
-  Open Scope ord_scope.
 
 (** Merging two sorted lists. *)
 
@@ -231,6 +230,6 @@ Next Obligation.
   case (presort l). simpl.
   intros l' [P [Q R]] [S [T U]].
   split. auto. split. eapply Permutation_trans; eauto. eapply Stable_trans; eauto.
-Qed.
+Defined.
 
 End Sort.

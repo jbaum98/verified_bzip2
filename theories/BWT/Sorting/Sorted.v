@@ -5,7 +5,6 @@ Require Import BWT.Sorting.Ord.
 
 Section Sorted.
   Context {A : Type} `{O: Ord A}.
-  Open Scope ord_scope.
 
   (** What it means for a list to be sorted in increasing order. *)
 
@@ -13,7 +12,7 @@ Section Sorted.
   | Sorted_nil:
       Sorted nil
   | Sorted_cons: forall hd tl,
-      (forall x, In x tl -> hd <= x) ->
+      (forall x, In x tl -> le hd x) ->
       Sorted tl ->
       Sorted (hd :: tl).
 
@@ -28,7 +27,7 @@ Section Sorted.
   (** Lists of 2 ordered elements are sorted. *)
 
   Remark Sorted_2:
-    forall x y, x <= y -> Sorted (x :: y :: nil).
+    forall x y, le x y -> Sorted (x :: y :: nil).
   Proof.
     intros. constructor.
     intros. simpl in H0. destruct H0. subst x0. auto. contradiction.

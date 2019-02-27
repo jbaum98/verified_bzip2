@@ -6,8 +6,8 @@ Require Import Coq.Classes.EquivDec.
 Require Import compcert.lib.Integers.
 Require Import compcert.lib.Coqlib.
 
-Require Import BWT.NatEncode.
-Require Import BWT.SumboolIf.
+Require Import BWT.RunLength.NatEncode.
+Require Import BWT.RunLength.SumboolIf.
 Require Import BWT.Instances.
 
 Import ListNotations.

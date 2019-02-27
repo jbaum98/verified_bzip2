@@ -2,11 +2,12 @@ Require Import Coq.Classes.EquivDec.
 Require Import Coq.Lists.List.
 Require Import Coq.omega.Omega.
 
-Require Import BWT.Sorting.Ord.
-Require Import BWT.Sorting.Prefix.
+Require Import BWT.Lib.List.
 Require Import BWT.Rotation.Rotation.
 Require Import BWT.Rotation.Rots.
-Require Import BWT.Lib.List.
+Require Import BWT.Sorting.Key.
+Require Import BWT.Sorting.Lexicographic.
+Require Import BWT.Sorting.Ord.
 
 Import Coq.Lists.List.ListNotations.
 
@@ -15,12 +16,12 @@ Section Cols.
 
   Definition cols j := map (@firstn A j).
 
-  Theorem sort_rots_hdsort : forall l,
-      sort 1 (map rrot (sort (length l) (rots l))) = sort (length l) (rots l).
+  Theorem lexsort_rots_hdsort : forall l,
+      hdsort (map rrot (lexsort (rots l))) = lexsort (rots l).
   Admitted.
 
   Theorem cols_S_hdsort : forall j l,
-      cols (S j) (sort 1 l) = sort 1 (cols (S j) l).
+      cols (S j) (hdsort l) = hdsort (cols (S j) l).
   Admitted.
 
   Theorem cols_id : forall n mat,

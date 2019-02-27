@@ -13,47 +13,35 @@ Class Ord (A : Type):=
     le_dec : forall x y, {le x y} + {~le x y};
   }.
 
-Notation "x <= y" := (le x y) (at level 70, no associativity) : ord_scope.
-Local Open Scope ord_scope.
-
-Lemma le_refl {A} `{Ord A} : forall x, x <= x.
+Lemma le_refl {A} `{Ord A} : forall x, le x x.
 Proof.
   intros. destruct (le_total x x); auto.
 Qed.
 
-Lemma le_not {A} `{Ord A} : forall x y, ~(x <= y) -> y <= x.
+Lemma le_not {A} `{Ord A} : forall x y, ~(le x y) -> le y x.
 Proof.
   intros. destruct (le_total x y). contradiction. auto.
 Qed.
 
-Definition ge {A} `{Ord A} x y := y <= x.
-Definition lt {A} `{Ord A} x y := ~ (y <= x).
-Definition gt {A} `{Ord A} x y := ~ (x <= y).
-
-Notation "x >= y" := (ge x y) (at level 70, no associativity) : ord_scope.
-Notation "x < y" := (lt x y) (at level 70, no associativity) : ord_scope.
-Notation "x > y" := (gt x y) (at level 70, no associativity) : ord_scope.
+Definition ge {A} `{Ord A} x y := le y x.
+Definition lt {A} `{Ord A} x y := ~ (le y x).
+Definition gt {A} `{Ord A} x y := ~ (le x y).
 
 (** Two elements are equivalent if they compare [le] in both directions. *)
 
-Definition eqv {A} `{Ord A} (x y : A) : Prop := x <= y /\ y <= x.
+Definition eqv {A} `{Ord A} (x y : A) : Prop := le x y /\ le y x.
 
-Notation " x === y " := (eqv x y) (at level 70, no associativity) : ord_scope.
-Notation " x =/= y " := (~ eqv x y) (at level 70, no associativity) : ord_scope.
-
-Program Definition eqv_dec {A} `{Ord A} (x y : A) : {x === y} + {x =/= y} :=
+Program Definition eqv_dec {A} `{Ord A} (x y : A) : {eqv x y} + {~ eqv x y} :=
   if le_dec x y then
     if le_dec y x then left _
     else right _
   else right _.
 Solve All Obligations with unfold eqv; intuition eauto.
 
-Notation " x == y " := (eqv_dec (x :>) (y :>)) (no associativity, at level 70) : ord_scope.
-
 Section Equiv.
   Context {A} `{Ord A}.
 
-  Theorem eqv_refl : forall x, x === x.
+  Theorem eqv_refl : forall x, eqv x x.
   Proof.
     intros.
     unfold eqv. split; apply le_refl.
@@ -72,12 +60,12 @@ Section Equiv.
   (*   }. *)
 
   Theorem eqv_def : forall x y,
-      x === y <-> x <= y /\ y <= x.
+      eqv x y <-> (le x y /\ le y x).
   Proof. reflexivity. Qed.
 
   (* Instance EqDec_eqv : EqDec A eqv | 0 := eqv_dec. *)
 
-  Theorem eqv_subst : forall x y, x === y -> forall z, x === z <-> y === z.
+  Theorem eqv_subst : forall x y z, eqv x y -> (eqv x z <-> eqv y z).
   Proof.
     intros.
     repeat rewrite eqv_def in *.
@@ -88,13 +76,13 @@ End Equiv.
 Section Lt.
   Context {A} `{Ord A}.
 
-  Theorem lt_spec : forall x y, x <= y <-> x < y \/ x === y.
+  Theorem lt_spec : forall x y, le x y <-> lt x y \/ eqv x y.
   Proof.
     intros.
     destruct (eqv_dec x y); unfold lt, eqv in *; intuition; eauto using le_not.
   Qed.
 
-  Program Definition lt_eq_dec x y : {x < y} + {x === y} + {y < x} :=
+  Program Definition lt_eq_dec x y : {lt x y} + {eqv x y} + {lt y x} :=
     match (le_dec x y, le_dec y x) with
     | (_, right _) => inleft (left _)
     | (right _, _) => inright _
@@ -102,29 +90,29 @@ Section Lt.
     end.
   Next Obligation. unfold eqv; eauto. Defined.
 
-  Theorem lt_irrefl : forall x, ~ (x < x).
+  Theorem lt_irrefl : forall x, ~ (lt x x).
     intros x c.
     apply c. apply le_refl.
   Qed.
 
-  Theorem lt_trans : forall x y z, x < y -> y < z -> x < z.
+  Theorem lt_trans : forall x y z, lt x y -> lt y z -> lt x z.
   Proof.
     intros. unfold lt in *.
-    match goal with [ H : ~ _ <= _ |- _ ] => apply le_not in H end.
+    match goal with [ H : ~ le _ _ |- _ ] => apply le_not in H end.
     intro.
     eauto using le_trans.
   Qed.
 
-  Theorem lt_excl : forall x y, ~ (x < y /\ y < x).
+  Theorem lt_excl : forall x y, ~ (lt x y /\ lt y x).
     intros x y [lxy lyx].
     eapply lt_irrefl.
     eapply lt_trans; eauto.
   Qed.
 
-  Theorem lt_not_eq : forall x y, x < y -> x =/= y.
+  Theorem lt_not_eq : forall x y, lt x y -> ~ eqv x y.
   Proof. unfold lt, eqv in *. intuition. Qed.
 
-  Theorem lt_le : forall x y, x < y -> x <= y.
+  Theorem lt_le : forall x y, lt x y -> le x y.
   Proof. unfold lt. intros. apply le_not. auto. Qed.
 
 End Lt.
