@@ -4,9 +4,9 @@ Require Import Coq.Program.Basics.
 Require Import Coq.Program.Combinators.
 Require Import Coq.omega.Omega.
 
-Require Import BWT.Iterate.
-Require Import BWT.Rotation.
-Require Import BWT.Repeat.
+Require Import BWT.Lib.Iterate.
+Require Import BWT.Lib.Repeat.
+Require Import BWT.Rotation.Rotation.
 
 Import ListNotations.
 

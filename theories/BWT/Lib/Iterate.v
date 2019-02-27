@@ -1,7 +1,7 @@
 Require Import Coq.Lists.List.
 Require Import Coq.omega.Omega.
 
-Require Import BWT.Repeat.
+Require Import BWT.Lib.Repeat.
 
 Import ListNotations.
 
