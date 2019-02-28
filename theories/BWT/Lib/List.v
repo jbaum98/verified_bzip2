@@ -120,6 +120,18 @@ Section HeadTailInitLast.
     replace (length (a :: _)) with (S (length (init (b :: l)))) by reflexivity.
     rewrite IHl. reflexivity.
   Qed.
+
+  Lemma firstn_init : forall j l,
+      j < length l ->
+      firstn j (init l) = firstn j l.
+  Proof.
+    intros j l; revert j; induction l; intros j; [reflexivity|].
+    cbn [length]; intros HJ.
+    destruct j; [reflexivity|].
+    assert (j < length l) by omega; clear HJ.
+    destruct l as [|b l]; [cbn in H; omega|].
+    rewrite init2. cbn [firstn]. f_equal. apply IHl. auto.
+  Qed.
 End HeadTailInitLast.
 
 Section Forall2.

@@ -70,9 +70,29 @@ Section PrependColumn.
       reflexivity.
   Qed.
 
+  Lemma firstn_rrot : forall j (l : list A) d,
+      j < length l ->
+      firstn (S j) (rrot l) = last l d :: firstn j l.
+  Proof.
+    intros j [|h l] d H; cbn in H; [omega|].
+    cbn [rrot firstn].
+    rewrite last_nonempty with (d' := d) by (intro c; inversion c).
+    f_equal.
+    apply firstn_init; auto.
+  Qed.
+
   Lemma cols_rrot : forall j l d,
+      Forall (fun x => j < length x) l ->
       cols (S j) (map rrot l) = prepend_col (map (fun x => last x d) l) (cols j l).
-  Admitted.
+  Proof.
+    intros j l; revert j; induction l as [|h t]; intros j d HJ.
+    unfold prepend_col; reflexivity.
+    cbn [map cols]; rewrite prepend_cons.
+    f_equal.
+    apply firstn_rrot; inversion HJ; auto.
+    apply IHt; inversion HJ; auto.
+  Qed.
+
 End PrependColumn.
 
 Section AppendCol.

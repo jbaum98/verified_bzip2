@@ -60,6 +60,14 @@ Section Transform.
       reflexivity.
   Qed.
 
+  Lemma sort_rots_all_len : forall l,
+      Forall (fun x => length x = length l) (lexsort (rots l)).
+  Proof.
+    intros.
+    eapply Permutation_forall.
+    apply lexsort_perm. apply rots_row_length.
+  Qed.
+
   Definition bwn (l : list A) : nat :=
     findIndex l (lexsort (rots l)).
 
@@ -107,14 +115,8 @@ Section Recreate.
       rewrite <- IH by omega.
       rewrite <- bwp_nonempty with (d0:=d) by auto.
       reflexivity.
-  Qed.
-
-  Lemma sort_rots_len : forall l,
-      Forall (fun x => length x = length l) (lexsort (rots l)).
-  Proof.
-    intros.
-    eapply Permutation_forall.
-    apply lexsort_perm. apply rots_row_length.
+      eapply Forall_impl; [|apply sort_rots_all_len].
+      cbn; intros; omega.
   Qed.
 
   Corollary recreate_correct : forall l,
@@ -123,7 +125,7 @@ Section Recreate.
     intros.
     rewrite recreate_correct_ind by omega.
     rewrite cols_id; auto.
-    eapply Forall_impl; [|apply sort_rots_len].
+    eapply Forall_impl; [|apply sort_rots_all_len].
     cbv beta; intros; omega.
   Qed.
 End Recreate.
@@ -145,3 +147,5 @@ Section Unbwt.
     intro contra; inversion contra.
   Qed.
 End Unbwt.
+
+Print Assumptions unbwt_correct.
