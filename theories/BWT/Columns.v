@@ -8,6 +8,7 @@ Require Import BWT.Rotation.Rots.
 Require Import BWT.Sorting.Key.
 Require Import BWT.Sorting.Lexicographic.
 Require Import BWT.Sorting.Ord.
+Require Import BWT.Lib.Repeat.
 
 Import Coq.Lists.List.ListNotations.
 
@@ -16,8 +17,22 @@ Section Cols.
 
   Definition cols j := map (@firstn A j).
 
+  Theorem lexsort_radixsort : forall l,
+      lexsort l = rep (fun x => hdsort (map rrot x)) (length l) l.
+  Admitted.
+
   Theorem lexsort_rots_hdsort : forall l,
       hdsort (map rrot (lexsort (rots l))) = lexsort (rots l).
+  Proof.
+    intros.
+    rewrite lexsort_radixsort at 1.
+    remember (fun x => hdsort (map rrot x)) as f.
+    replace (hdsort (map rrot (rep f (length (rots l)) (rots l)))) with (f (rep f (length (rots l)) (rots l))).
+    rewrite rep_l, <- rep_r.
+    subst f.
+    replace (length (rots l)) with (length (hdsort (map rrot (rots l)))).
+    rewrite <- lexsort_radixsort.
+    rewrite map_rrot_rots.
   Admitted.
 
   Theorem cols_S_hdsort : forall j l,
