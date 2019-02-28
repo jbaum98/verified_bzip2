@@ -233,3 +233,6 @@ Next Obligation.
 Defined.
 
 End Sort.
+
+Definition sort {A} `{Ord A} : list A -> list A :=
+  fun l => proj1_sig (mergesort l).

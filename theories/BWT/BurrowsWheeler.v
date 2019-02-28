@@ -54,7 +54,7 @@ Section Transform.
   Proof.
     induction l.
     - reflexivity.
-    - simpl. rewrite map_length.
+    - cbn [bwp]. rewrite map_length.
       rewrite lexsort_length.
       rewrite rots_length.
       reflexivity.

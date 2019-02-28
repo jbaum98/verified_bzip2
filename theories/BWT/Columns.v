@@ -22,7 +22,12 @@ Section Cols.
 
   Theorem cols_S_hdsort : forall j l,
       cols (S j) (hdsort l) = hdsort (cols (S j) l).
-  Admitted.
+  Proof.
+    intros j l.
+    unfold cols, hdsort; symmetry.
+    apply key_sort_inv.
+    intros []; reflexivity.
+  Qed.
 
   Theorem cols_id : forall n mat,
       Forall (fun x => length x <= n) mat ->

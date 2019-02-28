@@ -8,7 +8,7 @@ Require Import Coq.Classes.EquivDec.
 Require Import Coq.Sorting.Permutation.
 
 Require Import BWT.Sorting.Ord.
-Require Import BWT.Sorting.Mergesort.
+Require Import BWT.Sorting.InsertionSort.
 
 Import Coq.Lists.List.ListNotations.
 
@@ -85,13 +85,14 @@ Section LexSort.
   Context {A : Type} `{Ord A}.
 
   Definition lexsort : list (list A) -> list (list A)
-    := fun l => proj1_sig (@mergesort _ Ord_list_lex l).
+    := @sort _ Ord_list_lex.
+
+  Global Arguments lexsort _ : simpl never.
 
   Theorem lexsort_perm : forall l, Permutation l (lexsort l).
   Proof.
     intros.
-    unfold lexsort. case (mergesort l). intros l' [S [P St]].
-    cbn. apply Permutation_sym. apply P.
+    unfold lexsort. apply sort_perm.
   Defined.
 
   Theorem lexsort_length : forall l,
