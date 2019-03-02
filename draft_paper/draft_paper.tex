@@ -1,19 +1,15 @@
 \documentclass[11pt]{article}
 
-\usepackage{graphicx}
-\usepackage{grffile}
-\usepackage{longtable}
-\usepackage{wrapfig}
-\usepackage{rotating}
-\usepackage[normalem]{ulem}
 \usepackage{amsmath}
-\usepackage{textcomp}
 \usepackage{amssymb}
-\usepackage{capt-of}
 \usepackage{hyperref}
 
 \usepackage{amsthm}
 \usepackage{thmtools}
+
+\usepackage[style=ieee]{biblatex}
+\bibliography{draft_paper}
+
 \declaretheorem[style=plain,numberwithin=section]{theorem}
 \declaretheorem[style=plain,sibling=theorem]{proposition}
 \declaretheorem[style=plain,sibling=theorem]{lemma}
@@ -28,15 +24,10 @@
 \usepackage[letterpaper,margin=1in]{geometry}
 
 \author{Jake Waksbaum}
-\date{\today}
+
+\date{March 1, 2019}
+
 \title{Thesis}
-\hypersetup{
- pdfauthor={Jake Waksbaum},
- pdftitle={Thesis},
- pdfkeywords={},
- pdfsubject={},
- pdfcreator={Emacs 26.1 (Org mode 9.1.9)},
- pdflang={English}}
 
 \begin{document}
 
@@ -581,10 +572,6 @@ forall x,
 \end{verbatim}
 \end{theorem}
 
-\nocite{*}
-
-\bibliography{thesis}{}
-
-\bibliographystyle{plain}
+\printbibliography{}
 
 \end{document}
