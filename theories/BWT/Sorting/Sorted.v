@@ -34,3 +34,30 @@ Section Sorted.
     apply Sorted_1.
   Qed.
 End Sorted.
+
+Section LocallySorted.
+  Context {A : Type} `{O: Ord A}.
+
+  (** An alternative definition of being sorted that's easier to prove. *)
+  Inductive LocallySorted : list A -> Prop :=
+  | LSorted_nil : LocallySorted nil
+  | LSorted_cons1 a : LocallySorted (a :: nil)
+  | LSorted_consn a b l :
+      LocallySorted (b :: l) -> le a b -> LocallySorted (a :: b :: l).
+
+  Lemma Sorted_LocallySorted_iff : forall l, Sorted l <-> LocallySorted l.
+  Proof.
+    split.
+    - induction l as [|a [|b l]]; intros H; constructor;
+        inversion H; subst; clear H; auto using in_eq.
+    - induction l as [|a [|b l]]; intros.
+      + constructor.
+      + constructor; [contradiction|constructor].
+      + inversion H; subst; clear H.
+        specialize (IHl H2); clear H2.
+        constructor; auto.
+        intros. eapply le_trans; eauto.
+        inversion IHl; subst; clear IHl.
+        destruct H; subst; auto using le_refl.
+  Qed.
+End LocallySorted.
