@@ -3,6 +3,7 @@ Require Import Coq.Sorting.Permutation.
 
 Require Import BWT.Sorting.Ord.
 Require Import BWT.Sorting.Sorted.
+Require Import BWT.Sorting.Stable.
 
 Section InsertionSort.
   Context {A : Type} {O : Ord A}.
@@ -65,5 +66,26 @@ Section InsertionSort.
     induction l as [ | hd tl IH].
     - simpl. apply Sorted_nil.
     - simpl. apply insert_sorted. apply IH.
+  Qed.
+
+  Lemma insert_stable : forall a l, @StablePerm A eqv _ (a :: l) (insert a l).
+  Proof.
+    induction l as [|b l]; [apply stable_perm_skip; apply stable_perm_nil|].
+    cbn. destruct (le_dec a b).
+    - apply stable_perm_refl.
+    - apply stable_perm_trans with (l' := b :: a :: l).
+      apply stable_perm_swap.
+      unfold eqv, Equivalence.equiv.
+      intros []. contradiction.
+      apply stable_perm_skip.
+      auto.
+  Qed.
+
+  Theorem sort_stable : forall l, @StablePerm A eqv _ l (sort l).
+  Proof.
+    induction l; [apply stable_perm_nil|].
+    cbn. apply stable_perm_trans with (a :: sort l).
+    apply stable_perm_skip. apply IHl.
+    apply insert_stable.
   Qed.
 End InsertionSort.
