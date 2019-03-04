@@ -20,7 +20,7 @@ Section RadixSort.
     := rep (hdsort ∘ map rrot) n l.
 
   Lemma radixsort_perm_ind : forall n l,
-      Permutation (rep (map rrot) n l) (rep (hdsort ∘ map rrot) n l).
+      Permutation (rep (map rrot) n l) (radixsort l n).
   Proof.
     induction n; intro l; [reflexivity|].
     cbn; symmetry.
@@ -45,4 +45,8 @@ Section RadixSort.
     rewrite <- HN. symmetry. apply rrot_rep_id.
   Qed.
 
+  Theorem radixsort_sorted : forall n l,
+      Forall (fun x => length x = n) l ->
+      Sorted (radixsort l n).
+  Admitted.
 End RadixSort.

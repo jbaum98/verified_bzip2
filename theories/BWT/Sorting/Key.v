@@ -1,8 +1,9 @@
 Require Import Coq.Lists.List.
 
-Require Import BWT.Sorting.Ord.
 Require Import BWT.Sorting.InsertionSort.
 Require Import BWT.Sorting.Lexicographic.
+Require Import BWT.Sorting.Ord.
+Require Import BWT.Sorting.Sorted.
 
 Section KeyOrd.
   Context {A K : Type} `{O: Ord K}.
@@ -14,6 +15,10 @@ Section KeyOrd.
     apply Build_Ord with (le := fun x y => le (key x) (key y));
       intros; eauto using le_trans, le_total, le_dec.
   Defined.
+
+  Remark key_le : forall x y,
+      @le A keyOrd x y = @le K O (key x) (key y).
+  Proof. reflexivity. Qed.
 
   Remark key_le_dec : forall x y,
       @le_dec A keyOrd x y = @le_dec K O (key x) (key y).
@@ -47,7 +52,26 @@ End KeyOrd.
 Section HdSort.
   Context {A : Type} `{O: Ord A}.
 
-  Program Definition hdsort : list (list A) -> list (list A)
+  Definition hdsort : list (list A) -> list (list A)
     := @sort _ (keyOrd (firstn 1)).
 
 End HdSort.
+
+Section Prefix.
+  Context {A : Type} `{O: Ord A}.
+
+  Local Arguments Sorted {_} _ _.
+
+  Definition prefixSorted (n : nat) : list (list A) -> Prop
+    := Sorted (keyOrd (firstn n)).
+
+  Theorem prefixSorted_zero : forall l,
+      prefixSorted 0 l.
+  Proof.
+    intros l. unfold prefixSorted.
+    induction l; [apply Sorted_nil|].
+    apply Sorted_cons.
+    intros. rewrite key_le.
+    apply lex_le_nil. apply IHl.
+  Qed.
+End Prefix.
