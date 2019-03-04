@@ -222,6 +222,46 @@ Section Map.
   Qed.
 End Map.
 
+Section Filter.
+  Context {A : Type}.
+
+  Implicit Types (l : list A) (f : A -> bool).
+
+  Remark filter_app: forall f l l',
+      filter f (l ++ l') = filter f l ++ filter f l'.
+  Proof.
+    induction l; intros; simpl. auto.
+    destruct (f a); simpl. f_equal; auto. auto.
+  Qed.
+
+  Remark filter_empty: forall f l,
+      (forall x, In x l -> f x = false) ->
+      filter f l = nil.
+  Proof.
+    induction l; simpl; intros.
+    auto.
+    rewrite (H a (or_introl eq_refl)).
+    apply IHl. auto.
+  Qed.
+
+  Remark filter_sublist: forall f x l l1' l2',
+      filter f l = l1' ++ x :: l2' ->
+      exists l1, exists l2, l = l1 ++ x :: l2 /\ filter f l1 = l1' /\ filter f l2 = l2'.
+  Proof.
+    induction l; intros until l2'; simpl.
+    intro. destruct l1'; simpl in H; discriminate.
+    case_eq (f a); intros.
+    destruct l1'; simpl in H0; injection H0; clear H0; intros.
+    subst x. exists (@nil A); exists l. auto.
+    subst a0. destruct (IHl _ _ H0) as [l1 [l2 [P [Q R]]]]. subst l.
+    exists (a :: l1); exists l2.
+    split. auto. split. simpl. rewrite H. congruence. auto.
+    destruct (IHl _ _ H0) as [l1 [l2 [P [Q R]]]]. subst l.
+    exists (a :: l1); exists l2.
+    split. auto. split. simpl. rewrite H. auto. auto.
+  Qed.
+End Filter.
+
 Fixpoint zipWith {A B C} (f : A -> B -> C) (a : list A) (b : list B) : list C :=
   match (a, b) with
   | (ahd :: atl, bhd :: btl) => f ahd bhd :: zipWith f atl btl

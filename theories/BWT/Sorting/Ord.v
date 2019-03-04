@@ -1,8 +1,9 @@
-Require Import Coq.Relations.Relation_Definitions.
-Require Import Coq.Classes.RelationClasses.
+Require Import Coq.Bool.Sumbool.
 Require Import Coq.Classes.Morphisms.
-Require Import Coq.Setoids.Setoid.
+Require Import Coq.Classes.RelationClasses.
 Require Import Coq.Program.Basics.
+Require Import Coq.Relations.Relation_Definitions.
+Require Import Coq.Setoids.Setoid.
 
 (** A type equipped with a total, decidable preorder. *)
 
@@ -23,6 +24,8 @@ Proof.
   intros. destruct (le_total x y). contradiction. auto.
 Qed.
 
+Definition le_decb {A} `{Ord A} x y := proj1_sig (bool_of_sumbool (le_dec x y)).
+
 Definition ge {A} `{Ord A} x y := le y x.
 Definition lt {A} `{Ord A} x y := ~ (le y x).
 Definition gt {A} `{Ord A} x y := ~ (le x y).
@@ -37,6 +40,8 @@ Program Definition eqv_dec {A} `{Ord A} (x y : A) : {eqv x y} + {~ eqv x y} :=
     else right _
   else right _.
 Solve All Obligations with unfold eqv; intuition eauto.
+
+Definition eqv_decb {A} `{Ord A} x y := proj1_sig (bool_of_sumbool (eqv_dec x y)).
 
 Section Equiv.
   Context {A} `{Ord A}.
