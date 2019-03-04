@@ -1,5 +1,6 @@
 Require Import Coq.Arith.PeanoNat.
 Require Import Coq.omega.Omega.
+Require Import Coq.Lists.List.
 
 Section Repeat.
   Context {A : Type}.
@@ -101,3 +102,26 @@ Section Preserves.
     simpl. auto.
   Qed.
 End Preserves.
+
+Section Map.
+  Context {A : Type}.
+
+  Variable f : A -> A.
+
+  Lemma rep_map_cons : forall n a l,
+      rep (map f) n (a :: l) = rep f n a :: rep (map f) n l.
+  Proof.
+    induction n; intros a l; [reflexivity|].
+    cbn. rewrite IHn. cbn. reflexivity.
+  Qed.
+
+  Theorem rep_map : forall n l,
+      rep (map f) n l = map (rep f n) l.
+  Proof.
+    induction l.
+    - cbn. apply rep_preserves; [|reflexivity].
+      intros; subst; reflexivity.
+    - cbn. rewrite <- IHl.
+      apply rep_map_cons.
+  Qed.
+End Map.
