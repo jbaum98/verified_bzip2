@@ -145,18 +145,23 @@ Section Forall2.
     - subst. induction y; constructor; auto.
   Qed.
 
+  Theorem Forall2_length {A : Type} : forall (R : A -> A -> Prop) (l l' : list A),
+      Forall2 R l l' ->
+      length l = length l'.
+  Proof.
+    intros R l l' HF.
+    induction HF; cbn; auto.
+  Qed.
+
   Lemma Forall2_map {A B : Type} (R : B -> B -> Prop) : forall (f : A -> B) (l l' : list A),
-      length l = length l' ->
       Forall2 R (map f l) (map f l') <-> Forall2 (fun x y => R (f x) (f y)) l l'.
   Proof.
     induction l; intros.
-    - simpl in H.
-      replace l' with (@nil A) by (symmetry; apply length_zero_iff_nil; auto).
-      split; constructor.
-    - destruct l' as [|a' l']; [inversion H|].
-      simpl; split; intros HImp; inversion HImp; subst; clear HImp; constructor; auto.
-      + apply IHl; auto.
-      + apply IHl; auto.
+    - split; intros H; replace l' with (@nil A); [constructor| |constructor|].
+      + cbn in H. inversion H. symmetry in H0. apply map_eq_nil in H0. auto.
+      + inversion H. auto.
+    - destruct l' as [|a' l']; [split; cbn; intros H; inversion H|].
+      simpl; split; intros HImp; inversion HImp; subst; clear HImp; constructor; auto; apply IHl; auto.
   Qed.
 
   Lemma Forall2_impl : forall (A B : Type) (P Q : A -> B -> Prop),
@@ -196,7 +201,7 @@ Section Map.
     }
     assert (Forall2 (fun x y => f x = f y) l l'). {
       apply Forall2_eq in MapEq.
-      apply (proj1 (Forall2_map eq f l l' H)) in MapEq.
+      apply (proj1 (Forall2_map eq f l l')) in MapEq.
       apply MapEq.
     }
     apply Forall2_eq.
@@ -262,11 +267,42 @@ Section Filter.
   Qed.
 End Filter.
 
-Fixpoint zipWith {A B C} (f : A -> B -> C) (a : list A) (b : list B) : list C :=
-  match (a, b) with
-  | (ahd :: atl, bhd :: btl) => f ahd bhd :: zipWith f atl btl
-  | _ => []
-  end.
+Section ZipWith.
+  Context {A B C : Type}.
+
+  Variable f : A -> B -> C.
+
+  Fixpoint zipWith (a : list A) (b : list B) : list C :=
+    match (a, b) with
+    | (ahd :: atl, bhd :: btl) => f ahd bhd :: zipWith atl btl
+    | _ => []
+    end.
+
+  Theorem zipWith_nil_l : forall b,
+      zipWith [] b = [].
+  Proof. reflexivity. Qed.
+
+  Theorem zipWith_nil_r : forall a,
+      zipWith a [] = [].
+  Proof. destruct a; reflexivity. Qed.
+
+  Theorem zipWith_length : forall a b,
+      length (zipWith a b) = Nat.min (length a) (length b).
+  Proof.
+    induction a; intros; [reflexivity|].
+    destruct b; [reflexivity|].
+    cbn. f_equal. auto.
+  Qed.
+
+  Lemma zipWith_length_eq : forall a b,
+      length a = length b ->
+      length (zipWith a b) = length a /\ length (zipWith a b) = length b.
+  Proof. intros. rewrite !zipWith_length, !H, !Nat.min_id. intuition. Qed.
+End ZipWith.
+
+Lemma zipWith_combine {A B} : forall (a : list A) (b : list B),
+    zipWith pair a b = combine a b.
+Proof. reflexivity. Qed.
 
 Lemma length_nonempty_destr {A} : forall (xs : list A) l,
     S l <= length xs ->
