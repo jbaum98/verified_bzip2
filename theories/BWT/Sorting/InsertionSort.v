@@ -6,7 +6,7 @@ Require Import BWT.Sorting.Sorted.
 Require Import BWT.Sorting.Stable.
 
 Section InsertionSort.
-  Context {A : Type} {O : Ord A}.
+  Context {A : Type} {O : Preord A}.
 
   Fixpoint insert (x : A) (l : list A) :=
     match l with
@@ -56,7 +56,7 @@ Section InsertionSort.
       intros x HIn'.
       apply Permutation_in with (l' := a::tl) in HIn';
         [|auto using insert_perm, Permutation_sym].
-      destruct HIn'; [subst; apply le_not; auto|].
+      destruct HIn'; [subst; apply lt_le_rev; auto|].
       apply HIn; auto.
       apply IH.
   Qed.

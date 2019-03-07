@@ -105,7 +105,15 @@ Section StableInd.
   Lemma stable_perm_refl : forall l, StablePerm l l.
   Proof. induction l; constructor; auto. Qed.
 
-  Goal forall l l' : list A, StablePerm l l' -> Stable l l'.
+  Lemma stable_perm_sym : forall l l',
+      StablePerm l l' -> StablePerm l' l.
+  Proof.
+    intros l l' HS.
+    induction HS; econstructor; eauto.
+    symmetry. auto.
+  Qed.
+
+  Theorem stable_perm_stable : forall l l' : list A, StablePerm l l' -> Stable l l'.
     intros l l' SP.
     induction SP.
     - unfold Stable. intros. reflexivity.
@@ -114,7 +122,7 @@ Section StableInd.
     - eapply Stable_trans; eauto.
   Qed.
 
-  Goal forall l l' : list A, StablePerm l l' -> Permutation l l'.
+  Theorem stable_perm_perm : forall l l' : list A, StablePerm l l' -> Permutation l l'.
     intros l l' SP. induction SP; econstructor; eauto.
   Qed.
 
@@ -288,3 +296,9 @@ Section StableInd.
   Admitted.
 
 End StableInd.
+
+Add Parametric Relation (A : Type) `(E : EqDec A) : (list A) StablePerm
+    reflexivity proved by stable_perm_refl
+    symmetry proved by stable_perm_sym
+    transitivity proved by stable_perm_trans
+      as stable_perm_rel.

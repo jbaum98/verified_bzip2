@@ -1,6 +1,10 @@
 Require Import Coq.Lists.List.
 Require Import Coq.Program.Basics.
 Require Import Coq.omega.Omega.
+Require Import Coq.Classes.EquivDec.
+Require Import Coq.Sorting.Permutation.
+
+Require Import BWT.Lib.Permutation.
 
 Import Coq.Lists.List.ListNotations.
 
@@ -314,3 +318,72 @@ Proof.
     + intro c; inversion c.
     + exact h.
 Qed.
+
+Section Rem1.
+  Context {A : Type} `{EqDec A eq}.
+
+  Fixpoint rem1 (x : A) (l : list A) : list A
+    := match l with
+       | [] => []
+       | h :: t => if x == h then t else h :: rem1 x t
+       end.
+
+  Theorem rem1_in_split : forall x a,
+      In a x ->
+      exists l1 l2, x = l1 ++ a :: l2 /\ rem1 a x = l1 ++ l2.
+  Proof.
+    induction x as [|hx tx]; intros a HIn; [inversion HIn|].
+    cbn [rem1].
+    destruct (equiv_dec a hx).
+    + subst.
+      exists [], tx. split; cbn; auto.
+      rewrite e. auto.
+    + destruct (IHtx a) as [l1 [l2 [Htx Hrem]]].
+      destruct HIn; [rewrite H0 in c; exfalso; apply c; reflexivity|auto].
+      exists (hx :: l1), l2.
+      split; [rewrite Htx; reflexivity|].
+      cbn. f_equal. auto.
+  Qed.
+
+  Theorem Permutation_rem1 : forall x a y,
+      Permutation (a :: x) y -> Permutation x (rem1 a y).
+  Proof.
+    intros x a y HP.
+    destruct (rem1_in_split y a) as [l1 [l2 [Hy Hyrem]]].
+    eapply Permutation_in; [apply HP|left; auto].
+    rewrite Hyrem.
+    apply Permutation_cons_inv with (a := a).
+    transitivity y; [auto|].
+    rewrite Hy. symmetry. apply Permutation_cons_app.
+    reflexivity.
+  Qed.
+
+  Theorem in_rem1_in : forall a b x,
+      In a (rem1 b x) -> In a x.
+  Proof.
+    intros a b x. revert a b.
+    induction x as [|h t]; intros a b HIn; [inversion HIn|].
+    cbn in *. destruct (equiv_dec b h).
+    - right; auto.
+    - destruct HIn.
+      + left; auto.
+      + right; eapply IHt. apply H0.
+  Qed.
+
+  Theorem in_in_rem1_neq : forall a b x,
+       In a x -> In a (rem1 b x) \/ a = b.
+  Proof.
+    intros a b x.
+    destruct (equiv_dec a b); [auto|].
+    induction x as [|h t]; intros HIn; [inversion HIn|left].
+    cbn. destruct (equiv_dec b h).
+    - destruct HIn; [|auto].
+      exfalso. apply c. symmetry. transitivity h; auto.
+    - destruct HIn; [left; auto|].
+      destruct IHt; [|right|exfalso; apply c]; auto.
+  Qed.
+
+  Theorem rem1_map : forall f l x,
+      map f (rem1 x l) = rem1 (f x) (map f l).
+  Admitted.
+End Rem1.

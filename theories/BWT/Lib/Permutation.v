@@ -101,3 +101,20 @@ Proof.
 
   auto.
 Qed.
+
+Theorem Permutation_1 {A} : forall (a : A) y,
+    Permutation [a] y -> y = [a].
+Proof.
+  intros a y HP.
+  remember [a] as x. revert a Heqx.
+  induction HP.
+  - reflexivity.
+  - intros a H. inversion H; subst; clear H.
+    apply Permutation_nil in HP. subst l'.
+    reflexivity.
+  - intros a H. inversion H.
+  - intros.
+    specialize (IHHP1 a Heqx).
+    specialize (IHHP2 a (eq_trans IHHP1 Heqx )).
+    subst; auto.
+Qed.

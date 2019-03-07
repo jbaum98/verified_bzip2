@@ -9,11 +9,12 @@ Require Import Coq.Sorting.Permutation.
 
 Require Import BWT.Sorting.Ord.
 Require Import BWT.Sorting.InsertionSort.
+Require Import BWT.Lib.List.
 
 Import Coq.Lists.List.ListNotations.
 
 Section LexLe.
-  Context {A : Type} `{O: Ord A}.
+  Context {A : Type} `{O: Preord A}.
 
   Inductive lex_le : list A -> list A -> Prop :=
   | lex_le_nil : forall ys, lex_le [] ys
@@ -124,7 +125,7 @@ Section LexLe.
   Qed.
 End LexLe.
 
-Instance Ord_list_lex {A} `{Ord A} : Ord (list A) :=
+Instance List_Lex_Preord {A} `{Preord A} : Preord (list A) :=
   { le := lex_le;
     le_trans := lex_le_trans;
     le_total := lex_le_total;
@@ -132,10 +133,9 @@ Instance Ord_list_lex {A} `{Ord A} : Ord (list A) :=
   }.
 
 Section LexSort.
-  Context {A : Type} `{Ord A}.
+  Context {A : Type} `{Preord A}.
 
-  Definition lexsort : list (list A) -> list (list A)
-    := @sort _ Ord_list_lex.
+  Definition lexsort : list (list A) -> list (list A) := sort.
 
   Global Arguments lexsort _ : simpl never.
 
@@ -154,7 +154,7 @@ Section LexSort.
   Qed.
 End LexSort.
 
-Theorem lex_lt_inv {A : Type} {O : Ord A} : forall hx tx hy ty,
+Theorem lex_lt_inv {A : Type} {O : Preord A} : forall hx tx hy ty,
     lt (hx :: tx) (hy :: ty) ->
     (eqv hx hy /\ lt tx ty) \/ lt hx hy.
 Proof.
@@ -179,28 +179,29 @@ Proof.
       auto.
 Qed.
 
-Theorem lex_lt_destr {A : Type} {O : Ord A} : forall x y : list A,
+Theorem lex_lt_destr {A : Type} {O : Preord A} : forall x y : list A,
     lt x y ->
-    exists hx tx hy ty,
+    exists hx tx hy ty a,
       x = hx ++ tx /\
-      y = hy ++ ty /\
-      lt tx ty /\
+      y = hy ++ a :: ty /\
+      lt tx [a] /\
       eqv hx hy.
 Proof.
   intros x y HLT. apply lex_lt_iff in HLT.
   induction HLT.
-  - exists [], [], [], (hy::ty).
+  - exists [], [], [], ty, hy.
     repeat split; [apply lex_lt_iff|..]; constructor.
-  - exists [], (x::xs), [], (y::ys).
+  - exists [], (x::xs), [], ys, y.
     repeat split; [apply lex_lt_iff|..]; constructor; auto.
-  - destruct IHHLT as [hx [tx [hy [ty [Hx [Hy [Hlt Heqv]]]]]]].
-    exists (x::hx), tx, (y::hy), ty.
+  - destruct IHHLT as [hx [tx [hy [ty [a [Hx [Hy [Hlt Heqv]]]]]]]].
+    exists (x::hx), tx, (y::hy), ty, a.
     rewrite Hx, Hy.
     repeat split; [|apply lex_le_cons_eq..];
       auto using eqv_rel_Symmetric; destruct Heqv; auto.
+    symmetry; auto.
 Qed.
 
-Theorem lex_eqv_iff {A} {O : Ord A} : forall x y,
+Theorem lex_eqv_iff {A} {O : Preord A} : forall x y,
     Forall2 eqv x y <-> eqv x y.
 Proof.
   induction x as [|a x IH]; intros y.
@@ -213,7 +214,7 @@ Proof.
   - split.
     + intro H. inversion H; subst; clear H.
       apply IH in H4. destruct H4.
-      split; apply lex_le_cons_eq; auto using eqv_rel_Symmetric.
+      split; apply lex_le_cons_eq; [| |symmetry|]; auto.
     + intros [LXY LYX].
       inversion LXY; inversion LYX; subst.
       * discriminate.
@@ -230,18 +231,26 @@ Proof.
         constructor; auto. apply IH. auto.
 Qed.
 
-Theorem lex_eqv_prepend {A} {O : Ord A} : forall hx tx hy ty,
+Instance List_Lex_Ord {A} `{Ord A} : Ord (list A).
+Proof.
+  apply Build_Ord.
+  intros x y HE.
+  apply lex_eqv_iff in HE.
+  eapply Forall2_impl in HE; [|apply H0].
+  apply Forall2_eq. auto.
+Qed.
+
+Theorem lex_eqv_prepend {A} {O : Preord A} : forall hx tx hy ty,
     eqv hx hy -> le tx ty -> le (hx ++ tx) (hy ++ ty).
 Proof.
   intros hx tx hy ty HE.
   apply lex_eqv_iff in HE.
   induction HE; intro HL.
-  - cbn. auto.
-  - cbn. apply lex_le_cons_eq; auto.
+  - cbn. auto. - cbn. apply lex_le_cons_eq; auto.
     apply IHHE. auto.
 Qed.
 
-Theorem lex_eqv_firstn {A} {O : Ord A} : forall x y j,
+Theorem lex_eqv_firstn {A} {O : Preord A} : forall x y j,
     eqv x y ->
     eqv (firstn j x) (firstn j y).
 Proof.

@@ -1,12 +1,12 @@
 Require Import Coq.Lists.List.
 Require Import Coq.Sorting.Permutation.
+Require Import Coq.Classes.EquivDec.
 
 Require Import BWT.Sorting.Ord.
+Require Import BWT.Lib.List.
 
 Section Sorted.
-  Context {A : Type} `{O: Ord A}.
-
-  (** What it means for a list to be sorted in increasing order. *)
+  Context {A : Type} `{O: Preord A}.
 
   Inductive Sorted: list A -> Prop :=
   | Sorted_nil:
@@ -15,8 +15,6 @@ Section Sorted.
       (forall x, In x tl -> le hd x) ->
       Sorted tl ->
       Sorted (hd :: tl).
-
-  (** Lists of 1 element are sorted. *)
 
   Remark Sorted_1:
     forall x, Sorted (x :: nil).
@@ -33,10 +31,26 @@ Section Sorted.
     intros. simpl in H0. destruct H0. subst x0. auto. contradiction.
     apply Sorted_1.
   Qed.
+
+  Lemma Sorted_cons_inv {x l} :
+      Sorted (x :: l) -> (forall y, In y l -> le x y) /\ Sorted l.
+  Proof. intro HS. inversion HS; split; auto. Qed.
 End Sorted.
 
+Theorem Sorted_rem1 {A} {P : Preord A} {E : EqDec A eq} : forall l x,
+    Sorted l -> Sorted (rem1 x l).
+Proof.
+  intros l x HS; revert x.
+  induction HS; intros x; [constructor|].
+  cbn.
+  destruct (equiv_dec x hd); [auto|].
+  apply Sorted_cons; intros.
+  apply H. apply in_rem1_in in H0. auto.
+  apply IHHS.
+Qed.
+
 Section LocallySorted.
-  Context {A : Type} `{O: Ord A}.
+  Context {A : Type} `{O: Preord A}.
 
   (** An alternative definition of being sorted that's easier to prove. *)
   Inductive LocallySorted : list A -> Prop :=
