@@ -35,6 +35,18 @@ Section Sorted.
   Lemma Sorted_cons_inv {x l} :
       Sorted (x :: l) -> (forall y, In y l -> le x y) /\ Sorted l.
   Proof. intro HS. inversion HS; split; auto. Qed.
+
+  Lemma Sorted_const : forall l,
+      (exists x, Forall (eq x) l) ->
+      Sorted l.
+  Proof.
+    intros l [x HF].
+    induction HF; [apply Sorted_nil|].
+    apply Sorted_cons.
+    intros a HIn.
+    apply (proj1 (Forall_forall (eq x) l)) with (x0 := a) in HF; auto.
+    subst. reflexivity. auto.
+  Qed.
 End Sorted.
 
 Theorem Sorted_rem1 {A} {P : Preord A} {E : EqDec A eq} : forall l x,

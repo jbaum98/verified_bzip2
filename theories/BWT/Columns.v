@@ -17,24 +17,6 @@ Section Cols.
 
   Definition cols j := map (@firstn A j).
 
-  Theorem lexsort_radixsort : forall l,
-      lexsort l = rep (fun x => hdsort (map rrot x)) (length l) l.
-  Admitted.
-
-  Theorem lexsort_rots_hdsort : forall l,
-      hdsort (map rrot (lexsort (rots l))) = lexsort (rots l).
-  Proof.
-    intros.
-    rewrite lexsort_radixsort at 1.
-    remember (fun x => hdsort (map rrot x)) as f.
-    replace (hdsort (map rrot (rep f (length (rots l)) (rots l)))) with (f (rep f (length (rots l)) (rots l))).
-    rewrite rep_l, <- rep_r.
-    subst f.
-    replace (length (rots l)) with (length (hdsort (map rrot (rots l)))).
-    rewrite <- lexsort_radixsort.
-    rewrite map_rrot_rots.
-  Admitted.
-
   Theorem cols_S_hdsort : forall j l,
       cols (S j) (hdsort l) = hdsort (cols (S j) l).
   Proof.
@@ -108,6 +90,17 @@ Section PrependColumn.
     apply IHt; inversion HJ; auto.
   Qed.
 
+  Theorem map_tl_prepend : forall l c,
+      length c >= length l ->
+      map (@tl A) (prepend_col c l) = l.
+  Proof.
+    induction l; intros c HL.
+    - unfold prepend_col. rewrite zipWith_nil_r. reflexivity.
+    - destruct c as [|hc tc]. cbn in HL. omega.
+      rewrite prepend_cons.
+      cbn [map tl]. f_equal. apply IHl.
+      cbn in HL. omega.
+  Qed.
 End PrependColumn.
 
 Section AppendCol.

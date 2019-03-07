@@ -66,6 +66,23 @@ Section KeyOrd.
       reflexivity.
     Qed.
   End Inv.
+
+  Local Arguments Sorted {_} _.
+
+  Theorem key_sorted : forall l,
+      Sorted keyOrd l <-> Sorted O (map key l).
+  Proof.
+    induction l; [split; intros; apply Sorted_nil|].
+    split; cbn; intros HS; apply Sorted_cons_inv in HS; destruct HS as [HLe HS].
+    - cbn. apply Sorted_cons.
+      intros. apply in_map_iff in H.
+      destruct H as [kx [Hkx HIn]].
+      rewrite <- Hkx. apply HLe. auto.
+      apply IHl; auto.
+    - apply Sorted_cons.
+      intros. apply HLe. apply in_map. auto.
+      apply IHl. auto.
+  Qed.
 End KeyOrd.
 
 Section Firstn.
