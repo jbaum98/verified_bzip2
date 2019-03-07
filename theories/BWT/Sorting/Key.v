@@ -319,15 +319,28 @@ Section Insert.
         destruct H as [l1 [l2 [Hcolmat Hcolmatrem]]].
         apply IHcolmat' with (colmat := l1 ++ l2).
         apply Sorted_cons_inv in HS'; destruct HS'. auto.
-        symmetry in HP. apply Permutation_rem1 in HP.
+        symmetry in HP. apply Permutation_rem1_cons in HP.
         symmetry. rewrite <- Hcolmatrem. auto.
         rewrite <- Hcolmatrem.
         apply Sorted_cons_inv in HS; destruct HS as [HLe HS].
         apply Sorted_cons.
-        intros. apply HLe. rewrite rem1_map in H. apply in_rem1_in in H.
-        auto.
-        rewrite !rem1_map.
-        apply Sorted_rem1. auto.
+        intros. apply HLe. apply in_map_iff in H.
+        destruct H as [x' [Hx' HIn]].
+        apply in_map_iff. exists x'. split; [|apply in_rem1_in in HIn]; auto.
+        rewrite Hcolmatrem.
+        rewrite Hcolmat in HS. rewrite map_app in HS. cbn [map] in HS.
+        apply Sorted_app in HS. destruct HS as [HS1 [HS2 HF]].
+        rewrite map_app.
+        destruct (map tl l2) as [|mt2h mt2t]; [rewrite app_nil_r; apply HS1|].
+        apply Sorted_app. repeat split.
+        - apply HS1.
+        - apply Sorted_cons_inv in HS2; destruct HS2 as [HLe2 HS2].
+          apply HS2.
+        - apply Sorted_cons_inv in HS2; destruct HS2 as [HLe2 HS2].
+          eapply Forall_impl; [|apply HF].
+          intros.
+          transitivity (tl b).
+          apply H. apply HLe2. left. auto.
       }
       clear IHcolmat'.
       apply Sorted_cons.

@@ -345,7 +345,7 @@ Section Rem1.
       cbn. f_equal. auto.
   Qed.
 
-  Theorem Permutation_rem1 : forall x a y,
+  Theorem Permutation_rem1_cons : forall x a y,
       Permutation (a :: x) y -> Permutation x (rem1 a y).
   Proof.
     intros x a y HP.
@@ -383,7 +383,46 @@ Section Rem1.
       destruct IHt; [|right|exfalso; apply c]; auto.
   Qed.
 
-  Theorem rem1_map : forall f l x,
-      map f (rem1 x l) = rem1 (f x) (map f l).
-  Admitted.
+  Theorem rem1_not_in : forall l x,
+      ~ (In x l) -> rem1 x l = l.
+  Proof.
+    induction l; intros x HNIn; [reflexivity|].
+    cbn. destruct (equiv_dec x a).
+    exfalso. apply HNIn. left. symmetry. apply e.
+    f_equal. apply IHl. intro c2.
+    apply HNIn. right. apply c2.
+  Qed.
+
+  Theorem rem1_app_1 : forall l1 l2 x,
+      In x l1 -> rem1 x (l1 ++ l2) = rem1 x l1 ++ l2.
+  Proof.
+    induction l1; intros l2 x HIn; [inversion HIn|].
+    destruct HIn.
+    - subst. cbn. destruct (equiv_dec x x); [|exfalso; apply c; reflexivity].
+      reflexivity.
+    - cbn.
+      destruct (equiv_dec x a); [reflexivity|].
+      cbn. f_equal. apply IHl1. auto.
+  Qed.
+
+  Theorem rem1_app_2 : forall l1 l2 x,
+      ~ In x l1 -> rem1 x (l1 ++ l2) = l1 ++ rem1 x l2.
+  Proof.
+    induction l1; intros l2 x HIn; [reflexivity|].
+    cbn. destruct (equiv_dec x a).
+    exfalso. apply HIn. left. symmetry. apply e.
+    f_equal. apply IHl1. intro c2. apply HIn. right. auto.
+  Qed.
+
+  Theorem Permutation_rem1 : forall x y a,
+      Permutation x y -> Permutation (rem1 a x) (rem1 a y).
+  Proof.
+    intros x y a HP. revert a.
+    induction HP; intros a.
+    - apply perm_nil.
+    - cbn. destruct (equiv_dec a x); auto.
+    - cbn. destruct (equiv_dec a y); destruct (equiv_dec a x); unfold equiv in *; subst; auto.
+      apply perm_swap.
+    - transitivity (rem1 a l'); auto.
+  Qed.
 End Rem1.

@@ -129,4 +129,6 @@ Section RadixSort.
     eapply Forall_impl; [|apply HL].
     intros. rewrite <- H0. apply firstn_all.
   Qed.
+
+  Print Assumptions radixsort_sorted.
 End RadixSort.

@@ -86,4 +86,48 @@ Section LocallySorted.
         inversion IHl; subst; clear IHl.
         destruct H; subst; auto using le_refl.
   Qed.
+
+  Theorem Sorted_app : forall a l1 l2,
+      Sorted (l1 ++ a :: l2) <->
+      Sorted l1 /\ Sorted (a :: l2) /\ Forall (fun x => le x a) l1.
+  Proof.
+    intros a l1 l2.
+    split.
+    - intros HS.
+      remember (l1 ++ a :: l2) as l.
+      revert a l1 l2 Heql.
+      induction HS; intros a l1 l2 HL.
+      apply app_cons_not_nil in HL; contradiction.
+      destruct l1. inversion HL; subst; clear HL.
+      split; auto using Sorted_nil, Sorted_cons.
+      destruct (IHHS a l1 l2) as [HS1 [HS2 HF]]; [inversion HL; auto|].
+      repeat split.
+      + apply Sorted_cons.
+        inversion HL; subst; clear HL.
+        intros x HIn.
+        apply H. apply in_or_app.
+        left. auto.
+        apply HS1.
+      + apply HS2.
+      + constructor.
+        inversion HL; subst; clear HL.
+        apply H. apply in_or_app. right. left. auto.
+        auto.
+    - induction l1 as [|h t]; intros [HS1 [HS2 HF]]; [apply HS2|].
+      cbn; apply Sorted_cons.
+      intros x HIn.
+      apply in_app_or in HIn.
+      destruct HIn.
+      + apply Sorted_cons_inv in HS1; destruct HS1 as [HLe _].
+        apply HLe. auto.
+      + inversion HF; subst; clear HF.
+        destruct H; [subst; auto|].
+        apply Sorted_cons_inv in HS2; destruct HS2 as [HLe _].
+        transitivity a; [auto|].
+        apply HLe. auto.
+      + apply IHt. repeat split.
+        * apply Sorted_cons_inv in HS1; destruct HS1; auto.
+        * auto.
+        * inversion HF; auto.
+  Qed.
 End LocallySorted.
