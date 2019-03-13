@@ -271,54 +271,6 @@ Section Filter.
   Qed.
 End Filter.
 
-Section ZipWith.
-  Context {A B C : Type}.
-
-  Variable f : A -> B -> C.
-
-  Fixpoint zipWith (a : list A) (b : list B) : list C :=
-    match (a, b) with
-    | (ahd :: atl, bhd :: btl) => f ahd bhd :: zipWith atl btl
-    | _ => []
-    end.
-
-  Theorem zipWith_nil_l : forall b,
-      zipWith [] b = [].
-  Proof. reflexivity. Qed.
-
-  Theorem zipWith_nil_r : forall a,
-      zipWith a [] = [].
-  Proof. destruct a; reflexivity. Qed.
-
-  Theorem zipWith_length : forall a b,
-      length (zipWith a b) = Nat.min (length a) (length b).
-  Proof.
-    induction a; intros; [reflexivity|].
-    destruct b; [reflexivity|].
-    cbn. f_equal. auto.
-  Qed.
-
-  Lemma zipWith_length_eq : forall a b,
-      length a = length b ->
-      length (zipWith a b) = length a /\ length (zipWith a b) = length b.
-  Proof. intros. rewrite !zipWith_length, !H, !Nat.min_id. intuition. Qed.
-End ZipWith.
-
-Lemma zipWith_combine {A B} : forall (a : list A) (b : list B),
-    zipWith pair a b = combine a b.
-Proof. reflexivity. Qed.
-
-Lemma length_nonempty_destr {A} : forall (xs : list A) l,
-    S l <= length xs ->
-    (xs <> []) * A.
-Proof.
-  intros [|h t] l.
-  - simpl; omega.
-  - simpl; intro HL; split.
-    + intro c; inversion c.
-    + exact h.
-Qed.
-
 Section Rem1.
   Context {A : Type} `{EqDec A eq}.
 
@@ -426,3 +378,21 @@ Section Rem1.
     - transitivity (rem1 a l'); auto.
   Qed.
 End Rem1.
+
+Theorem in_eq_iff {A : Type} : forall l l' : list A,
+    l = l' -> (forall x, In x l <-> In x l').
+Proof.
+  intros l l' Heq.
+  rewrite Heq. intros; reflexivity.
+Qed.
+
+Lemma length_nonempty_destr {A} : forall (xs : list A) l,
+    S l <= length xs ->
+    (xs <> []) * A.
+Proof.
+  intros [|h t] l.
+  - simpl; omega.
+  - simpl; intro HL; split.
+    + intro c; inversion c.
+    + exact h.
+Qed.

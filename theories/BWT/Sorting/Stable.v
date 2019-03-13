@@ -3,11 +3,15 @@ Require Import Coq.Sorting.Permutation.
 Require Import Coq.Classes.EquivDec.
 Require Import Coq.omega.Omega.
 Require Import Coq.Program.Wf.
+Require Import Coq.Relations.Relation_Definitions.
+Require Import Coq.Program.Utils.
 
 Require Import BWT.Sorting.Sorted.
+Require Import BWT.Sorting.Ord.
 Require Import BWT.Lib.Permutation.
 Require Import BWT.Lib.List.
 Require Import BWT.Lib.TakeWhile.
+Require Import BWT.Lib.ZipWith.
 
 Section Stable.
   Context {A : Type} `{E : EqDec A}.
@@ -91,7 +95,99 @@ Section Stable.
       destruct (equiv_dec a a); [|pose proof (equiv_reflexive _ a); contradiction].
       simpl in S; inversion S.
   Qed.
+
+  Theorem stable_perm_nodup : forall l l',
+      NoDup l -> NoDup l' -> Stable l l' -> Permutation l l'.
+  Proof.
+    intros l l' ND ND' HS.
+    apply NoDup_Permutation; auto.
+    intros x.
+    assert (forall s, In x s <-> In x (filter (equiv_decb x) s)).
+    intros; split; intros. apply filter_In; split; auto.
+    unfold equiv_decb; destruct (x == x); [|exfalso; apply c; reflexivity]; auto.
+    apply (proj1 (filter_In (equiv_decb x) x s)); auto.
+    rewrite (H l), (H l').
+    apply in_eq_iff.
+    apply HS.
+  Qed.
 End Stable.
+
+Add Parametric Relation (A : Type) `(E : EqDec A) : (list A) Stable
+    reflexivity proved by Stable_refl
+    symmetry proved by Stable_sym
+    transitivity proved by Stable_trans
+      as Stable_rel.
+
+Theorem filter_count_occ_in {A} `{E : EqDec A eq} : forall (f : A -> bool) a (l : list A),
+    (f a = true) ->
+    count_occ E (filter f l) a = count_occ E l a.
+Proof.
+  induction l as [|h t IH]; intros HF; [reflexivity|].
+  cbn. destruct (E h a).
+  - rewrite e, HF; cbn. rewrite e.
+    destruct (E a a); [|exfalso; apply c; reflexivity].
+    f_equal. apply IH. auto.
+  - destruct (f h); cbn.
+    destruct (E h a); [contradiction|].
+    apply IH; auto.
+    apply IH; auto.
+Qed.
+
+Theorem filter_count_occ_not_in {A} `{E : EqDec A eq} : forall (f : A -> bool) a (l : list A),
+    (f a = false) ->
+    count_occ E (filter f l) a = 0.
+Proof.
+  induction l as [|h t IH]; intros HF; [reflexivity|].
+  cbn. destruct (f h) eqn:HFh; cbn.
+  destruct (E h a).
+  - exfalso. rewrite e, HF in HFh. discriminate.
+  - rewrite IH; auto.
+  - rewrite IH; auto.
+Qed.
+
+Theorem filter_zipOcc {A} `{EqDec A eq} : forall f (l : list A),
+    zipOcc (filter f l) = filter (fun x => f (fst x)) (zipOcc l).
+Proof.
+  induction l.
+  - reflexivity.
+  - cbn. destruct (f a) eqn:Hfa.
+    + cbn. rewrite (filter_count_occ_in f a) by eauto.
+      f_equal. apply IHl.
+    + apply IHl.
+Qed.
+
+Theorem stable_count_occ {A} `{E : EqDec A eq}: forall l l' : list A,
+    Stable l l' -> (forall x, count_occ E l x = count_occ E l' x).
+Proof.
+  induction l as [|h t IH]; intros l' HS x.
+  - apply Stable_nil in HS. subst; reflexivity.
+  - cbn. destruct (E h x).
+    + rewrite e in *; clear e.
+      rewrite <- filter_count_occ_in with (f := equiv_decb x) (l := l').
+      specialize (HS x). rewrite <- HS.
+      cbn. unfold equiv_decb at 1. destruct (x == x); [|exfalso; apply c; reflexivity].
+      destruct (E x x); [|exfalso; apply c; reflexivity].
+      cbn.
+      destruct (E x x); [|exfalso; apply c; reflexivity].
+      f_equal. rewrite filter_count_occ_in. reflexivity.
+      unfold equiv_decb; destruct (x == x); [|exfalso; apply c; reflexivity]; auto.
+      unfold equiv_decb; destruct (x == x); [|exfalso; apply c; reflexivity]; auto.
+    + specialize (HS x). cbn in HS.
+      unfold equiv_decb at 1 in HS.
+      destruct (x == h); [symmetry in c; contradiction|].
+      rewrite <- filter_count_occ_in with (f := equiv_decb x) (l := l').
+      rewrite <- HS.
+      rewrite filter_count_occ_in. reflexivity.
+      unfold equiv_decb; destruct (x == x); [|exfalso; apply c1; reflexivity]; auto.
+      unfold equiv_decb; destruct (x == x); [|exfalso; apply c1; reflexivity]; auto.
+Qed.
+
+Theorem Stable_perm {A} {E : EqDec A eq} : forall l l' : list A,
+    Stable l l' -> Permutation l l'.
+Proof.
+  intros. apply count_occ_Permutation.
+  apply stable_count_occ. auto.
+Qed.
 
 Section StableInd.
   Context {A : Type} `{EqDec A}.
@@ -112,8 +208,20 @@ Section StableInd.
     induction HS; econstructor; eauto.
     symmetry. auto.
   Qed.
+End StableInd.
 
-  Theorem stable_perm_stable : forall l l' : list A, StablePerm l l' -> Stable l l'.
+Add Parametric Relation (A : Type) `(E : EqDec A) : (list A) StablePerm
+    reflexivity proved by stable_perm_refl
+    symmetry proved by stable_perm_sym
+    transitivity proved by stable_perm_trans
+      as stable_perm_rel.
+
+Section StablePermStable.
+  Context {A : Type} `{EqDec A}.
+
+  Implicit Types l : list A.
+
+  Theorem stable_perm_stable : forall l l', StablePerm l l' -> Stable l l'.
     intros l l' SP.
     induction SP.
     - unfold Stable. intros. reflexivity.
@@ -122,70 +230,41 @@ Section StableInd.
     - eapply Stable_trans; eauto.
   Qed.
 
-  Theorem stable_perm_perm : forall l l' : list A, StablePerm l l' -> Permutation l l'.
+  Theorem stable_perm_perm : forall l l', StablePerm l l' -> Permutation l l'.
     intros l l' SP. induction SP; econstructor; eauto.
   Qed.
 
-  Goal forall l l' : list A, Permutation l l' -> Stable l l' -> StablePerm l l'.
-    intros l l' HP HS.
-    induction HP.
-    - apply stable_perm_nil.
-    - apply stable_perm_skip. apply IHHP.
-      intro y. specialize (HS y).
-      simpl in HS. destruct (y ==b x); [|auto].
-      inversion HS; auto.
-    - specialize (HS x); simpl in HS.
-      unfold equiv_decb in HS.
-      destruct (equiv_dec x x); [|exfalso; apply c; apply equiv_reflexive].
-      destruct (x == y).
-      + inversion HS; subst; auto.
-        do 2 apply stable_perm_skip.
-        apply stable_perm_refl.
-      + apply stable_perm_swap. auto.
-    - Restart.
-    induction l as [|h tl]; intros [|h' tl'] HP HS.
-    - apply stable_perm_nil.
-    - apply Permutation_nil in HP. discriminate.
-    - symmetry in HP. apply Permutation_nil in HP. discriminate.
-    - destruct (h == h').
-      assert (h = h'). {
-        specialize (HS h). simpl in HS.
-        unfold equiv_decb in HS.
-        destruct (h == h); [|exfalso; apply c; apply equiv_reflexive].
-        destruct (h == h'); [clear e|exfalso; apply c; auto].
-        inversion HS. auto.
-      }
-      + subst. constructor. apply IHtl.
-        eapply Permutation_cons_inv; eauto.
-        intro y. specialize (HS y).
-        inversion HS. destruct (y ==b h'); auto.
-        inversion H1; auto.
-      + pose proof (take_drop_while_id _ (fun x => negb (equiv_decb h' x)) tl).
-        remember (take_while _ _ _) as l1.
-        remember (drop_while _ _ _) as l2.
-        assert (exists l2', l2 = h' :: l2') by admit.
-        destruct H1 as [l2'].
-        assert (Stable (h' :: (l1 ++ l2')) tl). {
-          rewrite H0.
-          rewrite H1.
-          apply Stable_cons_app.
-          apply Stable_refl.
-          apply Forall_forall.
-          rewrite Heql1.
-          eapply Forall_impl; [|apply take_while_all].
-          intro a. unfold equiv_decb. destruct (equiv_dec h' a); intuition.
-        }
-        eapply stable_perm_trans with (l' := h :: h' :: (l1 ++ l2')).
-        apply stable_perm_skip.
-        apply IHtl.
-        rewrite H0, H1.
-        symmetry. apply Permutation_cons_app. apply Permutation_refl.
-        apply Stable_sym. auto.
-        eapply stable_perm_trans with (l' := h' :: h :: (l1 ++ l2')).
-        apply stable_perm_swap.
-        symmetry. auto.
-        apply stable_perm_skip.
-        Restart.
+  Lemma stable_destr : forall h h' l l',
+      Stable (h :: l) (h' :: l') ->
+      h =/= h' ->
+      exists l1 l2, l = l1 ++ h' :: l2 /\ (Forall (fun b => negb (h' ==b b) = true) l1).
+  Proof.
+    intros h h' l l' HS HNeq.
+    specialize (HS h'). cbn in HS.
+    unfold equiv_decb at 1 in HS; destruct (h' == h); [exfalso; apply HNeq; symmetry; auto|].
+    unfold equiv_decb at 2 in HS; destruct (h' == h'); [|exfalso; apply c0; reflexivity].
+    remember (take_while (nequiv_decb h') l) as l1.
+    remember (drop_while (nequiv_decb h') l) as l2.
+    assert (HL : l = l1 ++ l2) by (subst; apply take_drop_while_id).
+    rewrite HL, filter_app in HS.
+    rewrite filter_empty, app_nil_l in HS.
+    destruct l2 as [|a l2]; [inversion HS|].
+    exists l1, l2.
+    split; [|subst l1; apply take_while_all].
+    rewrite HL; do 2 f_equal.
+    cbn in HS. rewrite <- (Bool.negb_involutive (h' ==b a)) in HS.
+    replace (negb (h' ==b a)) with (h' <>b a) in HS by reflexivity.
+    erewrite (drop_while_hd (nequiv_decb h')) in HS by (symmetry; eauto).
+    inversion HS; auto.
+    apply Forall_forall. subst l1.
+    eapply Forall_impl; [|apply take_while_all].
+    intros. cbn in H0.
+    rewrite <- Bool.negb_involutive at 1; unfold nequiv_decb in H0. rewrite H0. auto.
+  Qed.
+
+  Theorem perm_stable_stable_perm : forall l l',
+      Permutation l l' -> Stable l l' -> StablePerm l l'.
+  Proof.
     intros l l' HP.
     remember (length l) as n.
     assert (Heqn' : n = length l') by (rewrite Heqn; apply Permutation_length; apply HP).
@@ -214,7 +293,8 @@ Section StableInd.
         intro y. specialize (HS y).
         inversion HS. destruct (y ==b h'); auto.
         inversion H1; auto.
-      + assert (exists l1 l2, t = l1 ++ h' :: l2 /\ (Forall (fun b => negb (h' ==b b) = true) l1)) by admit.
+      + assert (exists l1 l2, t = l1 ++ h' :: l2 /\ (Forall (fun b => negb (h' ==b b) = true) l1))
+          by (apply stable_destr with (h := h) (l' := t'); auto).
         destruct H0 as [l1 [l2 [HT HL1]]].
         assert (Stable (h' :: (l1 ++ l2)) t). {
           rewrite HT.
@@ -237,7 +317,8 @@ Section StableInd.
         apply stable_perm_swap.
         symmetry. auto.
         apply stable_perm_skip.
-        assert (exists l1' l2', t' = l1' ++ h :: l2' /\ (Forall (fun b => negb (h ==b b) = true) l1')) by admit.
+        assert (exists l1' l2', t' = l1' ++ h :: l2' /\ (Forall (fun b => negb (h ==b b) = true) l1'))
+          by (apply stable_destr with (h := h') (l' := t); symmetry; auto).
         destruct H1 as [l1' [l2' [HT' HL1']]].
         apply stable_perm_trans with (l' := h :: (l1' ++ l2')).
         apply stable_perm_skip.
@@ -295,10 +376,4 @@ Section StableInd.
           cbn; intros. admit.
   Admitted.
 
-End StableInd.
-
-Add Parametric Relation (A : Type) `(E : EqDec A) : (list A) StablePerm
-    reflexivity proved by stable_perm_refl
-    symmetry proved by stable_perm_sym
-    transitivity proved by stable_perm_trans
-      as stable_perm_rel.
+End StablePermStable.

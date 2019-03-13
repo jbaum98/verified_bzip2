@@ -13,6 +13,52 @@ Require Import BWT.Lib.List.
 
 Import Coq.Lists.List.ListNotations.
 
+Section Pairs.
+  Context {A B : Type} {OA : Preord A} {OB : Preord B}.
+
+  CoInductive lex_le_pair : (A * B) -> (A * B) -> Prop :=
+  | lex_le_left_lt : forall l l' r r', lt l l' -> lex_le_pair (l, r) (l', r')
+  | lex_le_left_eq : forall l l' r r', eqv l l' -> le r r' -> lex_le_pair (l, r) (l', r')
+  .
+
+  Global Instance Preord_Pair  : Preord (A * B) :=
+    { le := lex_le_pair; }.
+  Proof.
+    - intros [xl xr] [yl yr] [zl zr] LXY LYZ.
+      inversion LXY; inversion LYZ; subst; clear LXY LYZ.
+      + apply lex_le_left_lt.
+        transitivity yl; auto.
+      + apply lex_le_left_lt.
+        rewrite <- H7. auto.
+      + apply lex_le_left_lt.
+        rewrite H2. auto.
+      + apply lex_le_left_eq.
+        transitivity yl; auto.
+        transitivity yr; auto.
+    - intros [xl xr] [yl yr].
+      destruct (lt_eq_dec xl yl) as [[HLT|HEQ]|HGT].
+      + left. apply lex_le_left_lt. auto.
+      + destruct (le_total xr yr).
+        * left. apply lex_le_left_eq; auto.
+        * symmetry in HEQ.
+          right. apply lex_le_left_eq; auto.
+      + right. apply lex_le_left_lt. auto.
+    - intros [xl xr] [yl yr].
+      destruct (lt_eq_dec xl yl) as [[HLT|HEQ]|HGT].
+      + left. apply lex_le_left_lt. auto.
+      + destruct (le_dec xr yr).
+        * left. apply lex_le_left_eq; auto.
+        * right. intro c. apply n.
+          inversion c; subst; clear c.
+          unfold eqv, lt in *. destruct HEQ. contradiction.
+          auto.
+      + right. intro c.
+        inversion c; subst; clear c.
+        apply (lt_excl yl xl); split; auto.
+        destruct H2. contradiction.
+  Qed.
+End Pairs.
+
 Section LexLe.
   Context {A : Type} `{O: Preord A}.
 

@@ -23,13 +23,52 @@ Add Parametric Relation (A : Type) `(Preord A) : A le
     transitivity proved by le_trans
       as preord_le_rel.
 
+Definition ge `{Preord} x y := le y x.
+Definition lt `{Preord} x y := ~ (le y x).
+Definition gt `{Preord} x y := ~ (le x y).
+
+Remark ge_refl `{Preord} : forall x, ge x x.
+Proof. unfold ge. reflexivity. Qed.
+
+Remark ge_trans `{Preord} : forall x y z,
+    ge x y -> ge y z -> ge x z.
+Proof. unfold ge. intros. transitivity y; auto. Qed.
+
+Add Parametric Relation (A : Type) `(Preord A) : A ge
+    reflexivity proved by ge_refl
+    transitivity proved by ge_trans
+      as preord_ge_rel.
+
+Remark lt_trans `{Preord} : forall x y z,
+    lt x y -> lt y z -> lt x z.
+Proof.
+  unfold lt; intros.
+  destruct (le_total y x); [contradiction|].
+  destruct (le_total z y); [contradiction|].
+  destruct (le_dec z x); [|auto].
+  exfalso. apply H0. transitivity z; auto.
+Qed.
+
+Add Parametric Relation (A : Type) `(Preord A) : A lt
+    transitivity proved by lt_trans
+      as preord_lt_rel.
+
+Remark gt_trans `{Preord} : forall x y z,
+    gt x y -> gt y z -> gt x z.
+Proof.
+  unfold gt; intros.
+  destruct (le_total x y); [contradiction|].
+  destruct (le_total y z); [contradiction|].
+  destruct (le_dec x z); [|auto].
+  exfalso. apply H0. transitivity z; auto.
+Qed.
+
+Add Parametric Relation (A : Type) `(Preord A) : A gt
+    transitivity proved by gt_trans
+      as preord_gt_rel.
+
 Section Preord.
   Context {A : Type} {O : Preord A}.
-
-  Definition ge x y := le y x.
-  Definition lt x y := ~ (le y x).
-  Definition gt x y := ~ (le x y).
-
   Lemma lt_le_rev : forall x y, lt y x -> le y x.
   Proof.
     intros. destruct (le_total x y). contradiction. auto.
@@ -117,14 +156,6 @@ Section Lt.
   Theorem lt_irrefl : forall x, ~ (lt x x).
     intros x c.
     apply c. apply le_refl.
-  Qed.
-
-  Theorem lt_trans : forall x y z, lt x y -> lt y z -> lt x z.
-  Proof.
-    intros. unfold lt in *.
-    match goal with [ H : ~ le _ _ |- _ ] => apply lt_le_rev in H end.
-    intro.
-    eauto using le_trans.
   Qed.
 
   Theorem lt_excl : forall x y, ~ (lt x y /\ lt y x).

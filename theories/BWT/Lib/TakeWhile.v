@@ -2,7 +2,7 @@ Require Import Coq.Lists.List.
 Import ListNotations.
 
 Section TakeWhile.
-  Variable A : Type.
+  Context {A : Type}.
 
   Fixpoint take_while (f : A -> bool) (l : list A) : list A :=
     match l with
@@ -23,6 +23,17 @@ Section TakeWhile.
     simpl. destruct (f a) eqn:HF.
     - constructor. auto. apply IHl.
     - constructor.
+  Qed.
+
+  Theorem drop_while_hd : forall f l l' a,
+      drop_while f l = a :: l' ->
+      f a = false.
+  Proof.
+    induction l as [|h l IH]; intros l' a HL.
+    - cbn in HL. discriminate.
+    - cbn in HL. destruct (f h) eqn:FH.
+      + eapply IH; eauto.
+      + inversion HL; subst; auto.
   Qed.
 
   Theorem take_drop_while_id : forall f l,
