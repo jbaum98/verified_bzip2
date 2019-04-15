@@ -3,8 +3,13 @@ Require Import Coq.Program.Basics.
 Require Import Coq.omega.Omega.
 Require Import Coq.Classes.EquivDec.
 Require Import Coq.Sorting.Permutation.
+Require Import Coq.Bool.Bool.
+Require Import Coq.Classes.EquivDec.
 
 Require Import BWT.Lib.Permutation.
+Require Import BWT.Lib.ZipWith.
+Require Import BWT.Lib.Sumbool.
+Require Import BWT.Lib.EqDec.
 
 Import Coq.Lists.List.ListNotations.
 
@@ -269,6 +274,47 @@ Section Filter.
     exists (a :: l1); exists l2.
     split. auto. split. simpl. rewrite H. auto. auto.
   Qed.
+
+  Section CountOcc.
+    (* Decidable leibniz equality *)
+    Context `{E : EqDec A eq}.
+
+    Theorem filter_true_count_occ : forall f a l,
+      (f a = true) ->
+      count_occ equiv_dec (filter f l) a = count_occ equiv_dec l a.
+    Proof.
+      induction l as [|h t IH]; intros HF; [reflexivity|].
+      cbn. destruct (h == a).
+      - rewrite e, HF.
+        cbn; rewrite if_true by auto; auto.
+      - destruct (f h); cbn.
+        + rewrite if_false by auto; auto.
+        + apply IH; auto.
+    Qed.
+
+    Theorem filter_false_count_occ: forall f a l,
+        (f a = false) ->
+        count_occ equiv_dec (filter f l) a = 0.
+    Proof.
+      induction l as [|h t IH]; intros HF; [reflexivity|].
+      cbn; destruct (f h) eqn:HFh; cbn.
+      - destruct (h == a).
+        + exfalso; apply diff_false_true.
+          rewrite <- HF, <- HFh, e; reflexivity.
+        + apply IH; auto.
+      - apply IH; auto.
+    Qed.
+
+    Theorem filter_zipOcc : forall f l,
+        zipOcc (filter f l) = filter (fun x => f (fst x)) (zipOcc l).
+    Proof.
+      induction l as [|a l IH]; [reflexivity|]; cbn.
+      destruct (f a) eqn:Hfa.
+      - cbn. rewrite (filter_true_count_occ f a) by eauto.
+        f_equal. apply IH.
+      - apply IH.
+    Qed.
+  End CountOcc.
 End Filter.
 
 Section Rem1.
@@ -376,6 +422,56 @@ Section Rem1.
     - cbn. destruct (equiv_dec a y); destruct (equiv_dec a x); unfold equiv in *; subst; auto.
       apply perm_swap.
     - transitivity (rem1 a l'); auto.
+  Qed.
+
+  Theorem count_occ_rem1_eq : forall l a eq_dec,
+      In a l ->
+      count_occ eq_dec l a = S (count_occ eq_dec (rem1 a l) a).
+  Proof.
+    induction l as [|h t IH]; intros a eq_dec HIn; [inversion HIn|].
+    destruct HIn.
+    - subst. cbn. rewrite !if_true by reflexivity.
+      reflexivity.
+    - cbn. destruct (eq_dec h a).
+      + rewrite if_true by (symmetry; auto).
+        reflexivity.
+      + rewrite if_false by (apply not_eq_sym; auto); cbn.
+        rewrite if_false by auto.
+        apply IH; auto.
+  Qed.
+
+  Theorem count_occ_rem1_neq : forall l a x eq_dec,
+      a <> x ->
+      count_occ eq_dec l a = count_occ eq_dec (rem1 x l) a.
+  Proof.
+    induction l as [|h t IH]; intros a x eq_dec HNeq; [reflexivity|].
+    cbn. destruct (eq_dec h a).
+    - rewrite if_false by (rewrite e; auto).
+      cbn. rewrite if_true by auto.
+      f_equal; apply IH; auto.
+    - destruct (x == h); [reflexivity|].
+      cbn. rewrite if_false by auto.
+      apply IH; auto.
+  Qed.
+
+  Theorem filter_rem1 : forall f l a,
+      filter f (rem1 a l) = rem1 a (filter f l).
+  Proof.
+    intros f; induction l as [|h t IH]; intros a; [reflexivity|].
+    cbn. destruct (equiv_dec a h).
+    - destruct (f h) eqn:FH.
+      + cbn. rewrite if_true by auto. reflexivity.
+      + rewrite rem1_not_in; [reflexivity|].
+        intro c. apply diff_true_false.
+        apply filter_In in c.
+        destruct c as [_ c].
+        rewrite e in c.
+        rewrite <- FH, <- c.
+        reflexivity.
+    - cbn. destruct (f h).
+      + cbn. rewrite if_false by auto.
+        f_equal. apply IH.
+      + apply IH.
   Qed.
 End Rem1.
 
