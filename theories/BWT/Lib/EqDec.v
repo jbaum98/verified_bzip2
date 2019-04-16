@@ -11,6 +11,13 @@ Section Rewrites.
     destruct (a == b); [left|right]; auto.
   Qed.
 
+  Theorem nequiv_dec_spec : forall a b, reflect (a =/= b) (a <>b b).
+  Proof.
+    intros.
+    unfold nequiv_decb.
+    destruct (equiv_dec_spec a b); [right|left]; auto.
+  Qed.
+
   Remark if_equiv_dec_b {B} : forall x y (t e : B),
       (if x == y then t else e) = (if x ==b y then t else e).
   Proof.
@@ -29,7 +36,7 @@ Section Rewrites.
 End Rewrites.
 
 
-Hint Resolve equiv_dec_spec : eqdestruct.
+Hint Resolve equiv_dec_spec nequiv_dec_spec : eqdestruct.
 
 Ltac eqdestruct X :=
   let H := fresh in

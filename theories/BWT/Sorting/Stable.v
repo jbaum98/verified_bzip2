@@ -135,26 +135,24 @@ Add Parametric Relation (A : Type) `(E : EqDec A) : (list A) Stable
       as Stable_rel.
 
 Section Perm.
-  Context {A} `{Eq : EqDec A eq} eqv `{Equiv : EqDec A eqv}.
+  Context {A} `{EqDec A}.
+
+  Variable eq_dec : forall x y : A, { x = y } + { x <> y }.
 
   Implicit Type l : list A.
 
-  Arguments equiv_dec [_] _ {_} {_}.
-  Arguments equiv_decb [_] _ {_} {_}.
-  Arguments Stable [_] _ [_] [_].
-
   Theorem Stable_rem1 : forall l1 l2 a,
-      Stable eqv (a :: l1) l2 -> Stable eqv l1 (rem1 a l2).
+      Stable (a :: l1) l2 -> Stable l1 (rem1 eq_dec a l2).
   Proof.
     induction l1 as [|h1 t1 IH]; intros l2 a HS.
     - cbn in HS. apply Stable_1 in HS. subst.
       cbn. rewrite if_true by reflexivity. reflexivity.
     - intro x.
-      cbn. eqdestruct (equiv_decb eqv x h1).
+      cbn. eqdestruct (x ==b h1).
       + rewrite filter_rem1.
         specialize (HS x). cbn in HS.
-        eqdestruct (equiv_decb eqv x h1).
-        eqdestruct (equiv_decb eqv x a).
+        eqdestruct (x ==b h1).
+        eqdestruct (x ==b a).
         * rewrite <- HS.
           cbn. rewrite if_true by reflexivity.
           reflexivity.
@@ -163,11 +161,11 @@ Section Perm.
           f_equal. rewrite rem1_not_in; [reflexivity|].
           intro c. apply filter_In in c.
           destruct c as [_ c].
-          eqdestruct (equiv_decb eqv x a). inversion c.
-          intro c. rewrite c in H1. contradiction.
+          eqdestruct (x ==b a). inversion c.
+          intro c. rewrite c in H2. contradiction.
       + specialize (HS x).
-        cbn in HS. eqdestruct (equiv_decb eqv x h1).
-        eqdestruct (equiv_decb eqv x a).
+        cbn in HS. eqdestruct (x ==b h1).
+        eqdestruct (x ==b a).
         * rewrite filter_rem1. rewrite <- HS.
           cbn. rewrite if_true by reflexivity.
           reflexivity.
@@ -175,34 +173,37 @@ Section Perm.
           rewrite rem1_not_in; [reflexivity|].
           intro c. apply filter_In in c.
           destruct c as [_ c].
-          eqdestruct (equiv_decb eqv x a). inversion c.
+          eqdestruct (x ==b a). inversion c.
   Qed.
 
   Theorem stable_count_occ : forall l l',
-      Stable eqv l l' ->
-      (forall x, count_occ (equiv_dec eq) l x = count_occ (equiv_dec eq) l' x).
+      Stable l l' ->
+      (forall x, count_occ eq_dec l x = count_occ eq_dec l' x).
   Proof.
     induction l as [|h t IH]; intros l' HS x.
     - apply Stable_nil in HS. subst; reflexivity.
-    - cbn. destruct (equiv_dec eq h x).
+    - cbn. destruct (eq_dec h x).
       + rewrite e in *; clear e.
-        rewrite <- filter_true_count_occ with (f := equiv_decb eqv x) (l := l')
+        rewrite <- filter_true_count_occ with (f := equiv_decb x) (l := l')
           by apply equiv_decb_refl.
         specialize (HS x). rewrite <- HS.
         cbn. rewrite equiv_decb_refl.
         cbn. rewrite if_true by reflexivity.
         rewrite filter_true_count_occ by apply equiv_decb_refl.
         reflexivity.
-      + rewrite (count_occ_rem1_neq l' x h) by auto.
-        apply IH with (l' := rem1 h l').
+      + rewrite count_occ_rem1_neq with (x0 := h) (l := l') by auto.
+        apply IH with (l' := rem1 eq_dec h l').
         apply Stable_rem1. apply HS.
   Qed.
 
-  Corollary Stable_perm : forall l l', Stable eqv l l' -> Permutation l l'.
+  Corollary Stable_perm : forall l l', Stable l l' -> Permutation l l'.
   Proof.
-    intros. apply count_occ_Permutation.
+    intros. apply @count_occ_Permutation with (eq_dec := eq_dec).
     apply stable_count_occ. auto.
   Qed.
+
+  Corollary Stable_length : forall l l', Stable l l' -> length l = length l'.
+  Proof. intros. apply Permutation_length. apply Stable_perm. auto. Qed.
 End Perm.
 
 Section StableInd.
@@ -236,7 +237,9 @@ Add Parametric Relation (A : Type) `(E : EqDec A) : (list A) StableInd
       as stable_ind_rel.
 
 Section StableIndStable.
-  Context {A : Type} eqv `{Equiv : EqDec A eqv}.
+  Context {A : Type} `{EqDec A}.
+
+  Variable eq_dec : forall x y : A, { x = y } + { x <> y }.
 
   Implicit Types l : list A.
 
@@ -249,17 +252,11 @@ Section StableIndStable.
     - eapply Stable_trans; eauto.
   Qed.
 
-  Lemma stable_destr : forall h h' l l',
+  Theorem stable_destr : forall h h' l l',
       Stable (h :: l) (h' :: l') ->
       h =/= h' ->
-      exists l1 l2, l = l1 ++ h' :: l2 /\ (Forall (fun b => negb (h' ==b b) = true) l1).
+      exists l1 l2, l = l1 ++ h' :: l2 /\ (Forall (fun x => h' =/= x) l1).
   Proof.
-    assert (NB : forall y x : A, (fun a : A => (y <>b a) = true) x -> (y ==b x) = false). {
-      intros x y HT.
-      rewrite <- Bool.negb_involutive at 1.
-      unfold nequiv_decb in HT.
-      rewrite HT. auto.
-    }
     intros h h' l l' HS HNeq.
     specialize (HS h'). cbn in HS.
     eqdestruct (h' ==b h).
@@ -268,26 +265,24 @@ Section StableIndStable.
     remember (drop_while (nequiv_decb h') l) as l2.
     assert (HL : l = l1 ++ l2) by (subst; apply take_drop_while_id).
     rewrite HL, filter_app in HS.
-    rewrite filter_empty, app_nil_l in HS.
+    rewrite filter_empty, app_nil_l in HS
+      by (subst l1;
+          apply Forall_forall; eapply Forall_impl; [|apply take_while_all];
+          cbn; unfold nequiv_decb; setoid_rewrite Bool.negb_true_iff; auto).
     destruct l2 as [|a l2]; [inversion HS|].
     exists l1, l2.
-    split; [|subst l1; apply take_while_all].
-    rewrite HL; do 2 f_equal.
-    cbn in HS.
-    rewrite <- (Bool.negb_involutive (h' ==b a)) in HS.
-    replace (negb (h' ==b a)) with (h' <>b a) in HS by reflexivity.
-    erewrite (drop_while_hd (nequiv_decb h')) in HS by (symmetry; eauto).
-    cbn in HS; inversion HS; auto.
-    apply Forall_forall. subst l1.
-    eapply Forall_impl; [apply NB|apply take_while_all].
+    split.
+    - rewrite HL; do 2 f_equal.
+      cbn in HS.
+      rewrite <- (Bool.negb_involutive (h' ==b a)) in HS.
+      replace (negb (h' ==b a)) with (h' <>b a) in HS by reflexivity.
+      erewrite (drop_while_hd (nequiv_decb h')) in HS by (symmetry; eauto).
+      cbn in HS; inversion HS; auto.
+    - subst l1.
+      eapply Forall_impl; [|apply take_while_all].
+      clear. cbn; intros.
+      eqdestruct (h' <>b a); [auto|discriminate].
   Qed.
-
-  Context `(Eq : EqDec A eq).
-
-  Arguments equiv_dec [_] _ [_] [_].
-  Arguments equiv_decb [_] _ [_] [_].
-  Arguments Stable [_] _ [_] [_].
-  Arguments StableInd [_] _ [_].
 
   Remark cons_app_length : forall t h l1 l2 n,
       t = l1 ++ h :: l2 ->
@@ -311,112 +306,122 @@ Section StableIndStable.
     omega.
   Qed.
 
-  Remark Hy : forall h l x y,
-      Forall (fun b : A => negb (equiv_decb eqv h b) = true) l ->
-      eqv y h ->
-      In x l -> (equiv_decb eqv y x) = false.
+  Remark stable_length_zero : forall l l',
+      0 = length l ->
+      0 = length l' ->
+      StableInd l l'.
   Proof.
-    intros h l x y HL HEq.
-    revert x. apply Forall_forall; eapply Forall_impl; [|apply HL].
-    cbn. intros a. rewrite Bool.negb_true_iff.
-    intro HA.
-    eqdestruct (equiv_decb eqv h a); [discriminate|].
-    eqdestruct (equiv_decb eqv y a).
-    exfalso. apply H. transitivity y. symmetry. auto. auto.
-    auto.
+    intros l l' HL HL'.
+    symmetry in HL;  apply length_zero_iff_nil in HL.
+    symmetry in HL'; apply length_zero_iff_nil in HL'.
+    subst; apply stable_ind_nil.
   Qed.
 
-  Theorem perm_stable_stable_perm : forall l l',
-      Stable eqv l l' -> StableInd eqv l l'.
+  Lemma Stable_equiv_hd : forall h h' l l',
+      Stable (h :: l) (h' :: l') ->
+      h === h' -> h = h'.
   Proof.
-    (* We use strong induction on length of lists *)
-    intros l l' HS.
-    remember (length l) as n.
-    assert (Heqn' : n = length l'). {
-      rewrite Heqn; apply Permutation_length.
-      apply (@Stable_perm A equiv1 Eq eqv equiv0 Equiv).
-      apply HS.
+    intros h h' l l' HS HEqv.
+    specialize (HS h); cbn in HS.
+    rewrite equiv_decb_refl in HS.
+    eqdestruct (h ==b h').
+    inversion HS; auto.
+  Qed.
+
+  Lemma Stable_cons_app_to_front : forall l l1 l2 h,
+      l = l1 ++ h :: l2 ->
+      Forall (fun x => h =/= x) l1 ->
+      Stable l (h :: l1 ++ l2).
+  Proof.
+    intros l l1 l2 h HL HL1.
+    subst l; symmetry.
+    apply Stable_cons_app; [reflexivity|].
+    apply Forall_forall; eapply Forall_impl; [|apply HL1].
+    cbn; auto.
+  Qed.
+
+  Lemma stable_remove_hds : forall l l' h h' l1 l2 l1' l2',
+      h =/= h' ->
+      Stable (h :: l) (h' :: l') ->
+      l = l1 ++ h' :: l2 ->
+      l' = l1' ++ h :: l2' ->
+      Forall (fun x => h' =/= x) l1 ->
+      Forall (fun x => h =/= x) l1' ->
+      Stable (l1 ++ l2) (l1' ++ l2').
+  Proof.
+    assert (HF : forall l h y,
+               y === h ->
+               Forall (fun x => h =/= x) l ->
+               forall x, In x l -> (y ==b x) = false). {
+      intros l h y HEqv HL.
+      apply Forall_forall; eapply Forall_impl; [|apply HL].
+      cbn; intros x HNeq.
+      eqdestruct (y ==b x); [|reflexivity].
+      exfalso; apply HNeq.
+      symmetry in HEqv.
+      transitivity y; auto.
     }
-    revert l l' Heqn Heqn' HS.
 
-    induction n as [n IH] using (well_founded_induction lt_wf);
-      intros l l' HL HL' HS.
-    destruct n as [|n].
-    - symmetry in HL;  apply length_zero_iff_nil in HL.
-      symmetry in HL'; apply length_zero_iff_nil in HL'.
-      subst; apply stable_ind_nil.
-    - destruct l as [|h t];    [cbn in HL; discriminate|].
-      destruct l' as [|h' t']; [cbn in HL'; discriminate|].
-      cbn in HL, HL'.
-      injection HL; clear HL;  intro HL.
-      injection HL'; clear HL'; intro HL'.
-      destruct (equiv_dec eqv h h').
-      + assert (h = h'). {
-          specialize (HS h). cbn in HS.
-          rewrite equiv_decb_refl in HS.
-          eqdestruct (equiv_decb eqv h h').
-          inversion HS; auto.
-        }
-        subst h. constructor. apply (IH n); auto.
-        eapply Stable_unskip. apply HS.
-      + assert (HL1L2 : exists l1 l2,
-                   t = l1 ++ h' :: l2 /\
-                   (Forall (fun b => negb (equiv_decb eqv h' b) = true) l1))
-          by (apply stable_destr with (h := h) (l' := t'); auto).
-        destruct HL1L2 as [l1 [l2 [HT HL1]]].
-        assert (Stable eqv (h' :: (l1 ++ l2)) t). {
-          rewrite HT.
-          apply Stable_cons_app.
-          apply Stable_refl.
-          apply Forall_forall.
-          eapply Forall_impl; [|apply HL1].
-          intro a. unfold equiv_decb. destruct (equiv_dec eqv h' a); intuition.
-        }
-        transitivity (h :: h' :: (l1 ++ l2)).
-        apply stable_ind_skip.
-        apply (IH n); [auto..|eapply cons_app_length; eauto|symmetry; auto].
-        transitivity (h' :: h :: (l1 ++ l2)).
-        apply stable_ind_swap; [symmetry; auto].
-        apply stable_ind_skip.
-        assert (HL1L2' : exists l1' l2',
-                   t' = l1' ++ h :: l2' /\
-                   (Forall (fun b => negb (equiv_decb eqv h b) = true) l1'))
-          by (apply stable_destr with (h := h') (l' := t); symmetry; auto).
-        destruct HL1L2' as [l1' [l2' [HT' HL1']]].
-        transitivity (h :: (l1' ++ l2')).
-        apply stable_ind_skip.
-
-        destruct n as [|n'];
-          [rewrite HT in HL; rewrite app_length in HL; cbn in HL; omega|].
-        apply (IH n'); [omega|eapply cons_app_length'; eauto..|].
-        intro y; specialize (HS y).
-        rewrite !filter_app.
-        rewrite HT, HT' in HS.
-        cbn in HS; rewrite !filter_app in HS.
-        eqdestruct (equiv_decb eqv y h); [|eqdestruct (equiv_decb eqv y h')].
-        * eqdestruct (equiv_decb eqv y h').
-          symmetry in H0; exfalso; apply c. transitivity y; auto.
-          rewrite (filter_empty _ l1') in * by (intros; eapply Hy; eauto).
-          cbn [app filter] in HS.
-          eqdestruct (equiv_decb eqv y h); eqdestruct (equiv_decb eqv y h').
-          injection HS; intro HS'.
-          rewrite HS'. reflexivity.
-        * rewrite (filter_empty _ l1) in *
-            by (intros; eapply Hy with (h := h'); eauto).
-          cbn [app filter] in HS.
-          eqdestruct (equiv_decb eqv y h); eqdestruct (equiv_decb eqv y h').
-          injection HS; intro HS'.
-          cbn. rewrite HS'. reflexivity.
-        * cbn in HS.
-          eqdestruct (equiv_decb eqv y h); eqdestruct (equiv_decb eqv y h').
-          auto.
-        * rewrite HT'.
-          apply (IH n); [|eapply cons_app_length|rewrite <- HT'|]; eauto.
-          apply Stable_cons_app. apply Stable_refl.
-          apply Forall_forall; eapply Forall_impl; [|apply HL1'].
-          intros. cbn in H0.
-          eqdestruct (equiv_decb eqv h a); cbn in H0. inversion H0.
-          auto.
+    intros l l' h h' l1 l2 l1' l2' HNeqv HS HL HL' HL1 HL1'.
+    intro x; specialize (HS x).
+    rewrite HL, HL' in HS.
+    cbn in HS; rewrite !filter_app in *.
+    eqdestruct (x ==b h); eqdestruct (x ==b h').
+    - exfalso. symmetry in H0. apply HNeqv.
+      transitivity x; auto.
+    - rewrite (filter_empty _ l1') in * by (eapply HF; eauto).
+      cbn in HS.
+      eqdestruct (x ==b h); eqdestruct (x ==b h').
+      injection HS; intro HS'.
+      rewrite HS'. reflexivity.
+    - rewrite (filter_empty _ l1) in * by (eapply HF; eauto).
+      cbn in HS.
+      eqdestruct (x ==b h); eqdestruct (x ==b h').
+      injection HS; intro HS'.
+      rewrite HS'. reflexivity.
+    - cbn in HS.
+      eqdestruct (x ==b h); eqdestruct (x ==b h').
+      apply HS.
   Qed.
 
+  Lemma stable_ind_iff_ind : forall n l l',
+      n = length l -> n = length l' ->
+      Stable l l' -> StableInd l l'.
+  Proof.
+    induction n as [[|n] IH] using (well_founded_induction lt_wf);
+      [intros; apply stable_length_zero; auto|].
+    intros [|h t] [|h' t'] HL HL' HS; cbn in HL, HL';
+      [discriminate..|].
+    injection HL; injection HL'; clear HL HL'; intros HL' HL.
+    destruct (h == h') as [HEqv | HNeqv].
+    - assert (h = h') by (eapply Stable_equiv_hd; eauto).
+      subst h. constructor. apply (IH n); auto.
+      eapply Stable_unskip. apply HS.
+    - destruct (stable_destr h h' t t') as [l1 [l2 [HT HL1]]]; auto.
+      destruct (stable_destr h' h t' t) as [l1' [l2' [HT' HL1']]];
+        [symmetry in HS|symmetry in HNeqv|]; auto.
+      transitivity (h :: h' :: (l1 ++ l2)); [apply stable_ind_skip|].
+      apply (IH n); [..|eapply cons_app_length|apply Stable_cons_app_to_front]; eauto.
+      transitivity (h' :: h :: (l1 ++ l2)).
+      apply stable_ind_swap; [symmetry; auto].
+      apply stable_ind_skip.
+      transitivity (h :: (l1' ++ l2')).
+      apply stable_ind_skip.
+      destruct n as [|n'];
+        [rewrite HT in HL; rewrite app_length in HL; cbn in HL; omega|].
+      apply (IH n');
+        [omega|eapply cons_app_length'..|eapply stable_remove_hds]; eauto.
+      symmetry.
+      apply (IH n); [..|eapply cons_app_length|apply Stable_cons_app_to_front]; eauto.
+  Qed.
+
+  Corollary stable_ind_iff : forall l l',
+      Stable l l' <-> StableInd l l'.
+  Proof.
+    split.
+    - intro HS.
+      apply stable_ind_iff_ind with (n := length l); [reflexivity| |auto].
+      apply Permutation_length. apply Stable_perm; auto.
+    - apply stable_perm_stable.
+  Qed.
 End StableIndStable.

@@ -4,6 +4,8 @@ Require Import Coq.Classes.EquivDec.
 Require Import Coq.Sorting.Permutation.
 Import ListNotations.
 
+Require Import BWT.Lib.Sumbool.
+
 Section ZipWith.
   Context {A B C : Type}.
 
@@ -105,18 +107,19 @@ Section ZipIx.
 End ZipIx.
 
 Section ZipOcc.
-  Context {A : Type} `{E: EqDec A eq}.
+  Context {A : Type}.
+  Variable eq_dec : forall x y : A, { x = y } + { x <> y }.
 
   Fixpoint zipOcc (l : list A) : list (A * nat) :=
     match l with
     | [] => []
-    | a :: l => (a, count_occ E l a) :: zipOcc l
+    | a :: l => (a, count_occ eq_dec l a) :: zipOcc l
     end.
 
   Fixpoint occs (l : list A) :=
     match l with
     | [] => []
-    | a :: l => count_occ E l a :: occs l
+    | a :: l => count_occ eq_dec l a :: occs l
     end.
 
   Remark occs_nil_iff : forall l,
@@ -156,36 +159,36 @@ Section ZipOcc.
   Qed.
 
   Lemma count_occ_remove_eq : forall a L R,
-      count_occ E (L ++ a :: R) a = S (count_occ E (L ++ R) a).
+      count_occ eq_dec (L ++ a :: R) a = S (count_occ eq_dec (L ++ R) a).
   Proof.
     induction L; intros.
-    - cbn. destruct (E a a); [reflexivity|pose proof eq_refl a; contradiction].
-    - cbn. destruct (E a0 a); rewrite IHL; reflexivity.
+    - cbn. destruct (eq_dec a a); [reflexivity|pose proof eq_refl a; contradiction].
+    - cbn. destruct (eq_dec a0 a); rewrite IHL; reflexivity.
   Qed.
 
   Lemma count_occ_remove_neq : forall a L R x,
       a <> x ->
-      count_occ E (L ++ a :: R) x = count_occ E (L ++ R) x.
+      count_occ eq_dec (L ++ a :: R) x = count_occ eq_dec (L ++ R) x.
   Proof.
     induction L; intros.
-    - cbn. destruct (E a x); [contradiction|easy].
-    - cbn. destruct (E a0 x); rewrite IHL; auto.
+    - cbn. destruct (eq_dec a x); [contradiction|easy].
+    - cbn. destruct (eq_dec a0 x); rewrite IHL; auto.
   Qed.
 
   Theorem count_occ_Permutation : forall l l',
-      Permutation l l' <-> forall x, count_occ E l x = count_occ E l' x.
+      Permutation l l' <-> forall x, count_occ eq_dec l x = count_occ eq_dec l' x.
   Proof.
     intros l l'. split.
     - intros P; induction P.
       + reflexivity.
       + intros y.
-        destruct (E x y);
+        destruct (eq_dec x y);
           [rewrite !count_occ_cons_eq|rewrite !count_occ_cons_neq]; auto.
       + intros z.
-        destruct (E y z); destruct (E x z);
+        destruct (eq_dec y z); destruct (eq_dec x z);
           repeat match goal with
-                 | H : ?a === ?b |- _ => rewrite (count_occ_cons_eq E _ H)
-                 | H : ?a =/= ?b |- _ => rewrite (count_occ_cons_neq E _ H)
+                 | H : ?a = ?b |- _ => rewrite (count_occ_cons_eq eq_dec _ H)
+                 | H : ?a <> ?b |- _ => rewrite (count_occ_cons_neq eq_dec _ H)
                  end; easy.
       + intros. eapply eq_trans; eauto.
     - revert l'. induction l; intros l' HCO.
@@ -193,16 +196,16 @@ Section ZipOcc.
         symmetry. eapply count_occ_inv_nil.
         cbn in HCO. symmetry in HCO. apply HCO.
       + assert (In a l'). {
-          eapply count_occ_In.
+          eapply (count_occ_In eq_dec).
           specialize (HCO a).
           cbn in HCO.
-          destruct (E a a); [|pose proof (eq_refl a); contradiction].
+          rewrite if_true in HCO by reflexivity.
           rewrite <- HCO. omega.
         }
         edestruct (in_split a l') as [L [R HLR]]; auto.
         eapply Permutation_trans; [|rewrite HLR; apply Permutation_middle].
         constructor. apply IHl.
-        intros. destruct (E a x).
+        intros. destruct (eq_dec a x).
         * apply Nat.succ_inj.
           rewrite <- count_occ_remove_eq.
           rewrite <- count_occ_cons_eq with (x := a); [|auto].
@@ -292,10 +295,10 @@ Section ZipOcc.
     - intros P. induction P.
       + constructor.
       + cbn.
-        replace (count_occ E l' x) with (count_occ E l x)
+        replace (count_occ eq_dec l' x) with (count_occ eq_dec l x)
           by (apply count_occ_Permutation; auto).
         constructor. auto.
-      + cbn. destruct (E y x); destruct (E x y); try intuition.
+      + cbn. destruct (eq_dec y x); destruct (eq_dec x y); try intuition.
         * unfold equiv in *; subst. constructor. constructor. apply Permutation_refl.
         * apply perm_swap.
       + eauto using Permutation_trans.

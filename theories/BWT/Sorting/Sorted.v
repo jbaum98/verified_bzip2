@@ -49,13 +49,13 @@ Section Sorted.
   Qed.
 End Sorted.
 
-Theorem Sorted_rem1 {A} {P : Preord A} {E : EqDec A eq} : forall l x,
-    Sorted l -> Sorted (rem1 x l).
+Theorem Sorted_rem1 {A} {P : Preord A} {eq_dec : forall x y, {x=y}+{x<>y}} : forall l x,
+    Sorted l -> Sorted (rem1 eq_dec x l).
 Proof.
   intros l x HS; revert x.
   induction HS; intros x; [constructor|].
   cbn.
-  destruct (equiv_dec x hd); [auto|].
+  destruct (eq_dec x hd); [auto|].
   apply Sorted_cons; intros.
   apply H. apply in_rem1_in in H0. auto.
   apply IHHS.

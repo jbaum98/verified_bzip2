@@ -277,14 +277,14 @@ Section Filter.
 
   Section CountOcc.
     (* Decidable leibniz equality *)
-    Context `{E : EqDec A eq}.
+    Variable eq_dec : forall x y : A, { x = y } + { x <> y }.
 
     Theorem filter_true_count_occ : forall f a l,
       (f a = true) ->
-      count_occ equiv_dec (filter f l) a = count_occ equiv_dec l a.
+      count_occ eq_dec (filter f l) a = count_occ eq_dec l a.
     Proof.
       induction l as [|h t IH]; intros HF; [reflexivity|].
-      cbn. destruct (h == a).
+      cbn. destruct (eq_dec h a).
       - rewrite e, HF.
         cbn; rewrite if_true by auto; auto.
       - destruct (f h); cbn.
@@ -294,11 +294,11 @@ Section Filter.
 
     Theorem filter_false_count_occ: forall f a l,
         (f a = false) ->
-        count_occ equiv_dec (filter f l) a = 0.
+        count_occ eq_dec (filter f l) a = 0.
     Proof.
       induction l as [|h t IH]; intros HF; [reflexivity|].
       cbn; destruct (f h) eqn:HFh; cbn.
-      - destruct (h == a).
+      - destruct (eq_dec h a).
         + exfalso; apply diff_false_true.
           rewrite <- HF, <- HFh, e; reflexivity.
         + apply IH; auto.
@@ -306,7 +306,8 @@ Section Filter.
     Qed.
 
     Theorem filter_zipOcc : forall f l,
-        zipOcc (filter f l) = filter (fun x => f (fst x)) (zipOcc l).
+        zipOcc eq_dec (filter f l) =
+        filter (fun x => f (fst x)) (zipOcc eq_dec l).
     Proof.
       induction l as [|a l IH]; [reflexivity|]; cbn.
       destruct (f a) eqn:Hfa.
@@ -318,12 +319,14 @@ Section Filter.
 End Filter.
 
 Section Rem1.
-  Context {A : Type} `{EqDec A eq}.
+  Context {A : Type}.
+
+  Variable eq_dec : forall x y : A, { x = y } + { x <> y }.
 
   Fixpoint rem1 (x : A) (l : list A) : list A
     := match l with
        | [] => []
-       | h :: t => if x == h then t else h :: rem1 x t
+       | h :: t => if eq_dec x h then t else h :: rem1 x t
        end.
 
   Theorem rem1_in_split : forall x a,
@@ -332,12 +335,11 @@ Section Rem1.
   Proof.
     induction x as [|hx tx]; intros a HIn; [inversion HIn|].
     cbn [rem1].
-    destruct (equiv_dec a hx).
+    destruct (eq_dec a hx).
     + subst.
       exists [], tx. split; cbn; auto.
-      rewrite e. auto.
     + destruct (IHtx a) as [l1 [l2 [Htx Hrem]]].
-      destruct HIn; [rewrite H0 in c; exfalso; apply c; reflexivity|auto].
+      destruct HIn; [rewrite H in n; exfalso; apply n; reflexivity|auto].
       exists (hx :: l1), l2.
       split; [rewrite Htx; reflexivity|].
       cbn. f_equal. auto.
@@ -361,31 +363,31 @@ Section Rem1.
   Proof.
     intros a b x. revert a b.
     induction x as [|h t]; intros a b HIn; [inversion HIn|].
-    cbn in *. destruct (equiv_dec b h).
+    cbn in *. destruct (eq_dec b h).
     - right; auto.
     - destruct HIn.
       + left; auto.
-      + right; eapply IHt. apply H0.
+      + right; eapply IHt. apply H.
   Qed.
 
   Theorem in_in_rem1_neq : forall a b x,
        In a x -> In a (rem1 b x) \/ a = b.
   Proof.
     intros a b x.
-    destruct (equiv_dec a b); [auto|].
+    destruct (eq_dec a b); [auto|].
     induction x as [|h t]; intros HIn; [inversion HIn|left].
-    cbn. destruct (equiv_dec b h).
+    cbn. destruct (eq_dec b h).
     - destruct HIn; [|auto].
-      exfalso. apply c. symmetry. transitivity h; auto.
+      exfalso. apply n. symmetry. transitivity h; auto.
     - destruct HIn; [left; auto|].
-      destruct IHt; [|right|exfalso; apply c]; auto.
+      destruct IHt; [|right|exfalso; apply n]; auto.
   Qed.
 
   Theorem rem1_not_in : forall l x,
       ~ (In x l) -> rem1 x l = l.
   Proof.
     induction l; intros x HNIn; [reflexivity|].
-    cbn. destruct (equiv_dec x a).
+    cbn. destruct (eq_dec x a).
     exfalso. apply HNIn. left. symmetry. apply e.
     f_equal. apply IHl. intro c2.
     apply HNIn. right. apply c2.
@@ -396,10 +398,10 @@ Section Rem1.
   Proof.
     induction l1; intros l2 x HIn; [inversion HIn|].
     destruct HIn.
-    - subst. cbn. destruct (equiv_dec x x); [|exfalso; apply c; reflexivity].
+    - subst. cbn. destruct (eq_dec x x); [|exfalso; apply n; reflexivity].
       reflexivity.
     - cbn.
-      destruct (equiv_dec x a); [reflexivity|].
+      destruct (eq_dec x a); [reflexivity|].
       cbn. f_equal. apply IHl1. auto.
   Qed.
 
@@ -407,7 +409,7 @@ Section Rem1.
       ~ In x l1 -> rem1 x (l1 ++ l2) = l1 ++ rem1 x l2.
   Proof.
     induction l1; intros l2 x HIn; [reflexivity|].
-    cbn. destruct (equiv_dec x a).
+    cbn. destruct (eq_dec x a).
     exfalso. apply HIn. left. symmetry. apply e.
     f_equal. apply IHl1. intro c2. apply HIn. right. auto.
   Qed.
@@ -418,17 +420,17 @@ Section Rem1.
     intros x y a HP. revert a.
     induction HP; intros a.
     - apply perm_nil.
-    - cbn. destruct (equiv_dec a x); auto.
-    - cbn. destruct (equiv_dec a y); destruct (equiv_dec a x); unfold equiv in *; subst; auto.
+    - cbn. destruct (eq_dec a x); auto.
+    - cbn. destruct (eq_dec a y); destruct (eq_dec a x); subst; auto.
       apply perm_swap.
     - transitivity (rem1 a l'); auto.
   Qed.
 
-  Theorem count_occ_rem1_eq : forall l a eq_dec,
+  Theorem count_occ_rem1_eq : forall l a,
       In a l ->
       count_occ eq_dec l a = S (count_occ eq_dec (rem1 a l) a).
   Proof.
-    induction l as [|h t IH]; intros a eq_dec HIn; [inversion HIn|].
+    induction l as [|h t IH]; intros a HIn; [inversion HIn|].
     destruct HIn.
     - subst. cbn. rewrite !if_true by reflexivity.
       reflexivity.
@@ -440,16 +442,16 @@ Section Rem1.
         apply IH; auto.
   Qed.
 
-  Theorem count_occ_rem1_neq : forall l a x eq_dec,
+  Theorem count_occ_rem1_neq : forall l a x,
       a <> x ->
       count_occ eq_dec l a = count_occ eq_dec (rem1 x l) a.
   Proof.
-    induction l as [|h t IH]; intros a x eq_dec HNeq; [reflexivity|].
+    induction l as [|h t IH]; intros a x HNeq; [reflexivity|].
     cbn. destruct (eq_dec h a).
     - rewrite if_false by (rewrite e; auto).
       cbn. rewrite if_true by auto.
       f_equal; apply IH; auto.
-    - destruct (x == h); [reflexivity|].
+    - destruct (eq_dec x h); [reflexivity|].
       cbn. rewrite if_false by auto.
       apply IH; auto.
   Qed.
@@ -458,7 +460,7 @@ Section Rem1.
       filter f (rem1 a l) = rem1 a (filter f l).
   Proof.
     intros f; induction l as [|h t IH]; intros a; [reflexivity|].
-    cbn. destruct (equiv_dec a h).
+    cbn. destruct (eq_dec a h).
     - destruct (f h) eqn:FH.
       + cbn. rewrite if_true by auto. reflexivity.
       + rewrite rem1_not_in; [reflexivity|].
