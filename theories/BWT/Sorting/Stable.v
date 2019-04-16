@@ -134,7 +134,7 @@ Add Parametric Relation (A : Type) `(E : EqDec A) : (list A) Stable
     transitivity proved by Stable_trans
       as Stable_rel.
 
-Section Length.
+Section Permutation.
   Context {A : Type} `{E : EqDec A}.
 
   Implicit Type l : list A.
@@ -238,6 +238,9 @@ Section Length.
       apply HS.
   Qed.
 
+  Ltac cons_app_lengths :=
+    subst; cbn in *; try rewrite !app_length in *; cbn in *; omega.
+
   Lemma Stable_length : forall l l',
       Stable l l' -> length l = length l'.
   Proof.
@@ -255,7 +258,7 @@ Section Length.
       + assert (h = h') by (eapply Stable_equiv_hd; eauto).
         subst.
         rewrite (IH t t');
-          [reflexivity|cbn in HL; omega|].
+          [reflexivity|cons_app_lengths|].
         eapply Stable_unskip; eauto.
       + destruct (stable_destr h h' t t') as [l1 [l2 [HT HL1]]]; auto.
         destruct (stable_destr h' h t' t) as [l1' [l2' [HT' HL1']]];
@@ -263,17 +266,51 @@ Section Length.
         transitivity (length (h' :: l1 ++ l2)).
         apply IH; [cbn in HL; omega|apply Stable_cons_app_to_front; easy].
         rewrite HT'.
-        transitivity (length (h :: l1' ++ l2')).
+        transitivity (length (h :: l1' ++ l2')); [|cons_app_lengths].
         transitivity (length (h' :: l1' ++ l2')); [|reflexivity].
-        apply IH. rewrite HT in HL. cbn in HL. rewrite app_length in HL.
-        cbn in HL. cbn; rewrite app_length. omega.
-        apply Stable_skip. eapply stable_remove_hds; eauto.
-        cbn. rewrite !app_length. cbn. omega.
+        apply IH;
+          [cons_app_lengths|apply Stable_skip; eapply stable_remove_hds; eauto].
   Qed.
-End Length.
 
+  Lemma Stable_perm_ind : forall n l l',
+      n = length l ->
+      n = length l' ->
+      Stable l l' -> Permutation l l'.
+  Proof.
+    induction n as [[|n] IH] using (well_founded_induction lt_wf).
+    - intros l l' HL HL' HS.
+      repeat match goal with
+      | H : 0 = length ?l |- _ => symmetry in H; apply length_zero_iff_nil in H
+      end.
+      subst; apply perm_nil.
+    - intros [|h t] [|h' t'] HL HL' HS; cbn in HL, HL'; [discriminate..|].
+      destruct (h == h') as [HEqv|HNeqv].
+      + assert (h = h') by (eapply Stable_equiv_hd; easy).
+        subst; apply perm_skip.
+        apply (IH n); [omega..|eapply Stable_unskip; easy].
+      + destruct (stable_destr h h' t t') as [l1 [l2 [HT HL1]]]; auto.
+        destruct (stable_destr h' h t' t) as [l1' [l2' [HT' HL1']]];
+          [symmetry in HS|symmetry in HNeqv|]; auto.
+        rewrite HT, HT'.
+        transitivity (h :: h' :: l1 ++ l2);
+          [apply perm_skip; symmetry; apply Permutation_middle|].
+        etransitivity; [apply perm_swap|apply perm_skip].
+        transitivity (h :: l1' ++ l2');
+          [apply perm_skip|apply Permutation_middle].
+      destruct n as [|n'];
+        [rewrite HT in HL; rewrite app_length in HL; cbn in HL; omega|].
+        apply (IH n'); [omega|cons_app_lengths..|eapply stable_remove_hds; eauto].
+  Qed.
 
-Section Perm.
+  Corollary Stable_perm : forall l l', Stable l l' -> Permutation l l'.
+  Proof.
+    intros.
+    apply Stable_perm_ind with (n := length l);
+      [|apply Stable_length|]; easy.
+  Qed.
+End Permutation.
+
+Section CountOcc.
   Context {A} `{EqDec A}.
 
   Variable eq_dec : forall x y : A, { x = y } + { x <> y }.
@@ -334,13 +371,7 @@ Section Perm.
         apply IH with (l' := rem1 eq_dec h l').
         apply Stable_rem1. apply HS.
   Qed.
-
-  Corollary Stable_perm : forall l l', Stable l l' -> Permutation l l'.
-  Proof.
-    intros. apply @count_occ_Permutation with (eq_dec := eq_dec).
-    apply stable_count_occ. auto.
-  Qed.
-End Perm.
+End CountOcc.
 
 Section StableInd.
   Context {A : Type} `{EqDec A}.
@@ -386,28 +417,6 @@ Section StableIndStable.
     - eapply Stable_trans; eauto.
   Qed.
 
-  Remark cons_app_length : forall t h l1 l2 n,
-      t = l1 ++ h :: l2 ->
-      n = length t ->
-      n = length (h :: l1 ++ l2).
-  Proof.
-    intros t h l1 l2 n HT HL.
-    rewrite HT in HL.
-    cbn. rewrite app_length in *. cbn in HL.
-    omega.
-  Qed.
-
-  Remark cons_app_length' : forall t h l1 l2 n,
-      t = l1 ++ h :: l2 ->
-      S n = length t ->
-      n = length (l1 ++ l2).
-  Proof.
-    intros t h l1 l2 n HT HL.
-    rewrite HT in HL.
-    rewrite app_length in *. cbn in HL.
-    omega.
-  Qed.
-
   Remark stable_length_zero : forall l l',
       0 = length l ->
       0 = length l' ->
@@ -418,6 +427,9 @@ Section StableIndStable.
     symmetry in HL'; apply length_zero_iff_nil in HL'.
     subst; apply stable_ind_nil.
   Qed.
+
+  Ltac cons_app_lengths :=
+    subst; cbn in *; try rewrite !app_length in *; cbn in *; omega.
 
   Lemma stable_ind_iff_ind : forall n l l',
       n = length l -> n = length l' ->
@@ -436,18 +448,16 @@ Section StableIndStable.
       destruct (stable_destr h' h t' t) as [l1' [l2' [HT' HL1']]];
         [symmetry in HS|symmetry in HNeqv|]; auto.
       transitivity (h :: h' :: (l1 ++ l2)); [apply stable_ind_skip|].
-      apply (IH n); [..|eapply cons_app_length|apply Stable_cons_app_to_front]; eauto.
+      apply (IH n); [..|cons_app_lengths|apply Stable_cons_app_to_front]; eauto.
       transitivity (h' :: h :: (l1 ++ l2)).
       apply stable_ind_swap; [symmetry; auto].
       apply stable_ind_skip.
       transitivity (h :: (l1' ++ l2')).
       apply stable_ind_skip.
-      destruct n as [|n'];
-        [rewrite HT in HL; rewrite app_length in HL; cbn in HL; omega|].
-      apply (IH n');
-        [omega|eapply cons_app_length'..|eapply stable_remove_hds]; eauto.
+      destruct n as [|n']; [cons_app_lengths|].
+      apply (IH n'); [cons_app_lengths..|eapply stable_remove_hds]; eauto.
       symmetry.
-      apply (IH n); [..|eapply cons_app_length|apply Stable_cons_app_to_front]; eauto.
+      apply (IH n); [..|cons_app_lengths|apply Stable_cons_app_to_front]; eauto.
   Qed.
 
   Corollary stable_ind_iff : forall l l',
