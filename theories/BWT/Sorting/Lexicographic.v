@@ -10,6 +10,7 @@ Require Import Coq.Sorting.Permutation.
 Require Import BWT.Sorting.Ord.
 Require Import BWT.Sorting.InsertionSort.
 Require Import BWT.Lib.List.
+Require Import BWT.Sorting.Sorted.
 
 Import Coq.Lists.List.ListNotations.
 
@@ -185,11 +186,11 @@ Section LexSort.
 
   Global Arguments lexsort _ : simpl never.
 
+  Theorem lexsort_sorted : forall l, Sorted (lexsort l).
+  Proof. unfold lexsort. apply sort_sorted. Qed.
+
   Theorem lexsort_perm : forall l, Permutation l (lexsort l).
-  Proof.
-    intros.
-    unfold lexsort. apply sort_perm.
-  Defined.
+  Proof. unfold lexsort. apply sort_perm. Defined.
 
   Theorem lexsort_length : forall l,
       length (lexsort l) = length l.

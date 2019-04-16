@@ -471,8 +471,40 @@ Section StableIndStable.
   Qed.
 End StableIndStable.
 
+Section Unique.
+  Context {A} `{Preord A}.
+
+  Theorem stable_sort_unique : forall l l',
+      Sorted l -> Sorted l' -> Stable l l' ->
+      l = l'.
+  Proof.
+    induction l as [|hd tl]; intros l' SL SL' St.
+    - apply Stable_nil in St. subst; auto.
+    - destruct l' as [|hd' tl'];
+      [exfalso; eapply Permutation_nil_cons; symmetry;
+        apply (@Stable_perm _ _ _ Ord_EqDec); easy|].
+      apply Sorted_cons_inv in SL; destruct SL as [HIn SL].
+      apply Sorted_cons_inv in SL'; destruct SL' as [HIn' SL'].
+      assert (hd === hd'). {
+        apply (@Stable_perm _ _ _ Ord_EqDec) in St; rename St into P.
+        pose proof (Permutation_sym P) as P'.
+        destruct (Permutation_cons_in hd hd' tl tl' P);  [subst; reflexivity|].
+        destruct (Permutation_cons_in hd' hd tl' tl P'); [subst; reflexivity|].
+        split; auto.
+      }
+      pose proof (St hd) as F. cbn in F.
+      rewrite equiv_decb_refl in F.
+      eqdestruct (hd ==b hd').
+      inversion F; subst; clear F.
+      f_equal.
+      apply IHtl; [..|eapply Stable_unskip]; easy.
+  Qed.
+End Unique.
+
 Section Leibniz.
-  Context {A : Type} `{EqDec A eq}.
+  Context {A : Type} `{EqDec A}.
+
+  Hypothesis eqv_eq : forall x y, x === y -> x = y.
 
   Theorem all_perm_stable : forall l l',
       Permutation l l' -> Stable l l'.
@@ -481,7 +513,7 @@ Section Leibniz.
     - reflexivity.
     - apply Stable_skip. easy.
     - destruct (equiv_dec x y).
-      + unfold Equivalence.equiv in e. subst.
+      + apply eqv_eq in e. subst.
         do 2 apply Stable_skip. reflexivity.
       + apply Stable_swap; easy.
     - transitivity l'; easy.

@@ -21,6 +21,7 @@ Require Import BWT.Sorting.Ord.
 Require Import BWT.Sorting.Lexicographic.
 Require Import BWT.Sorting.Key.
 Require Import BWT.Sorting.RadixSort.
+Require Import BWT.Sorting.Stable.
 
 Import Coq.Lists.List.ListNotations.
 
@@ -94,12 +95,29 @@ Section Transform.
 End Transform.
 
 Section Radixsort.
-  Context {A : Type} `{Ord A}.
+  Context {A : Type} `{O : Ord A}.
 
   Theorem lexsort_rots_radixsort : forall l n,
       Forall (fun x => length x = n) l ->
       radixsort l n = lexsort l.
-  Admitted.
+  Proof.
+    intros l n HL.
+    apply stable_sort_unique;
+      [apply radixsort_sorted; easy|apply lexsort_sorted|].
+    apply all_perm_stable; [apply eqv_eq|].
+    transitivity l;
+      [symmetry; apply radixsort_perm; easy|apply lexsort_perm].
+  Qed.
+
+  Lemma hdsort_rrot_length : forall l,
+      Forall (fun x : list A => length x = length l) (hdsort (rrot (rots l))).
+  Proof.
+    intros.
+    eapply Permutation_forall.
+    transitivity (rrot (rots l));
+      [apply rrot_perm|apply InsertionSort.sort_perm].
+    apply rots_row_length.
+  Qed.
 
   Theorem lexsort_rots_hdsort : forall l,
       hdsort (map rrot (lexsort (rots l))) = lexsort (rots l).
@@ -119,7 +137,17 @@ Section Radixsort.
     end.
     unfold compose.
     rewrite map_rrot_rots.
-  Admitted.
+    apply stable_sort_unique;
+      [apply radixsort_sorted..|]; [apply hdsort_rrot_length|apply rots_row_length|].
+    apply all_perm_stable; [apply eqv_eq|].
+    transitivity (rots l).
+    + transitivity (hdsort (rrot (rots l))).
+      symmetry. apply radixsort_perm; apply hdsort_rrot_length.
+      transitivity (rrot (rots l)).
+      symmetry; apply InsertionSort.sort_perm.
+      symmetry; apply rrot_perm.
+    + apply radixsort_perm; apply rots_row_length.
+  Qed.
 End Radixsort.
 
 Section Recreate.
