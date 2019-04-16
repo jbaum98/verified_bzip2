@@ -85,8 +85,10 @@ Section Transform.
   Proof.
     intros.
     unfold bwn.
+    apply eqv_eq.
     apply findIndex_correct.
-    apply orig_in_sorted_rots. auto.
+    eapply Exists_impl; [apply orig_in_sorted_rots; auto|].
+    intros; subst; reflexivity.
   Qed.
 End Transform.
 

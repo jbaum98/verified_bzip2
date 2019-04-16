@@ -315,11 +315,11 @@ Section Insert.
       left; auto.
     - assert (PrefixSorted (S n) (insert (keyOrd (firstn 1)) a colmat')). {
         assert (In b colmat). eapply Permutation_in; [symmetry; apply HP|left; auto].
-        apply rem1_in_split in H.
+        apply (rem1_in_split ord_eq_dec) in H.
         destruct H as [l1 [l2 [Hcolmat Hcolmatrem]]].
         apply IHcolmat' with (colmat := l1 ++ l2).
         apply Sorted_cons_inv in HS'; destruct HS'. auto.
-        symmetry in HP. apply Permutation_rem1_cons in HP.
+        symmetry in HP. apply (Permutation_rem1_cons ord_eq_dec) in HP.
         symmetry. rewrite <- Hcolmatrem. auto.
         rewrite <- Hcolmatrem.
         apply Sorted_cons_inv in HS; destruct HS as [HLe HS].

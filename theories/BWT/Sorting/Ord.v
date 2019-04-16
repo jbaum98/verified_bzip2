@@ -182,4 +182,7 @@ Section Ord.
     - left. apply eqv_eq. auto.
     - right. intro c. apply n. rewrite c. reflexivity.
   Defined.
+
+  Definition ord_eq_dec {A} `{Ord A} : forall x y : A, { x = y } + { x <> y }
+    := equiv_dec.
 End Ord.

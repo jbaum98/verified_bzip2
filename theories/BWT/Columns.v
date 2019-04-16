@@ -9,6 +9,7 @@ Require Import BWT.Sorting.Key.
 Require Import BWT.Sorting.Lexicographic.
 Require Import BWT.Sorting.Ord.
 Require Import BWT.Lib.Repeat.
+Require Import BWT.Lib.ZipWith.
 
 Import Coq.Lists.List.ListNotations.
 

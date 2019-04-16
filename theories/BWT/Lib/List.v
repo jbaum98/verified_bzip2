@@ -494,3 +494,13 @@ Proof.
     + intro c; inversion c.
     + exact h.
 Qed.
+
+Theorem Exists_impl {A} : forall (P Q : A -> Prop) l,
+    Exists P l -> (forall x, P x -> Q x) -> Exists Q l.
+Proof.
+  intros P Q l HE HI.
+  apply Exists_exists in HE.
+  destruct HE as [x [HIn HP]].
+  apply Exists_exists. exists x.
+  split; auto.
+Qed.

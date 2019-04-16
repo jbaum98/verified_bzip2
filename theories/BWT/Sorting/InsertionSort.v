@@ -68,24 +68,22 @@ Section InsertionSort.
     - simpl. apply insert_sorted. apply IH.
   Qed.
 
-  Lemma insert_stable : forall a l, @StablePerm A eqv _ (a :: l) (insert a l).
+  Lemma insert_stable : forall a l, @Stable A eqv _ _ (a :: l) (insert a l).
   Proof.
-    induction l as [|b l]; [apply stable_perm_skip; apply stable_perm_nil|].
+    induction l as [|b l]; [apply Stable_skip; reflexivity|].
     cbn. destruct (le_dec a b).
-    - apply stable_perm_refl.
-    - apply stable_perm_trans with (l' := b :: a :: l).
-      apply stable_perm_swap.
-      unfold eqv, Equivalence.equiv.
+    - reflexivity.
+    - transitivity (b :: a :: l).
+      apply Stable_swap.
       intros []. contradiction.
-      apply stable_perm_skip.
-      auto.
+      apply Stable_skip. easy.
   Qed.
 
-  Theorem sort_stable : forall l, @StablePerm A eqv _ l (sort l).
+  Theorem sort_stable : forall l, @Stable A eqv _ _ l (sort l).
   Proof.
-    induction l; [apply stable_perm_nil|].
-    cbn. apply stable_perm_trans with (a :: sort l).
-    apply stable_perm_skip. apply IHl.
+    induction l; [reflexivity|].
+    cbn. transitivity (a :: sort l).
+    apply Stable_skip. apply IHl.
     apply insert_stable.
   Qed.
 End InsertionSort.
