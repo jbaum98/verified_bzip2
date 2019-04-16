@@ -470,3 +470,20 @@ Section StableIndStable.
     - apply stable_perm_stable.
   Qed.
 End StableIndStable.
+
+Section Leibniz.
+  Context {A : Type} `{EqDec A eq}.
+
+  Theorem all_perm_stable : forall l l',
+      Permutation l l' -> Stable l l'.
+  Proof.
+    intros l l' HP; induction HP.
+    - reflexivity.
+    - apply Stable_skip. easy.
+    - destruct (equiv_dec x y).
+      + unfold Equivalence.equiv in e. subst.
+        do 2 apply Stable_skip. reflexivity.
+      + apply Stable_swap; easy.
+    - transitivity l'; easy.
+  Qed.
+End Leibniz.
