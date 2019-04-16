@@ -20,6 +20,7 @@ Require Import BWT.Rotation.Rots.
 Require Import BWT.Sorting.Ord.
 Require Import BWT.Sorting.Lexicographic.
 Require Import BWT.Sorting.Key.
+Require Import BWT.Sorting.RadixSort.
 
 Import Coq.Lists.List.ListNotations.
 
@@ -91,6 +92,35 @@ Section Transform.
     intros; subst; reflexivity.
   Qed.
 End Transform.
+
+Section Radixsort.
+  Context {A : Type} `{Ord A}.
+
+  Theorem lexsort_rots_radixsort : forall l n,
+      Forall (fun x => length x = n) l ->
+      radixsort l n = lexsort l.
+  Admitted.
+
+  Theorem lexsort_rots_hdsort : forall l,
+      hdsort (map rrot (lexsort (rots l))) = lexsort (rots l).
+  Proof.
+    intros.
+    rewrite <- (lexsort_rots_radixsort (rots l) (length l))
+      by apply rots_row_length.
+    unfold radixsort at 1.
+    match goal with
+    | |- hdsort (map rrot ?x) = ?R =>
+      replace (hdsort (map rrot x)) with ((hdsort ∘ map rrot) x) by reflexivity
+    end.
+    rewrite rep_l, <- rep_r.
+    match goal with
+    | |- rep (hdsort ∘ map rrot) ?n ?l = ?R =>
+      replace (rep (hdsort ∘ map rrot) n l) with (radixsort l n) by reflexivity
+    end.
+    unfold compose.
+    rewrite map_rrot_rots.
+  Admitted.
+End Radixsort.
 
 Section Recreate.
   Context {A : Type} `{Ord A}.
