@@ -175,6 +175,9 @@ Section Ord.
   Class Ord (A : Type) `{Preord A} :=
     { eqv_eq : forall x y, eqv x y -> x = y }.
 
+  Lemma neqv_neq `{Ord} : forall x y, x =/= y -> x <> y.
+  Proof. intros x y N c; apply N; subst; easy. Qed.
+
   Global Instance Ord_EquivDef {A} `{Ord A} : EqDec A eq.
   Proof.
     intros x y.
