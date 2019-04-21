@@ -5,6 +5,7 @@ Require Import Coq.Sorting.Permutation.
 Import ListNotations.
 
 Require Import BWT.Lib.Sumbool.
+Require Import BWT.Lib.List.
 
 Section ZipWith.
   Context {A B C : Type}.
@@ -42,36 +43,6 @@ End ZipWith.
 Lemma zipWith_combine {A B} : forall (a : list A) (b : list B),
     zipWith pair a b = combine a b.
 Proof. reflexivity. Qed.
-
-
-Section Pairs.
-  Context {A B : Type}.
-
-  Lemma not_in_pair : forall (l : list (A * B)) a b,
-       ~ In a (fst (split l)) \/ ~ In b (snd (split l)) -> ~ In (a, b) l.
-  Proof.
-    intros l a b.
-    remember (a, b) as p;
-    replace a with (fst p) by (subst; easy); replace b with (snd p) by (subst; easy).
-    intros []; intro c; [apply in_split_l in c|apply in_split_r in c]; contradiction.
-  Qed.
-
-  Theorem NoDup_pair : forall l : list (A * B),
-      NoDup (fst (split l)) \/ NoDup (snd (split l)) -> NoDup l.
-  Proof.
-    induction l; cbn; [intuition constructor|].
-    destruct a; cbn. destruct (split l) eqn:HS. cbn.
-    intros []; inversion H; subst; clear H;
-      (constructor; [apply not_in_pair; rewrite HS; auto|apply IHl; intuition]).
-  Qed.
-
-  Lemma map_split : forall l : list (A * B),
-      split l = (map fst l, map snd l).
-  Proof.
-    induction l as [|[a b] l]; [reflexivity|]; cbn; destruct (split l).
-    inversion IHl; subst. easy.
-  Qed.
-End Pairs.
 
 Section ZipIx.
   Context {A : Type}.
@@ -156,6 +127,17 @@ Section ZipOcc.
     rewrite zipOcc_correct, <- zipWith_combine.
     apply zipWith_length_eq.
     auto using occs_length.
+  Qed.
+
+  Theorem filter_zipOcc : forall f l,
+      zipOcc (filter f l) =
+      filter (fun x => f (fst x)) (zipOcc l).
+  Proof.
+    induction l as [|a l IH]; [reflexivity|]; cbn.
+    destruct (f a) eqn:Hfa.
+    - cbn. rewrite (filter_true_count_occ eq_dec f a) by eauto.
+      f_equal. apply IH.
+    - apply IH.
   Qed.
 
   Lemma count_occ_remove_eq : forall a L R,

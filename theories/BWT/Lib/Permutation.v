@@ -1,6 +1,7 @@
 Require Import Coq.Lists.List.
 Require Import Coq.Sorting.Permutation.
 
+Require Import BWT.Lib.List.
 Import Coq.Lists.List.ListNotations.
 
 Section Props.
@@ -117,4 +118,43 @@ Proof.
     specialize (IHHP1 a Heqx).
     specialize (IHHP2 a (eq_trans IHHP1 Heqx )).
     subst; auto.
+Qed.
+
+Theorem Permutation_zip_eq {A B} : forall l1 l2 : list (A * B),
+    Permutation l1 l2 ->
+    NoDup (map fst l1) ->
+    map fst l1 = map fst l2 ->
+    map snd l1 = map snd l2.
+Proof.
+  induction l1 as [|[xl xr] l1 IH]; intros [|[yl yr] l2];
+    intros P ND H1;
+    [..|symmetry in P|];
+    [reflexivity|apply Permutation_nil_cons in P; contradiction..|].
+  cbn in *.
+  destruct (Permutation_in (xl, xr) P) as [HE | HP]; [left; easy|..].
+  - inversion HE; subst; f_equal.
+    apply IH.
+    eapply Permutation_cons_inv; apply P.
+    eapply NoDup_cons_iff; apply ND.
+    inversion H1; easy.
+  - exfalso.
+    apply NoDup_cons_iff with (a := xl) (l := map fst l1); [easy|].
+    inversion H1; subst; clear H1.
+    rewrite H2.
+    apply in_map_iff. exists (yl, xr). easy.
+Qed.
+
+Theorem Permutation_combine_eq {A B} : forall (x : list A) (y1 y2 : list B),
+    Permutation (combine x y1) (combine x y2) ->
+    length x = length y1 -> length x = length y2 ->
+    NoDup x ->
+    y1 = y2.
+Proof.
+  intros x y1 y2 HP HL1 HL2 ND.
+  pose proof (combine_split x y1 HL1) as S1.
+  pose proof (combine_split x y2 HL2) as S2.
+  rewrite map_split in S1, S2.
+  inversion S1 as [[X1 Y1]]; rewrite X1 in *; clear S1.
+  inversion S2 as [[X2 Y2]]; rewrite Y2, X2 in *; rewrite <- Y2; clear S2.
+  apply Permutation_zip_eq; rewrite ?X1, ?X2; easy.
 Qed.

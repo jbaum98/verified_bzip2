@@ -6,8 +6,6 @@ Require Import Coq.Sorting.Permutation.
 Require Import Coq.Bool.Bool.
 Require Import Coq.Classes.EquivDec.
 
-Require Import BWT.Lib.Permutation.
-Require Import BWT.Lib.ZipWith.
 Require Import BWT.Lib.Sumbool.
 Require Import BWT.Lib.EqDec.
 
@@ -304,17 +302,6 @@ Section Filter.
         + apply IH; auto.
       - apply IH; auto.
     Qed.
-
-    Theorem filter_zipOcc : forall f l,
-        zipOcc eq_dec (filter f l) =
-        filter (fun x => f (fst x)) (zipOcc eq_dec l).
-    Proof.
-      induction l as [|a l IH]; [reflexivity|]; cbn.
-      destruct (f a) eqn:Hfa.
-      - cbn. rewrite (filter_true_count_occ f a) by eauto.
-        f_equal. apply IH.
-      - apply IH.
-    Qed.
   End CountOcc.
 End Filter.
 
@@ -476,6 +463,76 @@ Section Rem1.
       + apply IH.
   Qed.
 End Rem1.
+
+Section Nth.
+  Context {A : Type}.
+
+  Lemma nth_eq : forall l l' : list A,
+      length l = length l' ->
+      (forall i d, i < length l -> nth i l d = nth i l' d) <-> l = l'.
+  Proof.
+    induction l; intros l' L.
+    - split; intros.
+      + symmetry. apply length_zero_iff_nil. auto.
+      + subst. reflexivity.
+    - split; intros.
+      + destruct l'. simpl in L. omega.
+      f_equal.
+        * apply (H 0 a). simpl; omega.
+        * apply IHl; auto.
+          intros i d.
+          specialize (H (S i) d).
+          simpl in H. intro; apply H; omega.
+      + rewrite H. reflexivity.
+  Qed.
+
+  Lemma nth_first : forall (l : list A) d,
+      nth 0 l d = hd d l.
+  Proof.
+    destruct l; reflexivity.
+  Qed.
+
+  Lemma nth_last : forall (l : list A) d,
+      nth (Nat.pred (length l)) l d = last l d.
+  Proof.
+    induction l using list_ind2; intros; try reflexivity.
+    replace (last (a :: b :: l)) with (last (b :: l)) by reflexivity.
+    replace (length (a :: b :: l)) with (S (length (b :: l))) by reflexivity.
+    unfold Nat.pred.
+    replace (nth _ _ _)
+    with (nth (Nat.pred (length (b ::l))) (b :: l) d) by reflexivity.
+    apply IHl.
+  Qed.
+End Nth.
+
+Section Pairs.
+  Context {A B : Type}.
+
+  Lemma not_in_pair : forall (l : list (A * B)) a b,
+       ~ In a (fst (split l)) \/ ~ In b (snd (split l)) -> ~ In (a, b) l.
+  Proof.
+    intros l a b.
+    remember (a, b) as p;
+    replace a with (fst p) by (subst; easy); replace b with (snd p) by (subst; easy).
+    intros []; intro c; [apply in_split_l in c|apply in_split_r in c]; contradiction.
+  Qed.
+
+  Theorem NoDup_pair : forall l : list (A * B),
+      NoDup (fst (split l)) \/ NoDup (snd (split l)) -> NoDup l.
+  Proof.
+    induction l; cbn; [intuition constructor|].
+    destruct a; cbn. destruct (split l) eqn:HS. cbn.
+    intros []; inversion H; subst; clear H;
+      (constructor; [apply not_in_pair; rewrite HS; auto|apply IHl; intuition]).
+  Qed.
+
+  Lemma map_split : forall l : list (A * B),
+      split l = (map fst l, map snd l).
+  Proof.
+    induction l as [|[a b] l]; [reflexivity|]; cbn; destruct (split l).
+    inversion IHl; subst. easy.
+  Qed.
+End Pairs.
 
 Theorem in_eq_iff {A : Type} : forall l l' : list A,
     l = l' -> (forall x, In x l <-> In x l').

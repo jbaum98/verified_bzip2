@@ -177,43 +177,6 @@ End Rot.
 Section Nth.
   Context {A : Type}.
 
-  Lemma nth_eq : forall l l' : list A,
-      length l = length l' ->
-      (forall i d, i < length l -> nth i l d = nth i l' d) <-> l = l'.
-  Proof.
-    induction l; intros l' L.
-    - split; intros.
-      + symmetry. apply length_zero_iff_nil. auto.
-      + subst. reflexivity.
-    - split; intros.
-      + destruct l'. simpl in L. omega.
-      f_equal.
-        * apply (H 0 a). simpl; omega.
-        * apply IHl; auto.
-          intros i d.
-          specialize (H (S i) d).
-          simpl in H. intro; apply H; omega.
-      + rewrite H. reflexivity.
-  Qed.
-
-  Lemma nth_first : forall (l : list A) d,
-      nth 0 l d = hd d l.
-  Proof.
-    destruct l; reflexivity.
-  Qed.
-
-  Lemma nth_last : forall (l : list A) d,
-      nth (Nat.pred (length l)) l d = last l d.
-  Proof.
-    induction l using list_ind2; intros; try reflexivity.
-    replace (last (a :: b :: l)) with (last (b :: l)) by reflexivity.
-    replace (length (a :: b :: l)) with (S (length (b :: l))) by reflexivity.
-    unfold Nat.pred.
-    replace (nth _ _ _)
-    with (nth (Nat.pred (length (b ::l))) (b :: l) d) by reflexivity.
-    apply IHl.
-  Qed.
-
   Lemma nth_lrot : forall (l : list A) i d,
       i < length l -> nth i (lrot l) d = nth ((i + 1) mod (length l)) l d.
   Proof.
