@@ -561,3 +561,7 @@ Proof.
   apply Exists_exists. exists x.
   split; auto.
 Qed.
+
+Theorem in_cons_neq {A} : forall (x y : A) l,
+    x <> y -> In x (y :: l) -> In x l.
+Proof. intros x y l NEQ []; intuition. Qed.
