@@ -18,7 +18,7 @@ stdenv.mkDerivation {
       owner = "PrincetonUniversity";
       repo = "VST";
       rev = lib.commitIdFromGitRepo ../.git/modules/VST;
-      sha256 = "0yj2izsfmizmrgxwhr6nxqhfyb9asdpl0prss7djna38qjqpmyj0";
+      sha256 = "0993lrnjlfhwn7lfyb0p1f87z5k8hkrxj4a12dkpmk3fgwnldk8v";
     })
   ];
 
