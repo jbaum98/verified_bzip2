@@ -6,6 +6,7 @@ Require Import Coq.omega.Omega.
 
 Require Import BWT.Lib.Iterate.
 Require Import BWT.Lib.Repeat.
+Require Import BWT.Lib.List.
 Require Import BWT.Rotation.Rotation.
 
 Import ListNotations.
