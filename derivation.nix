@@ -5,6 +5,7 @@ let
 in
 {
   midpoint_presentation = callPackage ./midpoint_presentation {};
+  final_presentation = callPackage ./final_presentation {};
   draft_paper = callPackage ./draft_paper {};
   written_project_proposal = callPackage ./written_project_proposal {};
   coq = callPackage ./theories {};

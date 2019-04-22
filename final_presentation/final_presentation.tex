@@ -1,0 +1,295 @@
+\documentclass{beamer}
+\usetheme{metropolis}
+\usepackage{pgfplots}
+\usepackage{ulem}
+\usepackage{appendixnumberbeamer}
+\usepackage{proof}
+
+\usepackage{pgfpages}
+%\setbeameroption{show notes on second screen=bottom}
+
+\makeatletter
+\def\beamer@framenotesbegin{% at beginning of slide
+     \usebeamercolor[fg]{normal text}
+      \gdef\beamer@noteitems{}%
+      \gdef\beamer@notes{}%
+}
+\makeatother
+
+\title{Towards a Verified Bzip2}
+\subtitle{A Functional Specification for Burrows-Wheeler}
+\date{\today}
+\author{Jake Waksbaum '20\\Advisor: Prof. Andrew Appel}
+\institute{Princeton University}
+
+\setmonofont{Iosevka}
+
+\metroset{block=fill}
+
+\pgfplotsset{compat=1.16}
+\pgfplotsset{
+  barplot/.style={
+    %ybar stacked,
+    %symbolic x coords={bzip2, 7zip, winRAR, unzip},
+    % xtick=data,
+    cycle list name=mbarplot cycle,
+    axis y line*=none,
+    legend style={
+      draw=none,
+      fill=none,
+      cells={anchor=west},
+      anchor={north west},
+      % at={(0.02,0.98)},
+    },
+    xmajorgrids=false,
+    ymajorgrids=true,
+    x tick label style={
+      font=\footnotesize
+    },
+    y tick label style={
+      font=\footnotesize
+    },
+    legend style={
+      font=\footnotesize
+    },
+    major grid style={
+      dotted,
+    },
+    axis x line*=bottom,
+  }
+}
+
+\begin{document}
+  \maketitle
+
+  \begin{frame}{Overview}
+    \tableofcontents
+  \end{frame}
+
+  \section{Background: The Burrows-Wheeler Transform}
+
+  \begin{frame}{The Burrows-Wheeler Transform}
+    \textit{A Block-sorting Lossless Data Compression Algorithm} (1994)
+    \begin{itemize}
+    \item<+-> A transformation of type \texttt{[a] -> ([a], Nat)}
+    \item<+-> Makes it easier to compress
+    \item<+-> \textbf{Reversible}
+    \end{itemize}
+  \end{frame}
+
+  \begin{frame}{The Transform}
+    Input text: \texttt{abracadabra!}
+    \begin{columns}[c] % the "c" option specifies center vertical alignment
+      \column{.5\textwidth}
+      \begin{enumerate}
+      \item<2-> Form rotation matrix
+      \item<3-> Sort rotation matrix
+      \item<4-> Take the last column of the sorted rotation matrix\ldots
+        \only<5->{ and the index where the original string ends up}
+      \end{enumerate}
+
+      \column{.5\textwidth}
+      \only<2>{%
+        \begin{tabular}{rc}
+          0  & abracadabra! \\
+          1  & bracadabra!a \\
+          2  & racadabra!ab \\
+          3  & acadabra!abr \\
+          4  & cadabra!abra \\
+          5  & adabra!abrac \\
+          6  & dabra!abraca \\
+          7  & abra!abracad \\
+          8  & bra!abracada \\
+          9  & ra!abracadab \\
+          10 & a!abracadabr \\
+          11 & !abracadabra
+        \end{tabular}
+      }%
+      \only<3->{%
+        \begin{tabular}{rc}
+          0  & !abracadabr\alert<4->{a} \\
+          1  & a!abracadab\alert<4->{r} \\
+          2  & abra!abraca\alert<4->{d} \\
+          \textbf<5->{3} & \textbf<5->{abracadabra\alert<4->{!}} \\
+          4  & acadabra!ab\alert<4->{r} \\
+          5  & adabra!abra\alert<4->{c} \\
+          6  & bra!abracad\alert<4->{a} \\
+          7  & bracadabra!\alert<4->{a} \\
+          8  & cadabra!abr\alert<4->{a} \\
+          9  & dabra!abrac\alert<4->{a} \\
+          10 & ra!abracada\alert<4->{b} \\
+          11 & racadabra!a\alert<4->{b}
+        \end{tabular}
+      }%
+    \end{columns}
+  \end{frame}
+
+  \begin{frame}{Things that are not clear}
+    \begin{itemize}
+    \item<+-> Why we would want to do this
+    \item<+-> How we undo this
+    \end{itemize}
+  \end{frame}
+
+  \section{Contributions}
+  \begin{frame}{}
+    \begin{enumerate}
+    \item<+-> Implemented the BWT and the reverse transform in
+      \alert<4->{Coq}, and produced a \alert<4->{machine checked}
+      proof of correctness
+      \begin{equation*}
+        \forall~l: list~A, unbwt~(bwt~l) = l
+      \end{equation*}
+    \item<+-> Explored different definitions of \textbf{sortedness},
+      \textbf{permutation}, and \textbf{stability} and proved
+      equivalence between them.
+    \item<+-> Implemented and produced a \alert<4->{machine checked} proof
+      of correctness for radix sort.
+    \end{enumerate}
+  \end{frame}
+
+  \foreach \X in {1,...,10} {%
+    \begin{frame}{Coq}
+      \centering
+      \includegraphics[width=\textwidth]{img/coq-example-\X.png}
+    \end{frame}%
+  }
+
+  \section{Proving Radixsort Correct}
+
+  \begin{frame}{Radixsort}{}
+    \begin{center}
+      \begin{tt}
+        \only<1-2>{%
+          \begin{tabular}{c}
+            d a \alert<2>{b} \\
+            a d \alert<2>{d} \\
+            c a \alert<2>{b} \\
+            f a \alert<2>{d} \\
+            f e \alert<2>{e} \\
+            b a \alert<2>{d} \\
+            d a \alert<2>{d} \\
+            b e \alert<2>{e} \\
+            f e \alert<2>{d} \\
+            b e \alert<2>{d} \\
+            e b \alert<2>{b} \\
+            a c \alert<2>{e}
+          \end{tabular}
+        }%
+        \only<3-4>{%
+          \begin{tabular}{c}
+            d \alert<4>{a} \alert<3>{b} \\
+            c \alert<4>{a} \alert<3>{b} \\
+            e \alert<4>{b} \alert<3>{b} \\
+            a \alert<4>{d} \alert<3>{d} \\
+            f \alert<4>{a} \alert<3>{d} \\
+            b \alert<4>{a} \alert<3>{d} \\
+            d \alert<4>{a} \alert<3>{d} \\
+            f \alert<4>{e} \alert<3>{d} \\
+            b \alert<4>{e} \alert<3>{d} \\
+            f \alert<4>{e} \alert<3>{e} \\
+            b \alert<4>{e} \alert<3>{e} \\
+            a \alert<4>{c} \alert<3>{e}
+          \end{tabular}
+        }%
+        \only<5-6>{%
+          \begin{tabular}{c}
+            \alert<6>{d} \alert<5>{a} b \\
+            \alert<6>{c} \alert<5>{a} b \\
+            \alert<6>{f} \alert<5>{a} d \\
+            \alert<6>{b} \alert<5>{a} d \\
+            \alert<6>{d} \alert<5>{a} d \\
+            \alert<6>{e} \alert<5>{b} b \\
+            \alert<6>{a} \alert<5>{c} e \\
+            \alert<6>{a} \alert<5>{d} d \\
+            \alert<6>{f} \alert<5>{e} d \\
+            \alert<6>{b} \alert<5>{e} d \\
+            \alert<6>{f} \alert<5>{e} e \\
+            \alert<6>{b} \alert<5>{e} e
+          \end{tabular}
+        }%
+        \only<7-8>{%
+          \begin{tabular}{c}
+            \alert<7>{a} c e \\
+            \alert<7>{a} d d \\
+            \alert<7>{b} a d \\
+            \alert<7>{b} e d \\
+            \alert<7>{b} e e \\
+            \alert<7>{c} a b \\
+            \alert<7>{d} a b \\
+            \alert<7>{d} a d \\
+            \alert<7>{e} b b \\
+            \alert<7>{f} a d \\
+            \alert<7>{f} e d \\
+            \alert<7>{f} e e
+          \end{tabular}
+        }%
+      \end{tt}
+    \end{center}
+  \end{frame}
+
+  \begin{frame}{Radixsort -- Questions}
+    \begin{enumerate}
+    \item<+-> What does it mean for radixsort to be \textit{correct}?
+      \onslide<+->{%
+        \begin{equation*}
+          Sort~f \iff \forall~l, \alert<5>{Sorted}~(f~l) \land \alert<5>{Permutation}~(f~l)~l
+        \end{equation*}
+      }%
+    \item<+-> Radixsort relies on its inner sort being \textit{stable}
+      \onslide<+->{%
+        \begin{equation*}
+          StableSort~f \iff \forall~l, \alert<5>{Sorted}~(f~l) \land
+                              \alert<5>{StablePermutation}~(f~l)~l
+        \end{equation*}
+      }%
+    \end{enumerate}
+    \onslide<+->{We want to define these properties}
+  \end{frame}
+
+  \begin{frame}{Definitions Matter -- $Sorted$}
+    \only<+>{%
+      \begin{block}{Mathy Definition}
+        \begin{equation*}
+          SortedIx~l \iff (\forall~i~j, i < j \to l_i < l_j)
+        \end{equation*}
+      \end{block}
+      \bigskip
+      \begin{block}{Inductive Definition}
+        \begin{equation*}
+          \infer[SortedNil]{Sorted~[]}{}
+        \end{equation*}
+
+        \begin{equation*}
+          \infer[SortedCons]{Sorted~(a :: l)}{%
+            \forall~x \in l, a < x & Sorted~l
+          }
+        \end{equation*}
+      \end{block}
+    }%
+    \only<+>{%
+      \begin{block}{Inductive Definition II}
+        \begin{equation*}
+          \infer[LocalSortedNil]{LocalSorted~[]}{}
+        \end{equation*}
+
+        \begin{equation*}
+          \infer[LocalSortedSingle]{\forall~a, LocalSorted~[a]}{}
+        \end{equation*}
+
+        \begin{equation*}
+          \infer[LocalSortedCons]{Sorted~(a :: b :: l)}{%
+            a < b & LocalSorted~(l :: b)
+          }
+        \end{equation*}
+      \end{block}
+    }%
+    \only<+>{%
+      $Sorted~l \iff SortedIx~l \iff LocalSorted~l$
+      \begin{itemize}
+      \item We can choose most convenient definition for a proof
+      \item Gives us confidence in our definitions
+      \end{itemize}
+    }%
+  \end{frame}
+\end{document}
