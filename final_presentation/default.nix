@@ -22,6 +22,6 @@ let
 in compileTex {
   srcDir = ./.;
   texFile = "final_presentation.tex";
-  otherFiles = [ ./img ];
+  otherFiles = [ "img.*" ];
   inherit tex fonts;
 }
