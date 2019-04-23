@@ -5,6 +5,8 @@
 \usepackage{appendixnumberbeamer}
 \usepackage{proof}
 
+\newcommand\doubleplus{\ensuremath{\mathbin{+\mkern-3mu+}}}
+
 \usepackage{pgfpages}
 %\setbeameroption{show notes on second screen=bottom}
 
@@ -18,7 +20,7 @@
 
 \title{Towards a Verified Bzip2}
 \subtitle{A Functional Specification for Burrows-Wheeler}
-\date{\today}
+\date{April 23, 2019}
 \author{Jake Waksbaum '20\\Advisor: Prof. Andrew Appel}
 \institute{Princeton University}
 
@@ -71,7 +73,7 @@
   \begin{frame}{The Burrows-Wheeler Transform}
     \textit{A Block-sorting Lossless Data Compression Algorithm} (1994)
     \begin{itemize}
-    \item<+-> A transformation of type \texttt{[a] -> ([a], Nat)}
+    \item<+-> A transformation of type $list~A \to (list~A, \mathbb{N})$
     \item<+-> Makes it easier to compress
     \item<+-> \textbf{Reversible}
     \end{itemize}
@@ -140,11 +142,11 @@
       \begin{equation*}
         \forall~l: list~A, unbwt~(bwt~l) = l
       \end{equation*}
+    \item<+-> Implemented and produced a \alert<4->{machine checked} proof
+      of correctness for radix sort.
     \item<+-> Explored different definitions of \textbf{sortedness},
       \textbf{permutation}, and \textbf{stability} and proved
       equivalence between them.
-    \item<+-> Implemented and produced a \alert<4->{machine checked} proof
-      of correctness for radix sort.
     \end{enumerate}
   \end{frame}
 
@@ -231,16 +233,19 @@
   \begin{frame}{Radixsort -- Questions}
     \begin{enumerate}
     \item<+-> What does it mean for radixsort to be \textit{correct}?
+
       \onslide<+->{%
+        A function $f$ is a sorting function if for all lists $l$
         \begin{equation*}
-          Sort~f \iff \forall~l, \alert<5>{Sorted}~(f~l) \land \alert<5>{Permutation}~(f~l)~l
+          \alert<5>{Sorted}~(f~l) \land \alert<5>{Permutation}~(f~l)~l
         \end{equation*}
       }%
     \item<+-> Radixsort relies on its inner sort being \textit{stable}
+
       \onslide<+->{%
+        A function $f$ is a \textit{stable} sorting function if for all lists $l$
         \begin{equation*}
-          StableSort~f \iff \forall~l, \alert<5>{Sorted}~(f~l) \land
-                              \alert<5>{StablePermutation}~(f~l)~l
+          \alert<5>{Sorted}~(f~l) \land \alert<5>{StablePermutation}~(f~l)~l
         \end{equation*}
       }%
     \end{enumerate}
@@ -249,37 +254,38 @@
 
   \begin{frame}{Definitions Matter -- $Sorted$}
     \only<+>{%
-      \begin{block}{Mathy Definition}
+      \begin{block}{Index Definition: $SortedIx$}
         \begin{equation*}
-          SortedIx~l \iff (\forall~i~j, i < j \to l_i < l_j)
+          i < j \to l_i < l_j
         \end{equation*}
       \end{block}
       \bigskip
-      \begin{block}{Inductive Definition}
+      \begin{block}{Inductive Definition: $Sorted$}
         \begin{equation*}
           \infer[SortedNil]{Sorted~[]}{}
         \end{equation*}
 
         \begin{equation*}
           \infer[SortedCons]{Sorted~(a :: l)}{%
-            \forall~x \in l, a < x & Sorted~l
+            (\forall~x \in l,~a < x) & Sorted~l
           }
         \end{equation*}
       \end{block}
     }%
     \only<+>{%
-      \begin{block}{Inductive Definition II}
+      \bigskip
+      \begin{block}{Inductive Definition II: $LocalSorted$}
         \begin{equation*}
           \infer[LocalSortedNil]{LocalSorted~[]}{}
         \end{equation*}
 
         \begin{equation*}
-          \infer[LocalSortedSingle]{\forall~a, LocalSorted~[a]}{}
+          \infer[LocalSortedSingle]{LocalSorted~[a]}{}
         \end{equation*}
 
         \begin{equation*}
-          \infer[LocalSortedCons]{Sorted~(a :: b :: l)}{%
-            a < b & LocalSorted~(l :: b)
+          \infer[LocalSortedCons]{LocalSorted~(a :: b :: l)}{%
+            a < b & LocalSorted~(b :: l)
           }
         \end{equation*}
       \end{block}
@@ -291,5 +297,142 @@
       \item Gives us confidence in our definitions
       \end{itemize}
     }%
+  \end{frame}
+
+  \begin{frame}{$Permutation$}
+    \only<+>{%
+      \begin{block}{Index Definition: $PermutationIx$}%
+        \setlength{\abovedisplayskip}{\abovedisplayshortskip}
+        \setlength{\belowdisplayskip}{\belowdisplayshortskip}
+        \begin{equation*}
+          \exists~p : list~\mathbb{N}, perm~(length~l)~p \land apply~p~l = l'
+        \end{equation*}
+        where $perm~n~p$ means that for all $i$
+        \begin{equation*}
+          i < n \iff i \in p
+        \end{equation*}
+      \end{block}
+      \bigskip
+      \begin{block}{Counting Definition: $PermutationCount$}
+        \begin{equation*}
+          \forall~x, count~x~l = count~x~l'
+        \end{equation*}
+      \end{block}
+    }
+    \only<+>{%
+      \setlength{\abovedisplayskip}{\abovedisplayshortskip}
+      \setlength{\belowdisplayskip}{\belowdisplayshortskip}
+      \begin{block}{Inductive Definition: $Permutation$}
+        \begin{equation*}
+          \infer[PermutationNil]{Permutation~[]~[]}{}
+        \end{equation*}
+
+        \begin{equation*}
+          \infer[PermutationSkip]{Permutation~(a :: l)~(a :: l')}{%
+            Permutation~l~l'
+          }%
+        \end{equation*}
+
+        \begin{equation*}
+          \infer[PermutationSwap]{Permutation~(x :: y :: l)~(y :: x :: l)}{}
+        \end{equation*}
+
+        \begin{equation*}
+          \infer[PermutationTrans]{Permutation~l~l''}{%
+            Permutation~l~l' & Permutation~l'~l''
+          }%
+        \end{equation*}
+      \end{block}
+    }
+  \end{frame}
+
+  \begin{frame}{$StablePermutation$}
+    \only<1-2>{%
+      \begin{block}{Index Definition: $StablePermImage$ and $StablePermPreimage$}
+        \setlength{\abovedisplayskip}{\abovedisplayshortskip}
+        \setlength{\belowdisplayskip}{\belowdisplayshortskip}
+        \begin{equation*}%
+          \exists~p : list~\mathbb{N}, stable~l~p
+          \land perm~(length~l)~p \land apply~p~l = l'
+        \end{equation*}
+        where $stable~l~p$ means that for all $i < j$
+        \begin{equation*}
+           l_i \equiv l_j \to image~p~i < image~p~j
+        \end{equation*}
+        or
+        \begin{equation*}
+          (apply~p~l)_i \equiv (apply~p~l)_j \to preimage~p~i < preimage~p~j
+        \end{equation*}
+      \end{block}
+    }
+    \only<3-4>{%
+      \begin{block}{Inductive Definition: $StablePerm$}
+        \setlength{\abovedisplayskip}{\abovedisplayshortskip}
+        \setlength{\belowdisplayskip}{\belowdisplayshortskip}
+        \begin{equation*}
+          \infer[StablePermNil]{StablePerm~[]~[]}{}
+        \end{equation*}
+
+        \begin{equation*}
+          \infer[StablePermSkip]{StablePerm~(a :: l)~(a :: l')}{%
+            StablePerm~l~l'
+          }%
+        \end{equation*}
+
+        \begin{equation*}
+          \infer[StablePermSwap]{%
+            \alert<4->{x \not\equiv y \to} StablePerm~(x :: y :: l)~(y :: x :: l)
+          }{}
+        \end{equation*}
+
+        \begin{equation*}
+          \infer[StablePermTrans]{StablePerm~l~l''}{%
+            StablePerm~l~l' & StablePerm~l'~l''
+          }%
+        \end{equation*}
+      \end{block}
+    }
+    \only<5->{
+      \begin{block}{Filter Definition: $StableFilter$}
+        \setlength{\abovedisplayskip}{\abovedisplayshortskip}
+        \setlength{\belowdisplayskip}{\belowdisplayshortskip}
+        \begin{equation*}
+          \forall x,~filter~(\lambda y. x \equiv y)~l = filter~(\lambda y. x \equiv y)~l'
+        \end{equation*}
+      \end{block}
+    }
+  \end{frame}
+
+  \begin{frame}{$StableFilter$ lemmas}
+    \setlength{\abovedisplayskip}{\abovedisplayshortskip}
+    \setlength{\belowdisplayskip}{\belowdisplayshortskip}
+    \begin{block}{Destructuring Lemma}
+      \begin{gather*}
+        StableFilter~(a :: l)~(b :: l') \to \\
+        \exists~l_1~l_2,~l = l_1 \doubleplus b :: l_2 \land (\forall x \in l_1, x \not\equiv b)
+      \end{gather*}
+    \end{block}
+    \begin{block}{Move-to-front Lemma}
+      \begin{gather*}
+        (\forall x \in l, x \not\equiv b) \to \\
+        StableFilter~(l_1 \doubleplus b :: l2)~(b :: l_1 \doubleplus l_2)
+      \end{gather*}
+    \end{block}
+  \end{frame}
+
+  \begin{frame}{Stable Sort Lemmas}
+    \setlength{\abovedisplayskip}{\abovedisplayshortskip}
+    \setlength{\belowdisplayskip}{\belowdisplayshortskip}
+    \begin{block}{Stable Sort Unique}
+      \begin{gather*}
+        Sorted~l \to Sorted~l' \to StablePerm~l~l' \to l = l'
+      \end{gather*}
+    \end{block}
+
+    \begin{block}{Leibniz Equality Stable}
+      \begin{gather*}
+        (\forall~x~y, x \equiv y \to x = y) \to Permutation~l~l' \to StablePerm~l~l'
+      \end{gather*}
+    \end{block}
   \end{frame}
 \end{document}
