@@ -1,4 +1,4 @@
-{ compileTex, texlive }:
+{ compileTex, texlive, iosevka-bin }:
 let
   tex = texlive.combine ({
     inherit (texlive)
@@ -11,11 +11,16 @@ let
       etoolbox logreq xstring
       # thmtools
       thmtools epsf
+      listings
+      parskip
+      cleveref
+      mathtools
       ;
     });
 in compileTex {
   srcDir = ./.;
   texFile = "draft_paper.tex";
   otherFiles = [ "draft_paper.bib" ];
+  fonts = [ iosevka-bin ];
   inherit tex;
 }

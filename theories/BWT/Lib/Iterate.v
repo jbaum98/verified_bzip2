@@ -8,6 +8,9 @@ Import ListNotations.
 Section Iterate.
   Context {A : Type}.
 
+  (* Apply a function f to an initial input z, n times.
+     iter f n z = [z; f z; f (f z); ... f^n z]
+   *)
   Fixpoint iter (f : A -> A) (n : nat) (z : A) : list A :=
     match n with
     | O   => []

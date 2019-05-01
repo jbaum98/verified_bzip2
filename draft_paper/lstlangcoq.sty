@@ -1,0 +1,33 @@
+%%
+%% Coq definition (c) 2001 Guillaume Dufay
+%%                           <Guillaume.Dufay@sophia.inria.fr>
+%% with some modifications by J. Charles (2005)
+%% and hacks by Andrew Appel (2011)
+%% and modifications by Jake Waksbaum (2019)
+%%
+\lstdefinelanguage{Coq}{%
+  morekeywords={Context,Variable,Inductive,CoInductive,Fixpoint,CoFixpoint,%
+      Definition,Lemma,Theorem,Axiom,Local,Save,Grammar,Syntax,Intro,%
+      Program,Next,Obligation,Notation,Infix,Global,Coercion,%
+      Trivial,Qed,Intros,Symmetry,Simpl,Rewrite,Apply,Elim,Assumption,%
+      Left,Cut,Case,Auto,Unfold,Exact,Right,Hypothesis,Pattern,Destruct,%
+      Constructor,Defined,Fix,Record,Proof,Induction,Hints,Exists,let,in,%
+      Parameter,Split,Red,Reflexivity,Transitivity,if,then,else,Opaque,%
+      Transparent,Inversion,Absurd,Generalize,Mutual,Cases,of,end,Analyze,%
+      AutoRewrite,Functional,Scheme,params,Refine,using,Discriminate,Try,%
+      Require,Load,Import,Scope,Set,Open,Section,End,match,with,Ltac,%
+      Declare,Instance, Class, Tactic, Abort, Hint, Goal, as, return, Function,%
+  },%
+  sensitive, %
+  morecomment=[n]{(*}{*)},%
+  literate=
+  {==}{{==} }2
+  {===}{{===} }3
+  {=>}{{=>} }2
+  {->}{{->} }2
+  {::}{{::} }2
+  {:=}{{:=} }2
+  {>>=}{{>>=} }3
+  {forall}{{∀ }}2
+  {exists}{{∃ }}2
+}[keywords,comments,strings]%

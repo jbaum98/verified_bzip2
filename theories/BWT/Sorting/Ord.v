@@ -13,7 +13,7 @@ Class Preord (A : Type) :=
     le_dec : forall x y, {le x y} + {~le x y};
   }.
 
-Lemma le_refl `{Preord} : forall x, le x x.
+Remark le_refl `{Preord} : forall x, le x x.
 Proof.
   intros. destruct (le_total x x); auto.
 Qed.
@@ -127,7 +127,7 @@ Section Eqv.
   Proof. reflexivity. Qed.
 
   Global Instance Preord_eqv_Equivalence : Equivalence eqv := {}.
-  Global Instance Ord_EqDec : EqDec A eqv := eqv_dec.
+  Global Instance Preord_EqDec : EqDec A eqv := eqv_dec.
 End Eqv.
 
 Section Lt.

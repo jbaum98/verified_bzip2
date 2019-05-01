@@ -13,10 +13,8 @@ Section FindIndex.
     match ls with
     | [] => 0
     | hd :: tl =>
-      match x == hd with
-      | left _ => 0
-      | right _ => S (findIndex x tl)
-      end
+      if x == hd then 0
+      else S (findIndex x tl)
     end.
 
   Theorem findIndex_correct : forall x xs d,

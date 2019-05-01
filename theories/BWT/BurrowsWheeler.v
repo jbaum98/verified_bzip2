@@ -28,7 +28,7 @@ Import Coq.Lists.List.ListNotations.
 Section Transform.
   Context {A : Type} `{O: Ord A} `{E : EqDec A eq}.
 
-  Definition bwp (l: list A) : list A :=
+  Definition bwp (l : list A) : list A :=
     match l with
     | [] => []
     | hd :: _ => List.map (fun x => last x hd) (lexsort (rots l))
