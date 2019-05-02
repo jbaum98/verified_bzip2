@@ -11,15 +11,6 @@ Section Repeat.
     | S m => f (rep f m z)
     end.
 
-  Theorem rep_z : forall f n z,
-      rep f (S n) z = rep f n (f z).
-  Proof.
-    induction n; intros.
-    - reflexivity.
-    - remember (S n) as n'. simpl. subst.
-      rewrite IHn. easy.
-  Qed.
-
   Theorem rep_l : forall f n z,
       f (rep f n z) = rep f (S n) z.
   Proof. reflexivity. Qed.
@@ -27,7 +18,9 @@ Section Repeat.
   Theorem rep_r  : forall f n z,
       rep f n (f z) = rep f (S n) z.
   Proof.
-    intros. symmetry; apply rep_z.
+    induction n; intros.
+    - reflexivity.
+    - simpl rep at 1. rewrite IHn. easy.
   Qed.
 
   Theorem rep_split : forall f n m z,

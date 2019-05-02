@@ -1,6 +1,7 @@
 Require Import Coq.Lists.List.
 Require Import Coq.Sorting.Permutation.
 Require Import Coq.Classes.EquivDec.
+Require Import Coq.omega.Omega.
 
 Require Import BWT.Sorting.Ord.
 Require Import BWT.Lib.List.
@@ -9,20 +10,16 @@ Section Sorted.
   Context {A : Type} `{O: Preord A}.
 
   Inductive Sorted: list A -> Prop :=
-  | Sorted_nil:
-      Sorted nil
-  | Sorted_cons: forall hd tl,
-      (forall x, In x tl -> le hd x) ->
-      Sorted tl ->
-      Sorted (hd :: tl).
+  | Sorted_nil : Sorted nil
+  | Sorted_cons : forall a l,
+      (forall x, In x l -> le a x) ->
+      Sorted l -> Sorted (a :: l).
 
   Remark Sorted_1:
     forall x, Sorted (x :: nil).
   Proof.
     intros. constructor. intros. elim H. constructor.
   Qed.
-
-  (** Lists of 2 ordered elements are sorted. *)
 
   Remark Sorted_2:
     forall x y, le x y -> Sorted (x :: y :: nil).
@@ -47,31 +44,31 @@ Section Sorted.
     apply (proj1 (Forall_forall (eq x) l)) with (x0 := a) in HF; auto.
     subst. reflexivity. auto.
   Qed.
+
+  Theorem Sorted_rem1 {eq_dec : forall x y, {x=y}+{x<>y}} : forall l x,
+      Sorted l -> Sorted (rem1 eq_dec x l).
+  Proof.
+    intros l x HS; revert x.
+    induction HS; intros x; [constructor|].
+    cbn.
+    destruct (eq_dec x a); [auto|].
+    apply Sorted_cons; intros.
+    apply H. apply in_rem1_in in H0. auto.
+    apply IHHS.
+  Qed.
 End Sorted.
 
-Theorem Sorted_rem1 {A} {P : Preord A} {eq_dec : forall x y, {x=y}+{x<>y}} : forall l x,
-    Sorted l -> Sorted (rem1 eq_dec x l).
-Proof.
-  intros l x HS; revert x.
-  induction HS; intros x; [constructor|].
-  cbn.
-  destruct (eq_dec x hd); [auto|].
-  apply Sorted_cons; intros.
-  apply H. apply in_rem1_in in H0. auto.
-  apply IHHS.
-Qed.
-
-Section LocallySorted.
+Section SortedLocal.
   Context {A : Type} `{O: Preord A}.
 
   (** An alternative definition of being sorted that's easier to prove. *)
-  Inductive LocallySorted : list A -> Prop :=
-  | LSorted_nil : LocallySorted nil
-  | LSorted_cons1 a : LocallySorted (a :: nil)
-  | LSorted_consn a b l :
-      LocallySorted (b :: l) -> le a b -> LocallySorted (a :: b :: l).
+  Inductive SortedLocal : list A -> Prop :=
+  | SortedLocal_nil : SortedLocal nil
+  | SortedLocal_1 : forall a, SortedLocal (a :: nil)
+  | SortedLocal_cons : forall a b l,
+      SortedLocal (b :: l) -> le a b -> SortedLocal (a :: b :: l).
 
-  Lemma Sorted_LocallySorted_iff : forall l, Sorted l <-> LocallySorted l.
+  Lemma SortedLocal_iff : forall l, Sorted l <-> SortedLocal l.
   Proof.
     split.
     - induction l as [|a [|b l]]; intros H; constructor;
@@ -96,15 +93,15 @@ Section LocallySorted.
     - intros HS.
       remember (l1 ++ a :: l2) as l.
       revert a l1 l2 Heql.
-      induction HS; intros a l1 l2 HL.
+      induction HS; intros x l1 l2 HL.
       apply app_cons_not_nil in HL; contradiction.
       destruct l1. inversion HL; subst; clear HL.
       split; auto using Sorted_nil, Sorted_cons.
-      destruct (IHHS a l1 l2) as [HS1 [HS2 HF]]; [inversion HL; auto|].
+      destruct (IHHS x l1 l2) as [HS1 [HS2 HF]]; [inversion HL; auto|].
       repeat split.
       + apply Sorted_cons.
         inversion HL; subst; clear HL.
-        intros x HIn.
+        intros y HIn.
         apply H. apply in_or_app.
         left. auto.
         apply HS1.
@@ -130,4 +127,43 @@ Section LocallySorted.
         * auto.
         * inversion HF; auto.
   Qed.
-End LocallySorted.
+End SortedLocal.
+
+Section SortedIx.
+  Context {A : Type} `{O: Preord A}.
+
+  Definition SortedIx (l: list A) :=
+    forall i j d, i <= j < length l -> le (nth i l d) (nth j l d).
+
+  Lemma SortedIx_cons_inv : forall a b l,
+      SortedIx (a :: b :: l) -> le a b /\ SortedIx (b :: l).
+  Proof.
+    intros a b l HS.
+    split.
+    - replace a with (nth 0 (a :: b :: l) a) by easy.
+      replace b with (nth 1 (a :: b :: l) a) by easy.
+      apply HS. cbn; omega.
+    - intros i j d HIJ.
+      replace (nth i (b :: l) d) with (nth (S i) (a :: b :: l) d) by easy.
+      replace (nth j (b :: l) d) with (nth (S j) (a :: b :: l) d) by easy.
+      apply HS.
+      cbn in *; omega.
+  Qed.
+
+  Theorem SortedIx_iff : forall l,
+      Sorted l <-> SortedIx l.
+  Proof.
+    split; induction l as [|h t IH]; [easy| |constructor|].
+    - intros HS i j d HIJ.
+      apply Sorted_cons_inv in HS; destruct HS as [Hh HS].
+      destruct i as [|i]; destruct j as [|j]; [| |omega|].
+      + cbn. reflexivity.
+      + cbn. apply Hh. apply nth_In. cbn in HIJ; omega.
+      + cbn. apply IH; [easy|cbn in HIJ; omega].
+    - intros HSix.
+      apply SortedLocal_iff; rewrite SortedLocal_iff in IH.
+      destruct t as [|b t]; constructor.
+      + apply IH. apply (SortedIx_cons_inv h b t). easy.
+      + apply (SortedIx_cons_inv h b t). easy.
+  Qed.
+End SortedIx.

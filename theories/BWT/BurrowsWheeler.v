@@ -26,7 +26,7 @@ Require Import BWT.Sorting.Stable.
 Import Coq.Lists.List.ListNotations.
 
 Section Transform.
-  Context {A : Type} `{O: Ord A} `{E : EqDec A eq}.
+  Context {A : Type} `{O: Ord A}.
 
   Definition bwp (l : list A) : list A :=
     match l with
@@ -191,7 +191,7 @@ Section Recreate.
 End Recreate.
 
 Section Unbwt.
-  Context {A : Type} `{O : Ord A} `{E : EqDec A eq}.
+  Context {A : Type} `{O : Ord A}.
 
   Definition unbwt (i : nat) (l : list A) : list A :=
     nth i (recreate (length l) l) l.

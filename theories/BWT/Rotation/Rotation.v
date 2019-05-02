@@ -346,7 +346,7 @@ Section Repeats.
           by (subst; symmetry; apply firstn_lt; simpl in H; omega).
         replace (tl ++ [a]) with (lrot l) by (subst; reflexivity).
         replace (length l) with (length (lrot l)) by (symmetry; apply lrot_length).
-        rewrite rep_z.
+        rewrite <- rep_r.
         apply IHk; try (rewrite <- lrot_length; omega).
   Qed.
 

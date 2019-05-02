@@ -534,6 +534,178 @@ Section Pairs.
   Qed.
 End Pairs.
 
+Section Seq.
+  Lemma seq_split : forall i j s,
+      seq s (i + j) = seq s i ++ seq (s + i) j.
+  Proof.
+    induction i as [|i IH]; intros j s;
+      [cbn; rewrite Nat.add_0_r; reflexivity|].
+    cbn; f_equal.
+    rewrite IH; f_equal.
+    rewrite <- plus_Snm_nSm.
+    reflexivity.
+  Qed.
+
+  Lemma seq_last_perm : forall p n,
+      Permutation (n :: p) (seq 0 (S n)) ->
+      Permutation p (seq 0 n).
+  Proof.
+    intros p n HP.
+    replace (S n) with (n + 1) in HP by omega.
+    rewrite seq_split with (i := n) (j := 1) in HP.
+    cbn in HP.
+    rewrite Permutation_app_comm in HP.
+    eapply Permutation_cons_inv. apply HP.
+  Qed.
+End Seq.
+
+Section FirstnSkipn.
+  Context {A : Type}.
+
+  Implicit Type l : list A.
+
+  Lemma firstn_skipn_nth : forall l i d,
+      i < length l ->
+      firstn 1 (skipn i l) = [nth i l d].
+  Proof.
+    induction l; intros i d HL; [cbn in HL; omega|].
+    destruct i; [easy|].
+    cbn [skipn nth]. apply IHl. cbn in HL; omega.
+  Qed.
+
+  Lemma firstn_skipn_split : forall l i d,
+      0 < i < length l ->
+      l = firstn i l ++ nth i l d :: skipn (S i) l.
+  Proof.
+    intros l i d HL.
+    destruct i; [omega|].
+    rewrite <- firstn_skipn with (l := l) (n := S (S i)) at 1.
+    replace (S (S i)) with (S i + 1) at 1 by omega.
+    rewrite <- firstn_skipn with (l := l) (n := S i) at 1.
+    rewrite firstn_app, firstn_length, Nat.min_l by omega.
+    replace (S i + 1 - S i) with 1 by omega.
+    rewrite firstn_firstn, Nat.min_r by omega.
+    rewrite firstn_skipn_nth with (d := d) by omega.
+    rewrite <- app_assoc.
+    reflexivity.
+  Qed.
+End FirstnSkipn.
+
+Section RemNth.
+  Context {A : Type}.
+
+  Implicit Type l : list A.
+
+  Fixpoint rem_nth i l :=
+    match l with
+    | [] => []
+    | h :: t =>
+      match i with
+      | 0 => t
+      | S i' => h :: rem_nth i' t
+      end
+    end.
+
+  Remark rem_nth_nil : forall i,
+      rem_nth i [] = [].
+  Proof. intros []; easy. Qed.
+
+  Remark rem_nth_zero : forall a l,
+      rem_nth 0 (a :: l) = l.
+  Proof. easy. Qed.
+
+  Theorem rem_nth_length : forall l i,
+      i < length l ->
+      length (rem_nth i l) = pred (length l).
+  Proof.
+    induction l; intros i HI; [cbn in HI; omega|].
+    cbn in *. destruct i; [easy|].
+    cbn. rewrite IHl by omega.
+    destruct l; [omega|easy].
+  Qed.
+
+  Theorem nth_lt_rem_nth : forall i j l d,
+      j < i ->
+      nth j (rem_nth i l) d = nth j l d.
+  Proof.
+    induction i as [|i IH]; intros j l d HIJ; [omega|].
+    destruct l; [cbn [rem_nth]; easy|].
+    cbn [rem_nth].
+    destruct j; cbn [nth]; [easy|].
+    apply IH; omega.
+  Qed.
+
+  Theorem nth_ge_rem_nth : forall i j l d,
+      j >= i ->
+      nth j (rem_nth i l) d = nth (S j) l d.
+  Proof.
+    induction i as [|i IH]; intros j l d HIJ.
+    - destruct l; cbn [rem_nth tl];
+        [rewrite !nth_overflow by (cbn; omega); easy|].
+      easy.
+    - destruct l; cbn [rem_nth tl];
+        [rewrite !nth_overflow by (cbn; omega); easy|].
+      destruct j; [omega|].
+      cbn [nth]. apply IH. omega.
+  Qed.
+
+  Theorem rem_nth_Perm : forall l i d,
+      i < length l ->
+      Permutation l (nth i l d :: rem_nth i l).
+  Proof.
+    induction l; intros i d HI; [cbn in*; omega|].
+    destruct i; [reflexivity|].
+    cbn. etransitivity; [|apply perm_swap].
+    apply perm_skip. apply IHl. cbn in *; omega.
+  Qed.
+
+  Theorem rem_nth_app_1 : forall l1 l2 i,
+      i >= length l1 ->
+      rem_nth i (l1 ++ l2) = l1 ++ rem_nth (i - length l1) l2.
+  Proof.
+    induction l1; intros l2 i HI; [rewrite <- minus_n_O; easy|].
+    cbn in HI. destruct i; [omega|].
+    cbn. f_equal.
+    apply IHl1. omega.
+  Qed.
+
+  Theorem rem_nth_app_2 : forall l1 l2 i,
+      i < length l1 ->
+      rem_nth i (l1 ++ l2) = rem_nth i l1 ++ l2.
+  Proof.
+    induction l1; intros l2 i HI; [rewrite app_nil_l; easy|].
+    cbn in HI. destruct i; [easy|].
+    cbn. f_equal.
+    apply IHl1. omega.
+  Qed.
+
+  Theorem rem_nth_split : forall l i,
+      i < length l ->
+      rem_nth i l = firstn i l ++ skipn (S i) l.
+  Proof.
+    intros l i HI.
+    destruct i; [destruct l; easy|].
+    destruct l as [|d t] eqn:HL; [easy|rewrite <- HL in *; clear t HL].
+    rewrite @firstn_skipn_split with (i := S i) (d := d) (l := l) at 1 by omega.
+    rewrite rem_nth_app_1 by (rewrite firstn_length, Nat.min_l; omega).
+    f_equal. rewrite firstn_length, Nat.min_l by omega.
+    replace (S i - S i) with 0 by omega.
+    easy.
+  Qed.
+End RemNth.
+
+Theorem rem_nth_combine {A} {B} : forall (l : list A) (r : list B) i,
+    rem_nth i (combine l r) = combine (rem_nth i l) (rem_nth i r).
+Proof.
+  induction l as [|xl l IH]; intros r i.
+  - rewrite rem_nth_nil. cbn. apply rem_nth_nil.
+  - destruct r as [|xr r];
+      [rewrite rem_nth_nil; destruct i; destruct l; easy|].
+    destruct i; [easy|].
+    cbn; f_equal.
+    apply IH.
+Qed.
+
 Theorem in_eq_iff {A : Type} : forall l l' : list A,
     l = l' -> (forall x, In x l <-> In x l').
 Proof.

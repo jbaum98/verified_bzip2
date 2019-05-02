@@ -16,16 +16,16 @@ that makes a string more amenable to compression by other methods
 \cite{bw}. The forwards transform is straightforward to describe: for
 a string of length \(n\), form the \(n \times n\) rotaion matrix of all
 cyclic shifts of the original string, sort it lexicographically, and
-take the last column of the matrix. In addition, we note that index
+take the last column of the matrix. In addition, we note the index
 where the original string appears in the sorted rotation matrix. As
-shown in \cref{fig:bw_ex}, applying the algorithm to the string
-\texttt{abracadabra!} produces the new string \texttt{ard!rcaaabb} and
-the index \texttt{3}. The transformation tends to produce runs like
-the three \texttt{a}s or the two \texttt{b}s, and it is this feature
-that makes the resulting string easier to compress. Although it is not
-at all obvious, the transformed string, together with the index,
-provide enough information to recover the the original string. BWT is
-discussed more in \cref{sec:bwt}.
+shown in \Cref{fig:bw_ex}, applying the algorithm to the string
+\var{abracadabra!} produces the new string \var{ard!rcaaabb} and
+the index \var{3}. The transformation tends to produce runs like
+the three \var{a}s or the two \var{b}s in \var{ard!rcaaabb},
+and it is this feature that makes the resulting string easier to
+compress. Although it is not obvious, the transformed string, together
+with the index, provide enough information to recover the the original
+string. The BWT is discussed more in \cref{sec:bwt}.
 
 \begin{figure}
   \centering
@@ -60,7 +60,7 @@ discussed more in \cref{sec:bwt}.
     11 & racadabra!a\textbf{b}
   \end{tabular}
   \end{tt}
-  \caption{BWT acting on \texttt{abracadabra!}}
+  \caption{BWT acting on \var{abracadabra!}}
   \label{fig:bw_ex}
 \end{figure}
 
@@ -75,17 +75,17 @@ their derivation in \cref{sec:forwards_BWT,sec:inverse_BWT}.
 
 Our main contribution is a formalization in the Coq proof assistant of
 the BWT, together with a machine-checked proof that our implementation
-is correct. Specifically, we implement the functions
-$\mathtt{bwp} : \mathtt{list}~A \to \mathtt{list}~A$ and
-$\mathtt{bwn} : \mathtt{list}~A \to \mathbb{N}$ to produce the string
-and index part of the BWT respectively, and the function
-$\mathtt{unbwt} : \mathbb{N} \to \mathtt{list}~A \to \mathtt{list}~A$ to
-reverse the transform, and we prove the following theorem:
+is correct. Specifically, we implement the functions $\var{bwp} :
+\var{list}~A \to \var{list}~A$ and $\var{bwn} : \var{list}~A
+\to \mathbb{N}$ that produce the string and index part of the BWT
+respectively, and the function $\var{unbwt} : \mathbb{N} \to
+\var{list}~A \to \var{list}~A$ that reverses the transform. We
+prove the following theorem:
 \begin{theorem}[unbwt\_correct]
   \label{thm:unbwt_correct}
   For all lists $l$,
   \begin{equation*}
-    \mathtt{unbwt}~(\mathtt{bwn}~l)~(\mathtt{bwp}~l) = l
+    \var{unbwt}~(\var{bwn}~l)~(\var{bwp}~l) = l
   \end{equation*}
 \end{theorem}
 The implementation of the functions and the outline of the proof are
@@ -109,33 +109,33 @@ radix-sort and proved its correctness,
   \label{thm:radixsort_correct}%
   For all lists $l$,
   \begin{equation*}
-    \mathtt{Sorted}~(\mathtt{radixsort}~l) \land \mathtt{Permutation}~(\mathtt{radixsort}~l)~l
+    \var{Sorted}~(\var{radixsort}~l) \land \var{Permutation}~(\var{radixsort}~l)~l
   \end{equation*}
 \end{theorem}
 and proved that any two stable sorts are interchangable,
 \begin{theorem}[stable\_sort\_unique]
   \label{thm:radixsort_correct}%
-  For all functions $f, g : \mathtt{list}~A \to \mathtt{list}~A$,
+  For all functions $f, g : \var{list}~A \to \var{list}~A$,
   \begin{gather*}
-    (\forall l,~\mathtt{Sorted}~(f~l) \land \mathtt{StablePermutation}~(f~l)~l) \implies \\
-    (\forall l,~\mathtt{Sorted}~(g~l) \land \mathtt{StablePermutation}~(g~l)~l) \implies \\
+    (\forall l,~\var{Sorted}~(f~l) \land \var{StablePermutation}~(f~l)~l) \implies \\
+    (\forall l,~\var{Sorted}~(g~l) \land \var{StablePermutation}~(g~l)~l) \implies \\
     \forall l,~f~l = g~l
   \end{gather*}
 \end{theorem}
 This in turn required developing suitable definitions for
-\texttt{Sorted}, \texttt{Permutation}, and \texttt{StablePermutation}.
+\var{Sorted}, \var{Permutation}, and \var{StablePermutation}.
 We explored multiple definitions for each of these properties, and
 proved equivalence between them.
 
 The rest of this paper is organize as follows. \Cref{sec:bwt} details
 the history of the BWT and its applications. \Cref{sec:ord} defines
-what we need to know about a type $A$ to sort a $\mathtt{list}~A$ as a
+what we need to know about a type $A$ to sort a $\var{list}~A$ as a
 part of BWT. Following Bird et~al., \cref{sec:forwards_BWT} defines
 the implementation of the forwards BWT in Coq, and
 \cref{sec:inverse_BWT} derives an implementation of the inverse BWT
 via program calculation. \Cref{sec:sorted_perm_stable} provides
-multiple definitions of \texttt{Sorted}, \texttt{Permutation}, and
-\texttt{StablePermutation}, and proves equivalence between them.
+multiple definitions of \var{Sorted}, \var{Permutation}, and
+\var{StablePermutation}, and proves equivalence between them.
 \Cref{sec:sort} implements insertion sort and radixsort, and proves
 their correctness. \Cref{sec:BWT_proof} more formally proves the
 theorems about the BWT mentioned in previous sections, including
@@ -192,9 +192,11 @@ We say that we have a \textit{decidable} preorder if we have a
 decision procedure for determining whether $x \le y$ or $x \not\le y$.
 
 We represent a total, decidable preorder on type with the
-\texttt{Preord} typeclass in Coq:
+\var{Preord} typeclass in Coq:
 \lstinputlisting[firstline=9, lastline=14]{../theories/BWT/Sorting/Ord.v}
-We do not explicitly require reflexivity because it follows from totality.
+We do not explicitly require reflexivity because it follows from
+totality. Given a \var{Preord} instance for a type $A$, we will be
+able to sort $\var{list}~A$ as shown in \cref{sec:sort}.
 
 From $\le$, we can define $x \ge y \coloneqq y \le x$, $x < y \coloneqq
 \lnot (y \le x)$, and $x > y \coloneqq \lnot (x \le y)$, and prove
@@ -202,15 +204,17 @@ transitivity and reflexivity where appropriate.
 
 We can also define $x \equiv y \coloneqq x \le y \land y \le x$. $\equiv$ is a
 decidable equivalence relation, which means it is reflexive,
-transitive, and symmetric. The builtin class \texttt{EqDec} is used to
-describe types with decidable equivalence relations, so for any
-\texttt{Preord} instance we have the \texttt{EqDec} instance
-\texttt{Preord\_EqDec} using \texttt{eqv\_dec}:
-\lstinputlisting[firstline=116, lastline=120,
-  widthgobble=2]{../theories/BWT/Sorting/Ord.v}
-In Coq, the notation \texttt{===} is used for the relation of an
-\texttt{EqDec} instance and \texttt{==} for the decision procedure of
-an \texttt{EqDec} instance.
+transitive, and symmetric, and we have a decision procedure for it.
+\lstinputlisting[
+  firstline=116, lastline=120, widthgobble=2
+]{../theories/BWT/Sorting/Ord.v}
+
+The builtin class \var{EqDec} is used to describe types with
+decidable equivalence relations, so for any \var{Preord} instance
+we have the \var{EqDec} instance \var{Preord\_EqDec} using
+\var{eqv\_dec}. In Coq, the notation \var{===} is used for the
+equivalence relation of an \var{EqDec} instance and \var{==} for
+its decision procedure.
 
 We say that we have a total, decidable \textit{order} when we have
 that for all $x$ and $y$,
@@ -218,252 +222,134 @@ that for all $x$ and $y$,
   x \equiv y \implies x = y
 \end{equation*}
 that is, the induced equivalence relation of the preorder ($\equiv$)
-implies Leibniz equality ($=$). We use the \texttt{Ord} class in Coq for this:
-\lstinputlisting[firstline=175, lastline=176,
-  widthgobble=2]{../theories/BWT/Sorting/Ord.v}
-For the BWT, we require an \texttt{Ord} instance for $A$, but for other parts of the proof, such as sorting, \texttt{Preord} will suffice.
+implies Leibniz equality ($=$). We use the \var{Ord} class in Coq
+for this:
+\lstinputlisting[firstline=175, lastline=176, widthgobble=2]{../theories/BWT/Sorting/Ord.v}
+For the BWT, we require an \var{Ord} instance for $A$, but
+elsewhere, such as in sorting, \var{Preord} will suffice.
 
 \section{The Forwards BWT}
 \label{sec:forwards_BWT}
 
-First, we define left and right rotations of a list.
-\lstinputlisting[widthgobble=2, firstline=17, lastline=22]{../theories/BWT/Lib/List.v}
-\lstinputlisting[widthgobble=2, firstline=16, lastline=21]{../theories/BWT/Rotation/Rotation.v}
-\lstinputlisting[widthgobble=2, firstline=23, lastline=28]{../theories/BWT/Rotation/Rotation.v}
-
-Now we can produce the rotation matrix by repeatedly applying \texttt{lrot}.
-\lstinputlisting[widthgobble=2, firstline=11, lastline=18]{../theories/BWT/Lib/Iterate.v}
-\lstinputlisting[widthgobble=2, firstline=17, lastline=18]{../theories/BWT/Rotation/Rots.v}
-
-Finally, we produce the transformed string by taking the last column
-of the sorted rotation matrix. \texttt{lexsort} sorts the rotation
-matrix lexicographically using the \texttt{Ord} instance; we will
-discuss it's implementation in \cref{sec:sort}.
-\lstinputlisting[firstline=31,
-  lastline=35]{../theories/BWT/BurrowsWheeler.v}
-Note that in order to ensure that $\mathtt{last}$ is total, it takes
+First, we define the left and right rotations of a list. \var{lrot}
+moves the first element of a list to the end.
+\lstinputlisting[widthgobble=2, firstline=24, lastline=28]{../theories/BWT/Rotation/Rotation.v}
+\var{rrot} moves the last element of a list to the front, and
+relies on \var{init}, which drops the last element of a list.
+\lstinputlisting[widthgobble=2, firstline=18, lastline=22]{../theories/BWT/Lib/List.v}
+\lstinputlisting[widthgobble=2, firstline=17, lastline=21]{../theories/BWT/Rotation/Rotation.v}
+Note that in order to ensure that $\var{last}$ is total, it takes
 an extra argument to return in the case of an empty list.
 
-We also need to find the index in the sorted rotation matrix where the
-original string appears.
-\lstinputlisting[firstline=12, lastline=19]{../theories/BWT/Lib/FindIndex.v}
-\lstinputlisting[firstline=73, lastline=74]{../theories/BWT/BurrowsWheeler.v}
-
-\section{The Inverse BWT}
-\label{sec:inverse_BWT}
-
-Now we have to construct a function \texttt{unbwt} such that for all $l$,
+Now we would likel to produce the rotation matrix by repeatedly
+applying \var{lrot}. We will use \var{iter}, which takes a function
+$f : A \to A$, a number $n$, and an initial value $z$, and returns the
+list of intermediate values obtained by applying $f$ to $z$ $n$ times.
+Or,
 \begin{equation}
-  \mathtt{unbwt}~(\mathtt{bwn}~l)~(\mathtt{bwp}~xs) = l
-  \label{eq:unbwt}
+  \var{iter}~f~n~z = [z,~f~z,~f~(f~z),~\ldots,~f^n z]
+  \label{eq:iter}
 \end{equation}
-If we could recreate the entire sorted rotation matrix from
-$\mathtt{bwp}~l$, it would be simple to recover $x$ by indexing into
-the matrix at $\mathtt{bwn}~x$.
+\lstinputlisting[
+  widthgobble=2,
+  firstline=14,
+  lastline=18
+]{../theories/BWT/Lib/Iterate.v}
 
-More precisely, suppose we had a function function \texttt{recreate}
-such that
-\begin{equation}
-  \mathtt{recreate}~(\mathtt{bwp}~l) = \mathtt{lexsort}~(\mathtt{rots}~l)
-  \label{eq:recreate}
-\end{equation}
-Then, we could define \texttt{unbwt} as
-\begin{lstlisting}
-Definition unbwt (i : nat) (l : list A) : list A :=
-  nth i (recreate l) l.
-\end{lstlisting}
-and \Cref{eq:unbwt} would follow directly from the following theorem:
-\begin{theorem}[bwn\_correct]
-  For every non-empty list $l$,
-  \begin{equation*}
-    (\mathtt{lexsort}~(\mathtt{rots}~l))_{(\mathtt{bwn}~l)} = l
-  \end{equation*}
+We can prove that this definition satisfies \Cref{eq:iter} by defining
+the function \var{rep} for repeated function application.
+\lstinputlisting[
+  widthgobble=2,
+  firstline=8,
+  lastline=12
+]{../theories/BWT/Lib/Repeat.v}
+In proofs, we will still use the notation $f^i z$ for $\var{rep}~f~i~z$.
+
+\begin{theorem}[rep\_r]
+  For all $f$, $n$, and $z$,
+  \begin{equation}
+     f^i~(f~z) = f^{i+1}~z
+  \end{equation}
 \end{theorem}
+\begin{proof}
+  The theorem follows by induction on $n$.
+\end{proof}
 
-How, then, do we implement \texttt{recreate}? We will recreate the
-sorted rotation matrix column by column, so \verb|recreate j| will
-recreate the first \verb|j| columns of the sorted rotation matrix.
-\begin{verbatim}
-Definition cols (j : nat) (l : list A) : list A := map (firstn j) l.
+\begin{theorem}[iter\_length]
+  For all $f$, $n$, and $z$,
+  \begin{equation}
+    \var{length}~(\var{iter}~f~n~z) = n
+  \end{equation}
+\end{theorem}
+\begin{proof}
+  The theorem follows by induction on $n$.
+\end{proof}
 
-Theorem recreate_correct_ind : forall j l,
-    j <= length l ->
-    recreate j (bwp l) = cols j (lexsort (rots l)).
-\end{verbatim}
+\begin{theorem}[iter\_nth]
+  For all $f$, $n$, $z$, and $i < n$,
+  \begin{equation}
+    (\var{iter}~f~n~z)_i = f^i~z
+  \end{equation}
+\end{theorem}
+\begin{proof}
+  The theorem follows by induction on $i$. The inductive case is
+  \begin{align*}
+       (\var{iter}~f~(n+1)~z)_{i+1}
+    &= (z :: \var{iter}~f~n~(f~z))_{i+1} &&\{\text{\var{iter} def.}\} \\
+    &= (\var{iter}~f~n~(f~z))_i          &&\{\text{by \var{nth} def.}\} \\
+    &= f^i~(f~z)                            &&\{\text{by \var{rep\_r}}\} \\
+    &= f^{i+1}~z && \qedhere
+  \end{align*}
+\end{proof}
 
-To derive an implementation of \verb|recreate| from this correctness
-specification, we need an expression for \verb|recreate 0| and
-\verb|recreate (S j)|. We can substitute for \verb|j| on the
-right-hand side and manipulate that expression algebraically until it
-is in the form \verb|_ (bwp l)|. Then we can define \verb|recreate 0|
-and \verb|recreate (S j)| to be precisely the \verb|_|, and by
-running our derivation in reverse, we obtain a proof for the base and
-inductive cases that uses only rewrites.
+Now we can define \var{rots} to produce the rotation matrix.
+\lstinputlisting[
+  widthgobble=2,
+  firstline=17,
+  lastline=18,
+]{../theories/BWT/Rotation/Rots.v}
 
-We start with the base case, \verb|recreate 0|:
-\begin{verbatim}
-  cols 0 (lexsort (rots l))
-= { by unfold cols }
-  map (firstn 0) (lexsort (rots l))
-= { by firstn_O}
-  map (const []) (lexsort (rots l))
-= { by map_const }
-  repeat [] (length (lexsort (rots l)))
-= { by bwp_length, rots_length, lexsort_length }
-  repeat [] (length (bwp l))
-= { by map_const }
-  map (const []) (bwp l)
-\end{verbatim}
+\var{bwp} produces the transformed string by taking the last column
+of the sorted rotation matrix. \var{lexsort} sorts the rotation
+matrix lexicographically using the \var{Ord} instance; we will
+discuss it's implementation in \cref{sec:sort}.
+\lstinputlisting[
+  widthgobble=2,
+  firstline=31,
+  lastline=35
+]{../theories/BWT/BurrowsWheeler.v}
 
-From this, we can define \verb|recreate 0 l = map (const []) l| and
-we already have the proof for the base case of the correctness
-specification.
+\var{bwn} returns the index in the sorted rotation matrix where the
+original string appears. It relies on \var{findIndex}, which is
+defined with respect to some decidable equivalence relation.
+\lstinputlisting[
+  widthgobble=2,
+  firstline=12,
+  lastline=19,
+]{../theories/BWT/Lib/FindIndex.v}
 
-For the inductive case, we have the expression
-\begin{verbatim}
-  cols (S j) (lexsort (rots l))
-\end{verbatim}
-on the right-hand side. Our plan is to express \verb|cols (S j)|
-in terms of \verb|cols j|, and then to use the inductive hypothesis
-\begin{verbatim}
-  cols j (lexsort (rots l)) = recreate j
-\end{verbatim}
-to produce a well-formed recursive definition.
+When we use \var{findIndex} in \var{bwn}, we are using the
+induced equivalence relation from the \var{Ord} instance, so it
+finds the row that is Leibniz equal to $l$.
+\lstinputlisting[
+  widthgobble=2,
+  firstline=73,
+  lastline=74,
+]{../theories/BWT/BurrowsWheeler.v}
 
-One way to do this is to say that taking the first \verb|S j| columns
-of a matrix is the same as moving the first column to the back, taking
-the first \verb|j| columns, and then sticking the last column back on
-the front:
-\begin{verbatim}
-  cols (S j) l = prepend_col (map last (map lrot l)) (cols j (map lrot l))
-\end{verbatim}
-If we substitute \verb|map rrot l| for \verb|l| we find a simpler
-expression
-\begin{verbatim}
-  cols (S j) (map rrot l) = prepend_col (map last l) (cols j l)
-\end{verbatim}
-
-Now we would like to find a way of introducing a \verb|map rrot|
-before the \verb|lexsort (rots l)|. The insight here is that we can
-assume that \verb|lexsort| is actually a radix-sort. That is, that
-\begin{verbatim}
-lexsort xs = rep (length xs) (hdsort ∘ map rrot) xs
-\end{verbatim}
-where \verb|hdsort| sorts the matrix stably on the the first column
-and \verb|rep| is defined as
-\begin{verbatim}
-Fixpoint rep (f : A -> A) (n : nat) (z : A) : A :=
-  match n with
-  | O => z
-  | S m => f (rep f m z)
-  end.
-\end{verbatim}
-
-We can do this because there is only one way to sort the matrix, so
-assuming \verb|lexsort| and the radix-sort are correct, they must be
-doing the same thing. We will specify precisely when and why this is
-valid later.
-
-Stepping back, it is important to say that this insight, whether
-explicitly stated or not, is always the crucial step in inverting the
-Burrows-Wheeler transform. Because radix-sort only needs one column at
-a time, this transformation will allow us to reconstruct the sorted
-rotation matrix one column at a time.
-
-In seeking to introduce an extra \verb|map rrot| term, we can note
-that rotating and sorting an extra time doesn't change anything when
-we are sorting the rotation matrix. This works because rotating the
-last column to the front produces a matrix that is sorted on its last
-\verb|n - 1| characters, so sorting stably on the first column will
-re-sort the matrix. Crucially though, rotating the last column
-forwards also permutes the entire matrix, so in addition to having a
-sorted list, we have a sorted list of the same elements.
-
-More precisely, we can characterize how \verb|map rrot| permutes
-\verb|rots|
-\begin{verbatim}
-map rrot (rots x) = rrot (rots x)
-\end{verbatim}
-
-Using that we can show
-\begin{verbatim}
-  lexsort (rots x)
-= { because rrot permutes its elements }
-  lexsort (rrot (rots x))
-= { because hdsort permutes its elements }
-  lexsort (hdsort (rrot (rots x)))
-= { radix-sort }
-  rep n (hdsort ∘ rrot) (hdsort (rrot (rots x)))
-= { rep_absorb_r }
-  rep (S n) (hdsort ∘ rrot) (rots x)
-= { rep_split_l }
-  hdsort (rrot (rep n (hdsort ∘ rrot) (rots x)))
-= { radix-sort }
-  hdsort (rrot (lexsort (rots x)))
-\end{verbatim}
-
-From here we can calculate
-\begin{verbatim}
-  cols (S j) (lexsort (rots l))
-= cols (S j) (hdsort (map rrot (lexsort (rots l))))
-= { hdsort commutes with cols (S j) }
-  hdsort (cols (S j) (map rrot (lexsort (rots l))))
-= { reduce cols (S j) }
-  hdsort (prepend_col (map last (lexsort (rots l))) (cols j (lexsort (rots l)))
-= { by IH and def of bwp }
-  hdsort (prepend_col (bwp l) (recreate j (bwp l)))
-= (fun x => hdsort (prepend_col x (recreate j x))) bwp
-\end{verbatim}
-
-We can use this to define \verb|recreate|:
-\begin{verbatim}
-Fixpoint recreate (j : nat) (l : list A) : list (list A) :=
-  match j with
-  | O    => map (const []) l
-  | S j' => hdsort (prepend_col l (recreate j' l))
-  end.
-\end{verbatim}
-
-\section{\texttt{Sorted}, \texttt{Permutation}, and \texttt{StablePermutation}}
-\label{sec:sorted_perm_stable}
-
-In this section we prove the lemmas from the previous section:
-\begin{enumerate}
-\item
-\begin{verbatim}
-map rrot (rots x) = rrot (rots x)
-\end{verbatim}
-
-\item \verb|hdsort| commutes with \verb|cols (S j)|
-  This proof is cool because in theory it can be proven via
-  parametricity, but that's a metatheorem in Coq.
-
-\item
-\begin{verbatim}
-cols (S j) (map rrot l) = prepend_col (map last l) (cols j l)
-\end{verbatim}
-\end{enumerate}
-
-\section{Insertion Sort, Radixsort, and \texttt{lexsort}}
-\label{sec:sort}
-
-\section{Proving BWT Correct}
-\label{sec:BWT_proof}
-
-\printbibliography{}
-
-\end{document}
-
-We prove this using a few lemmas about \texttt{findIndex},
-\texttt{lexsort}, and \texttt{rots}.
+Given these definitions, we can quickly prove that \var{bwn}
+satisfies its specification, namely that for all non-empty $l$
+\begin{equation*}
+    (\var{lexsort}~(\var{rots}~l))_{(\var{bwn}~l)} = l
+\end{equation*}
 
 \begin{lemma}[findIndex\_correct]
-  For all elements $x$, lists $l$,
+  For all elements $x$ and lists $l$,
   \begin{equation*}
-    (\exists y \in l,~x \equiv y) \implies l_{(\mathtt{findIndex}~x~xs)} \equiv x
+    (\exists y \in l,~x \equiv y) \implies l_{(\var{findIndex}~x~xs)} \equiv x
   \end{equation*}
   \begin{proof}
-    This follows by induction on $xs$: At every step, either the
+    This follows by induction on $l$: At every step, either the
     current element is equivalent to $x$ and we return $0$, or there
     must be such a $y$ in the rest of the list.
   \end{proof}
@@ -472,22 +358,505 @@ We prove this using a few lemmas about \texttt{findIndex},
 \begin{lemma}[orig\_in\_sorted\_rots]
   For every non-empty list $l$,
   \begin{equation*}
-    \exists y \in \mathtt{lexsort}~(\mathtt{rots}~l),~x = y
+    \exists y \in \var{lexsort}~(\var{rots}~l),~x = y
   \end{equation*}
   \begin{proof}
-    Clearly $l$ is in $\mathtt{rots}~l$ at index 0, and because
-    \texttt{lexsort} produces a permutation of its input, $l$ must be
-    in $\mathtt{lexsort}~(\mathtt{rots}~l)$ as well.
+    Clearly $l$ is in $\var{rots}~l$ at index 0, and because
+    \var{lexsort} produces a permutation of its input, $l$ must be
+    in $\var{lexsort}~(\var{rots}~l)$ as well.
   \end{proof}
 \end{lemma}
 
 \begin{theorem}[bwn\_correct]
   For every non-empty list $xs$,
   \begin{equation*}
-    (\mathtt{lexsort}~(\mathtt{rots}~xs))_{(\mathtt{bwn}~xs)} = xs
+    (\var{lexsort}~(\var{rots}~xs))_{(\var{bwn}~xs)} = xs
   \end{equation*}
   \begin{proof}
-    This follows from \textsf{findIndex\_correct} if we can show that
-    $\exists y \in xs,~x = y$, which we have by \textsf{orig\_in\_sorted\_rots}.
+    This follows from \var{findIndex\_correct} if we can show that
+    $\exists y \in xs,~x = y$, which we have by \var{orig\_in\_sorted\_rots}.
   \end{proof}
 \end{theorem}
+
+\section{The Inverse BWT}
+\label{sec:inverse_BWT}
+
+Now we want to construct a function \var{unbwt} such that for all $l$,
+\begin{equation}
+  \var{unbwt}~(\var{bwn}~l)~(\var{bwp}~l) = l
+  \label{eq:unbwt}
+\end{equation}
+If we could recreate the entire sorted rotation matrix from
+$\var{bwp}~l$, it would be simple to recover $l$ by indexing into
+the matrix at $\var{bwn}~l$.
+
+More precisely, suppose we had a function function \var{recreate}
+such that
+\begin{equation}
+  \var{recreate}~(\var{bwp}~l) = \var{lexsort}~(\var{rots}~l)
+  \label{eq:recreate}
+\end{equation}
+Then, we could define \var{unbwt} as
+\begin{lstlisting}
+Definition unbwt (i : nat) (l : list A) : list A :=
+  nth i (recreate l) l.
+\end{lstlisting}
+and \Cref{eq:unbwt} would follow directly from the \var{bwn\_correct}:
+\begin{align}
+     \label{eq:unbwt_correct_start}
+     \var{unbwt}~(\var{bwn}~l)~(\var{bwp}~l)
+  &= (\var{recreate}~(\var{bwp}~l))_{(\var{bwn})~l} &&\\
+  &= (\var{lexsort}~(\var{rots}~l))_{(\var{bwn})~l}
+     &&\text{\{by \Cref{eq:recreate}\}}\\
+  &= l &&\text{\{\var{recreate\_correct}\}}
+     \label{eq:unbwt_correct_end}
+\end{align}
+
+How, then, do we implement \var{recreate} such that
+\Cref{eq:recreate} holds? One idea is to recreate the sorted rotation
+matrix column by column. We define $\var{cols}~j$ to take the first
+$j$ columns of a matrix:
+\lstinputlisting[
+  widthgobble=2,
+  firstline=19,
+  lastline=20,
+]{../theories/BWT/Columns.v}
+Then we introduce a parameter $j$ to \var{recreate}, and our new
+specification is that $\var{recreate}~j$ recreates the first $j$
+columns of the sorted rotation matrix:
+\begin{theorem}[recreate\_correct\_ind]
+  For all lists $l$ and $j \le \var{length}~l$,
+  \begin{equation}
+    \var{recreate}~j~(\var{bwp}~l) =
+    \var{cols}~j~(\var{lexsort}~(\var{rots}~l))
+    \label{eq:recreate_correct_ind}
+  \end{equation}
+\end{theorem}
+
+Now we can redefine \var{unbwt} as
+\lstinputlisting[
+  widthgobble=2,
+  firstline=196,
+  lastline=197,
+]{../theories/BWT/BurrowsWheeler.v}
+
+Assuming that we can prove \var{recreate\_correct\_ind}, the
+correctness of of \text{unbwt} follows:
+
+\begin{theorem}[cols\_id]
+  For all $j$ and matrices $m : \var{list}~(\var{list}~A)$,
+  \begin{gather*}
+    (\forall r \in m,~\var{length}~r \le n) \implies \\
+    \var{cols}~n~m = m
+  \end{gather*}
+\end{theorem}
+\begin{proof}
+  $\var{cols}~j~m = \var{map}~(\var{firstn}~j)~m$, and we
+  know that $m = \var{map}~(\lambda x.x)~m$. So, it suffices to show that
+  for every $r \in m$, the mapping functions agree, that is
+  $\var{firstn}~j~r = r$. This follows from \var{firstn\_all2}
+  in the Coq standard library.
+\end{proof}
+
+\begin{theorem}[iter\_preserves]
+  We are given $f$, $n$, $z$ and a predicate $P : A \to \mathbb{P}$.
+  Suppose $f$ preserves $P$, which is to say that
+  \begin{equation*}
+    \forall x,~P~x \implies P~(f~x)
+  \end{equation*}
+  then,
+  \begin{gather*}
+     P~z \implies \forall x \in \var{iter}~f~n~z,~P~x
+  \end{gather*}
+\end{theorem}
+\begin{proof}
+  This follows from induction on $n$.
+\end{proof}
+
+\begin{lemma}[sort\_rots\_all\_len]
+  For all lists $l$,
+  \begin{equation*}
+    \forall x \in \var{lexsort}~(\var{rots}~l),~\var{length}~x = \var{length}~l
+  \end{equation*}
+\end{lemma}
+\begin{proof}
+  Because \var{lexsort} permutes its argument, it suffices to show
+  that all the rows of $\var{rots}~l$ have the same length as $l$.
+  This follows from \var{iter\_preserves} and the fact that
+  \var{lrot} preserves length.
+\end{proof}
+
+\begin{corollary}[recreate\_correct]
+  For all lists $l$,
+  \begin{equation*}
+    \var{recreate}~(\var{length}~l)~(\var{bwp}~l) =
+    \var{lexsort}~(\var{rots}~l)
+  \end{equation*}
+\end{corollary}
+\begin{proof}
+  This follows from \var{recreate\_correct\_ind},
+  \var{cols\_id}, and \var{sort\_rots\_all\_len}.
+\end{proof}
+
+\begin{theorem}[unbwt\_correct]
+  For all lists $l$,
+  \begin{equation*}
+    \var{unbwt}~(\var{bwn}~l)~(\var{bwp}~l) = l
+  \end{equation*}
+\end{theorem}
+\begin{proof}
+  The proof is almost identical to that given in
+  \Crefrange{eq:unbwt_correct_start}{eq:unbwt_correct_end}.
+\end{proof}
+
+To implement \var{recreate}, we need expressions for
+$\var{recreate}~0$ and $\var{recreate}~(j+1)$ that satisfy
+\Cref{eq:recreate_correct_ind} in \var{recrate\_correct\_ind}:
+\begin{equation}
+  \var{recreate}~j~(\var{bwp}~l) =
+  \var{cols}~j~(\var{lexsort}~(\var{rots}~l))
+  \tag{\ref{eq:recreate_correct_ind}}
+\end{equation}
+
+To derive an implementation, we can substitute for $j$ on the right-hand
+side of \Cref{eq:recreate_correct_ind} and manipulate that expression
+algebraically until it is in the form \var{\_ (bwp l)}. Then we can
+define $\var{recreate}~0$ and $\var{recreate}~(j+1)$ to be
+precisely those \var{\_}s, and by running our derivation in
+reverse, we obtain a proof.
+
+We start with the base case, $\var{recreate}~0$:
+\begin{align*}
+     \var{cols}~0~(\var{lexsort}~(\var{rots}~l))
+  &= \var{map}~(\lambda x.[])~(\var{lexsort}~(\var{rots}~l))) \\
+  &= \var{repeat}~[]~(\var{length}~(\var{lexsort}~(\var{rots}~l))) \\
+  &= \var{repeat}~[]~(\var{length}~(\var{bwp}~l)) \\
+     \var{cols}~0~(\var{lexsort}~(\var{rots}~l))
+  &= \var{map}~(\lambda x.[])~(\var{bwp}~l)
+\end{align*}
+
+From this, we can define $\var{recreate}~0~l = \var{map}~(\lambda
+x.[])~l$ and we already have the proof for the base case of the
+correctness specification.
+
+For the inductive case, we have the expression
+\begin{equation*}
+  \var{cols}~(j+1)~(\var{lexsort}~(\var{rots}~l))
+\end{equation*}
+on the right-hand side. Our plan is to express $\var{cols}~(j+1)$
+in terms of $\var{cols}~j$, and then to use the induction
+hypothesis
+\begin{equation*}
+  \var{cols}~j~(\var{lexsort}~(\var{rots}~l)) = \var{recreate}~j
+\end{equation*}
+to produce a well-formed recursive definition.
+
+One way to do this is to note that taking the first $j+1$ columns of a
+matrix is the same as moving the first column to the back, taking the
+first $j$ columns, and then sticking the last column back on the
+front:
+\begin{equation*}
+  \var{cols}~(j+1)~l =
+  \var{prepend\_col}~(\var{map}~\var{hd}~l)~(\var{cols}~j~(\var{map}~\var{lrot}~l))
+\end{equation*}
+If we substitute $\var{map}~\var{rrot}~l$ for $l$ we find a simpler expression
+\begin{equation}
+  \label{eq:cols_rrot}
+  \var{cols}~(j+1)~(\var{map}~\var{rrot}~l) =
+  \var{prepend\_col}~(\var{map}~\var{last}~l)~(\var{cols}~j~l)
+\end{equation}
+
+Now we would like to find a way of introducing a $\var{map}~\var{rrot}$
+before the $\var{lexsort}~(\var{rots}~l)$. The insight here is that we can
+assume that \var{lexsort} is actually a radix-sort. That is, that
+\begin{equation*}
+\var{lexsort}~l = (\var{hdsort} \comp \var{map}~\var{rrot})^{\var{length}~l}~l
+\end{equation*}
+where \var{hdsort} sorts the matrix stably on the the first column.
+
+We can do this because there is only one way to sort the matrix, so
+assuming \var{lexsort} and the radix-sort are correct, they must be
+doing the same thing. We will prove this in
+\cref{sec:sorted_perm_stable,sec:sort}.
+
+%% In seeking to introduce an extra \verb|map rrot| term, we can note
+%% that rotating and sorting an extra time doesn't change anything when
+%% we are sorting the rotation matrix. This works because rotating the
+%% last column to the front produces a matrix that is sorted on its last
+%% \verb|n - 1| characters, so sorting stably on the first column will
+%% re-sort the matrix. Crucially though, rotating the last column
+%% forwards also permutes the entire matrix, so in addition to having a
+%% sorted list, we have a sorted list of the same elements.
+
+%% Using that we can show
+%% \begin{equation*}
+%%   lexsort (rots x)
+%% = { because rrot permutes its elements }
+%%   lexsort (rrot (rots x))
+%% = { because hdsort permutes its elements }
+%%   lexsort (hdsort (rrot (rots x)))
+%% = { radix-sort }
+%%   rep n (hdsort ∘ rrot) (hdsort (rrot (rots x)))
+%% = { rep_absorb_r }
+%%   rep (S n) (hdsort ∘ rrot) (rots x)
+%% = { rep_split_l }
+%%   hdsort (rrot (rep n (hdsort ∘ rrot) (rots x)))
+%% = { radix-sort }
+%%   hdsort (rrot (lexsort (rots x)))
+%% \end{equation*}
+
+%% From here we can calculate
+%% \begin{equation*}
+%%   cols (S j) (lexsort (rots l))
+%% = cols (S j) (hdsort (map rrot (lexsort (rots l))))
+%% = { hdsort commutes with cols (S j) }
+%%   hdsort (cols (S j) (map rrot (lexsort (rots l))))
+%% = { reduce cols (S j) }
+%%   hdsort (prepend_col (map last (lexsort (rots l))) (cols j (lexsort (rots l)))
+%% = { by IH and def of bwp }
+%%   hdsort (prepend_col (bwp l) (recreate j (bwp l)))
+%% = (fun x => hdsort (prepend_col x (recreate j x))) bwp
+%% \end{equation*}
+
+%% More precisely, we can characterize how \verb|map rrot| permutes
+%% \verb|rots|
+%% \begin{equation*}
+%% map rrot (rots x) = rrot (rots x)
+%% \end{equation*}
+
+%% From here we can calculate
+%% \begin{equation*}
+%%   cols (S j) (lexsort (rots l))
+%% = cols (S j) (hdsort (map rrot (lexsort (rots l))))
+%% = { hdsort commutes with cols (S j) }
+%%   hdsort (cols (S j) (map rrot (lexsort (rots l))))
+%% = { reduce cols (S j) }
+%%   hdsort (prepend_col (map last (lexsort (rots l))) (cols j (lexsort (rots l)))
+%% = { by IH and def of bwp }
+%%   hdsort (prepend_col (bwp l) (recreate j (bwp l)))
+%% = (fun x => hdsort (prepend_col x (recreate j x))) bwp
+%% \end{equation*}
+
+%% We can use this to define \verb|recreate|:
+%% \begin{equation*}
+%% Fixpoint recreate (j : nat) (l : list A) : list (list A) :=
+%%   match j with
+%%   | O    => map (const []) l
+%%   | S j' => hdsort (prepend_col l (recreate j' l))
+%%   end.
+%% \end{equation*}
+
+\section{\var{Sorted}, \var{Permutation}, and \var{StablePermutation}}
+\label{sec:sorted_perm_stable}
+
+The previous section's derivation relied on the correctness and stability of
+various sorts. To make those parts of the derivation precise, we
+define here what it means for a sorting function to be correct, and
+what it means for a sort to be stable.
+
+Intuitively, a sorting function must produce a sorted list that
+contains all of the elements that its input contained. So, given a function $f : \var{list}~A \to \var{list}~A$, we say that $\var{Sort}~f$ precisely when for all $l$,
+\begin{equation*}
+  \var{Sorted}~(f~l) \land \var{Permutation}~(f~l)~l
+\end{equation*}
+Now we need to define \var{Sorted} and \var{Permutation} to capture
+the idea that a list is in sorted order, and that two lists contain
+all of the same elements.
+
+\subsection{\var{Sorted}}
+\label{subsec:sorted}
+
+For a sorting function to be correct, its output must be sorted with
+respect to the ordering defined by the \var{Preord} instance. There a
+a few ways we might define what it means for a list to be sorted. In
+mathematics, we might say that a list $l$ is sorted if for all indices
+$i$ and $j$,
+\begin{equation*}
+  i \le j \implies l_i \le l_j
+\end{equation*}
+We will call this property \var{SortedIx}.
+
+However, it is often easier to reason about inductively defined
+properties, so we would like to define \var{Sorted} inductively. So,
+we can say that as a base case, the empty list is sorted, and given a
+sorted list, we can add an element that is smaller than all the
+existing elements and the result will also be sorted:
+\begin{align*}
+  \infer[\var{Sorted\_nil}]{\var{Sorted}~[]}{}
+  &&
+  \infer[\var{Sorted\_cons}]{\var{Sorted}~(a :: l)}{%
+    (\forall~x \in l,~a < x) & \var{Sorted}~l
+  }
+\end{align*}
+
+By transitivity it suffices to check that the new element is
+smaller than just the first element of the sorted list. That leads to
+a third definition of sorted:
+\begin{gather*}
+  \begin{align*}
+    \infer[\var{SortedLocal\_nil}]{\var{SortedLocal}~[]}{}
+    &&
+    \infer[\var{SortedLocal\_1}]{\var{SortedLocal}~[a]}{}
+  \end{align*}
+  \\
+  \\
+  \infer[\var{SortedLocal\_cons}]{\var{SortedLocal}~(a :: b :: l)}{%
+    a < b & \var{SortedLocal}~(b :: l)
+  }
+\end{gather*}
+
+Although these two inductive definitions are intuitive, they are not
+obviously equivalent to the first definition, which is more clearly
+correct. We prove them equivalent all:
+\begin{theorem}[SortedLocal\_iff]
+  For all lists $l$,
+  \begin{equation*}
+    \var{Sorted}~l \iff \var{SortedLocal}~l
+  \end{equation*}
+\end{theorem}
+\begin{proof}
+  The $\implies$ direction follows by induction. The $\impliedby$
+  direction follows by induction on $l$, reasoning about the empty
+  list, the singleton list, and lists with at least two elements. In
+  the inductive case $l = a :: b :: l'$, we have that $a \le b$, and
+  that $\forall x \in l',~b \le x$, which gives us $\forall x \in b :: l',~a \le x$ by
+  transitivity.
+\end{proof}
+
+\begin{theorem}[SortedIx\_iff]
+  A list $l$ is sorted under the inductive definition (\var{Sorted}) if
+  and only if it is sorted under the index definition (\var{SortedIx}).
+\end{theorem}
+\begin{proof}
+  We reason by induction on $l$. The base cases are easy, so we
+  address the inductive case, $l = a :: l'$
+
+  ($\implies$) We have to prove that $(a :: l')_i \le (a :: l')_j$ given
+  $i \le j$ and $\var{Sorted}~l$. We reason by cases on $i$ and $j$:
+  \begin{itemize}[noitemsep]
+  \item $i = j = 0$. By reflexivity, $a \le a$.
+  \item $i = 0,~j=j' + 1$. We need to show $a \le l'_{j'}$. We know that
+    $a \le x$ for all $x \in l'$ by $\var{SortedIx}~(a::l')$, so we are
+    done.
+  \item $i = i' +1,~j = j' + 1$. We need to show $l'_{i'} \le l'_{j'}$,
+    which follows from the induction hypothesis.
+  \end{itemize}
+
+  ($\impliedby$) We have $\var{SortedIx}~(a :: l')$, and we need to
+  show $\var{Sorted}~a :: l'$ given the induction hypothesis
+  $\var{SortedIx}~l' \implies \var{Sorted}~l'$. By
+  \var{SortedLocal\_iff}, we can just prove $\var{SortedLocal}~(a ::
+  l')$. If $l' = []$, we can apply $\var{SortedLocal\_1}$, so assume
+  $l' = b :: l''$. To apply \var{SortedLocal\_cons} we need to show
+  $\var{SortedLocal}~(b :: l'')$, which we have by the induction
+  hypothesis and $\var{SortedIx}~(a :: b :: l'')$, and that $a \le b$.
+  That follows because $a = (a :: b :: l'')_0$ and $b = (a :: b ::
+  l'')_1$, so by $\var{SortedIx}~(a :: b :: l'')$, we are done.
+\end{proof}
+
+\subsection{\var{Permutation}}
+
+There are multiple ways of defining \var{Permutation} as well: some of
+them are more obviously correct, and some are more useful in certain
+situations. The ``mathematical'' definition of when two lists $l$
+and $l'$ are permutations of each other is:
+\begin{itemize}[nosep]
+  \item $\var{length}~l = \var{length}~l' = n$
+  \item there exists a permutation function $p : \mathbb{N}_{<n} \to
+    \mathbb{N}_{<n}$, where $p$ is a bijection, such that for all indices $i$,
+    \begin{equation*}
+      l_i = l'_{p(i)}
+    \end{equation*}
+\end{itemize}
+
+In Coq, we can represent a finite function as a list of its outputs:
+$f : \mathbb{N}_{<n} \to A$ is represented by the $\var{list}~A$
+$[f(0),~f(1),\ldots,f(n-1)]$. This is consistent with the mathematical
+notation where we denote by $2~1~0$ the permutation $p(0) = 2$, $p(1)
+= 1$, $p(2) = 0$. So, $p$ here would be represented by $[2,~1,~0]$.
+
+To restrict the range to $\mathbb{N}_{<n}$ we say that $\forall i,~i \in p
+\implies ~i<n$, to make the function surjective, we strengthen that to
+$\forall i,~i \in p \iff ~i<n$, and to make it injective we require that $p$ not
+contain any duplicate entries. The inductive property \var{NoDup} from
+the Coq standard library captures that requirement:
+\begin{align*}
+  \infer[\var{NoDup\_nil}]{\var{NoDup}~[]}{}
+  &&
+  \infer[\var{NoDup\_cons}]{\var{NoDup}~(x :: l)}{%
+    x \notin l & \var{NoDup}~l
+  }
+\end{align*}
+This leads to the following definition of the property
+$\var{PermFun}~n~p$, which holds when $p : \var{list}~\mathbb{N}$
+represents a permutation function on lists of length $n$:
+\lstinputlisting[
+  firstline=14, lastline=15
+]{../theories/BWT/Sorting/PermFun.v}
+
+
+%% In this section we prove the lemmas from the previous section:
+%% \begin{enumerate}
+%% \item
+%% \begin{equation*}
+%% map rrot (rots x) = rrot (rots x)
+%% \end{equation*}
+
+%% \item \verb|hdsort| commutes with \verb|cols (S j)|
+%%   This proof is cool because in theory it can be proven via
+%%   parametricity, but that's a metatheorem in Coq.
+
+%% \item
+%% \begin{equation*}
+%% cols (S j) (map rrot l) = prepend_col (map last l) (cols j l)
+%% \end{equation*}
+%% \end{enumerate}
+
+\section{Insertion Sort, Radixsort, and \texttt{lexsort}}
+\label{sec:sort}
+
+
+\section{Proving BWT Correct}
+\label{sec:BWT_proof}
+
+\printbibliography{}
+
+\end{document}
+
+%% We prove this using a few lemmas about \var{findIndex},
+%% \var{lexsort}, and \var{rots}.
+
+%% \begin{lemma}[findIndex\_correct]
+%%   For all elements $x$, lists $l$,
+%%   \begin{equation*}
+%%     (\exists y \in l,~x \equiv y) \implies l_{(\var{findIndex}~x~xs)} \equiv x
+%%   \end{equation*}
+%%   \begin{proof}
+%%     This follows by induction on $xs$: At every step, either the
+%%     current element is equivalent to $x$ and we return $0$, or there
+%%     must be such a $y$ in the rest of the list.
+%%   \end{proof}
+%% \end{lemma}
+
+%% \begin{lemma}[orig\_in\_sorted\_rots]
+%%   For every non-empty list $l$,
+%%   \begin{equation*}
+%%     \exists y \in \var{lexsort}~(\var{rots}~l),~x = y
+%%   \end{equation*}
+%%   \begin{proof}
+%%     Clearly $l$ is in $\var{rots}~l$ at index 0, and because
+%%     \var{lexsort} produces a permutation of its input, $l$ must be
+%%     in $\var{lexsort}~(\var{rots}~l)$ as well.
+%%   \end{proof}
+%% \end{lemma}
+
+%% \begin{theorem}[bwn\_correct]
+%%   For every non-empty list $xs$,
+%%   \begin{equation*}
+%%     (\var{lexsort}~(\var{rots}~xs))_{(\var{bwn}~xs)} = xs
+%%   \end{equation*}
+%%   \begin{proof}
+%%     This follows from \textsf{findIndex\_correct} if we can show that
+%%     $\exists y \in xs,~x = y$, which we have by \textsf{orig\_in\_sorted\_rots}.
+%%   \end{proof}
+%% \end{theorem}

@@ -35,7 +35,7 @@ Section Iterate.
       + omega.
       + reflexivity.
     - destruct n; try omega.
-      rewrite rep_z. apply IHi. omega.
+      rewrite <- rep_r. apply IHi. omega.
   Qed.
 
   Theorem iter_length : forall f n z,

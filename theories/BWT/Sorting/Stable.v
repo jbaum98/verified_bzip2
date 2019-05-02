@@ -482,11 +482,11 @@ Section Unique.
     - apply Stable_nil in St. subst; auto.
     - destruct l' as [|hd' tl'];
       [exfalso; eapply Permutation_nil_cons; symmetry;
-        apply (@Stable_perm _ _ _ Ord_EqDec); easy|].
+        apply (@Stable_perm _ _ _ Preord_EqDec); easy|].
       apply Sorted_cons_inv in SL; destruct SL as [HIn SL].
       apply Sorted_cons_inv in SL'; destruct SL' as [HIn' SL'].
       assert (hd === hd'). {
-        apply (@Stable_perm _ _ _ Ord_EqDec) in St; rename St into P.
+        apply (@Stable_perm _ _ _ Preord_EqDec) in St; rename St into P.
         pose proof (Permutation_sym P) as P'.
         destruct (Permutation_cons_in hd hd' tl tl' P);  [subst; reflexivity|].
         destruct (Permutation_cons_in hd' hd tl' tl P'); [subst; reflexivity|].

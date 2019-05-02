@@ -16,7 +16,8 @@ Import Coq.Lists.List.ListNotations.
 Section Cols.
   Context {A : Type} `{Ord A}.
 
-  Definition cols j := map (@firstn A j).
+  Definition cols (j : nat) : list (list A) -> list (list A)
+    := map (firstn j).
 
   Theorem cols_S_hdsort : forall j l,
       cols (S j) (hdsort l) = hdsort (cols (S j) l).
@@ -27,23 +28,16 @@ Section Cols.
     intros []; reflexivity.
   Qed.
 
-  Theorem cols_id : forall n mat,
-      Forall (fun x => length x <= n) mat ->
-      cols n mat = mat.
+  Theorem cols_id : forall j m,
+      Forall (fun x => length x <= j) m ->
+      cols j m = m.
   Proof.
-    induction n; intros mat HL.
-    - unfold cols. unfold firstn.
-      rewrite <- map_id.
-      apply map_forall_eq.
-      eapply Forall_impl; [|apply HL].
-      simpl; intros.
-      assert (length a = 0) by omega.
-      symmetry. apply length_zero_iff_nil; auto.
-    - unfold cols. rewrite <- map_id.
-      apply map_forall_eq.
-      eapply Forall_impl; [|apply HL].
-      cbv beta. intros.
-      apply firstn_all2; auto.
+    intros j m HL.
+    unfold cols; rewrite <- map_id.
+    apply map_forall_eq.
+    eapply Forall_impl; [|apply HL].
+    cbn; intros r Hr.
+    apply firstn_all2; easy.
   Qed.
 End Cols.
 

@@ -15,12 +15,14 @@ let
       parskip
       cleveref
       mathtools
+      lkproof
+      enumitem
       ;
     });
 in compileTex {
   srcDir = ./.;
   texFile = "draft_paper.tex";
-  otherFiles = [ "draft_paper.bib" ];
+  otherFiles = [ "draft_paper.bib" "thesis.cls" "lstlangcoq.sty" ];
   fonts = [ iosevka-bin ];
   inherit tex;
 }
