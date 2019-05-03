@@ -756,11 +756,24 @@ correct. We prove them equivalent all:
 
 \subsection{\var{Permutation}}
 
-There are multiple ways of defining \var{Permutation} as well: some of
-them are more obviously correct, and some are more useful in certain
-situations. The ``mathematical'' definition of when two lists $l$
-and $l'$ are permutations of each other is:
-\begin{itemize}[nosep]
+The word \textit{permutation} has two related meanings that are often
+used interchangably. We sometimes say that two lists are permutations of each
+other if they contain all of the same elements, just appearing in a
+different order. However, in mathematics we often say that a
+permutation is actually the bijection on indices that defines the
+correspondence between the two lists. For example, we say that $p$ is
+the permutation that relates $l$ to $l'$ if for all indices $i$ and
+$j$,
+\begin{equation*}
+  l_i = l'_{p(i)}
+\end{equation*}
+For consistency with Coq's built-in \var{Permuation} relation, in a
+situation like this we will say that $l$ and $l'$ are permutations of
+each other, and that $p$ is the \textit{permutation function} that
+relates $l$ to $l'$. We say that two lists $l$ and $l'$ are
+permutations of each other is precisely when
+\vspace{-\parskip}
+\begin{itemize}[nolistsep]
   \item $\var{length}~l = \var{length}~l' = n$
   \item there exists a permutation function $p : \mathbb{N}_{<n} \to
     \mathbb{N}_{<n}$, where $p$ is a bijection, such that for all indices $i$,
@@ -771,7 +784,7 @@ and $l'$ are permutations of each other is:
 
 In Coq, we can represent a finite function as a list of its outputs:
 $f : \mathbb{N}_{<n} \to A$ is represented by the $\var{list}~A$
-$[f(0),~f(1),\ldots,f(n-1)]$. This is consistent with the mathematical
+$[f(0),~f(1),\ldots,f(n-1)]$. For permutations, this is consistent with the
 notation where we denote by $2~1~0$ the permutation $p(0) = 2$, $p(1)
 = 1$, $p(2) = 0$. So, $p$ here would be represented by $[2,~1,~0]$.
 
@@ -787,13 +800,227 @@ the Coq standard library captures that requirement:
     x \notin l & \var{NoDup}~l
   }
 \end{align*}
+
 This leads to the following definition of the property
 $\var{PermFun}~n~p$, which holds when $p : \var{list}~\mathbb{N}$
 represents a permutation function on lists of length $n$:
 \lstinputlisting[
-  firstline=14, lastline=15
+  firstline=14, lastline=15,
+]{../theories/BWT/Sorting/PermFun.v}
+Then, we can define \var{apply}, which permutes a list according to a
+given permutation:
+\lstinputlisting[
+  widthgobble=2, firstline=161, lastline=165,
+]{../theories/BWT/Sorting/PermFun.v}
+And finally, we can define \var{PermutationEx}, which holds between
+two lists when they are permutations of each other.
+\lstinputlisting[
+  widthgobble=2, firstline=510, lastline=511,
 ]{../theories/BWT/Sorting/PermFun.v}
 
+As with \var{Sorted}, we would also like an inductive definition of
+\var{Permutation}. The Coq standard library includes one:
+\begin{align*}
+  \infer[\var{perm\_nil}]{\var{Permutation}~[]~[]}{}
+  &&
+  \infer[\var{perm\_skip}]{\var{Permutation}~(x :: l)~(x :: l')}{%
+    \var{Permutation}~l~l'
+  }
+  \\
+  \\
+  \infer[\var{perm\_swap}]{\var{Permutation}~(x :: y :: l)~(y :: x :: l)}{}
+  &&
+  \infer[\var{perm\_trans}]{\var{Permutation}~l~l''}{
+    \var{Permutation}~l~l' & \var{Permutation}~l'~l''
+  }
+\end{align*}
+
+We will prove these two definitions equivalent, but first we confirm that our definition of \var{PermFun} ensures that .
+
+We know we will
+eventually need to reason inductively about permutation functions, so
+we would like to define the relationship between applying a
+permutation function $i :: p$ and applying $p$. Conceptually, the
+first element of $\var{apply}~(i::p)~l$ will be $l_i$. The rest will
+be the result of applying some new permutation $p'$, where everything
+greater than $i$ has been shifted down by one, to some new list $l'$,
+which has its $i$th element removed. So, we define \var{rem\_PermFun}
+and \var{rem\_nth} respectively, hoping to prove that
+\begin{equation*}
+  \var{apply}~(i::p)~l =
+  l_i :: \var{apply}~(\var{rem\_PermFun}~i~p)~(\var{rem\_nth}~i~l)
+\end{equation*}
+\lstinputlisting[
+  widthgobble=4, firstline=229, lastline=229,
+]{../theories/BWT/Sorting/PermFun.v}
+\vspace{\parskip}
+\lstinputlisting[
+  widthgobble=2, firstline=599, lastline=607,
+]{../theories/BWT/Lib/List.v}
+
+These two theorems define how \var{rem\_nth} affects indexing.
+\begin{theorem}[nth\_lt\_rem\_nth, nth\_ge\_rem\_nth]
+  For all lists $l$ and indices $i$ and $j$,
+  \begin{equation*}
+    j < i \implies (\var{rem\_nth}~i~l)_j = l_j
+  \end{equation*}
+  and
+  \begin{equation*}
+    j \ge i \implies (\var{rem\_nth}~i~l)_j = l_{j+1}
+  \end{equation*}
+\end{theorem}
+\begin{proof}
+  Both theorems follow by induction on $i$.
+\end{proof}
+
+As we expect, removing the $n$th element and sticking it on the front
+preserves all elements.
+\begin{theorem}[rem\_nth\_Perm]
+  For all list $l$ and indices $i$
+  \begin{equation*}
+    \var{Permutation}~l~(l_i :: \var{rem\_nth}~i~l)
+  \end{equation*}
+\end{theorem}
+\begin{proof}
+  This follows from induction on $l$.
+\end{proof}
+
+\begin{theorem}[rem\_PermFun\_correct]
+  For all permutation functions $p$, lists $l$, and indices $i$.
+  \begin{equation*}
+    \var{apply}~(i::p)~l =
+    l_i :: \var{apply}~(\var{rem\_PermFun}~i~p)~(\var{rem\_nth}~i~l)
+  \end{equation*}
+\end{theorem}
+\begin{proof}
+  Working backwards from our goal,
+  \begin{align*}
+    \var{apply}~(i::p)~l &=
+    l_i :: \var{apply}~(\var{rem\_PermFun}~i~p)~(\var{rem\_nth}~i~l) \\
+    l_i :: \var{map}~(\lambda j.~l_j)~p &=
+    l_i :: \var{map}~(\lambda j.~(\var{rem\_nth}~i~l)_j)~(\var{rem\_PermFun}~i~p) \\
+    \var{map}~(\lambda j.~l_j)~p &=
+    \var{map}~(\lambda j.~(\var{rem\_nth}~i~l)_j)~(\var{map}~(\lambda j. \bvar{if}~i < j~\bvar{then}~j-1~\bvar{else}~j)~p) \\
+    \var{map}~(\lambda j.~l_j)~p &=
+    \var{map}~(\lambda j.~(\var{rem\_nth}~i~l)_{\bvar{if}~i < j~\bvar{then}~j-1~\bvar{else}~j})~p \\
+  \end{align*}
+  From here, we need to prove that the mapping functions agree on all
+  the elements of $p$, namely that for all $j \in p$
+  \begin{equation*}
+    l_j = (\var{rem\_nth}~i~l)_{\bvar{if}~i < j~\bvar{then}~j-1~\bvar{else}~j}
+  \end{equation*}
+  We know that $i \neq j$, because $j \in p$ and $\var{NoDup}~(i :: p)$.
+  Therefore there are two cases, $i < j$ and $i > j$. When $i < j$, we have
+  \begin{equation*}
+    l_j = (\var{rem\_nth}~i~l)_{j-1}
+  \end{equation*}
+  by \var{nth\_ge\_rem\_nth}, and when $i > j$, we have
+  \begin{equation*}
+    l_j = (\var{rem\_nth}~i~l)_j
+  \end{equation*}
+  by \var{nth\_lt\_rem\_nth}.
+\end{proof}
+
+\begin{theorem}[apply\_correct]
+  For all permutation functions $p$ and lists $l$,
+  \begin{equation*}
+    \var{Permutation}~(\var{apply}~p~l)~l
+  \end{equation*}
+\end{theorem}
+\begin{proof}
+  First we let $n = \var{length}~l$, so that we can reason by
+  induction on $n$. The base case is uninteresting. In the inductive
+  case, we have the induction hypothesis that for all lists of length
+  $n$ and permutation functions on such lists,
+  \begin{equation*}
+    \var{Permutation}~(\var{apply}~p~l)~l
+  \end{equation*}
+  and we must show that
+  \begin{equation*}
+    \var{Permutation}~(\var{apply}~(i :: p)~(a :: l))~(a :: l)
+  \end{equation*}
+
+  We reason as follows, using the notation $\eqperm$ to
+  chain together \var{Permutation}s:
+  \begin{align*}
+    \var{apply}~(i :: p')~(a :: l) &\eqperm
+    (a :: l)_i :: \var{apply}~(\var{rem\_PermFun}~i~p)~(\var{rem\_nth}~i~(a::l)) \\
+    &\eqperm (a :: l)_i :: \var{rem\_nth}~i~(a::l) \\
+    &\eqperm a :: l
+  \end{align*}
+  where the first step follows from \var{rem\_PermFun\_correct}, the
+  second from the induction hypothesis, and the last from
+  \var{rem\_nth\_Perm}.
+\end{proof}
+
+\begin{theorem}[PermutationEx\_iff]
+  For all lists $l$ and $l'$,
+  \begin{equation*}
+    \var{Permutation}~l~l' \iff \var{PermutationEx}~l~l'
+  \end{equation*}
+\end{theorem}
+\begin{proof}
+  The $\impliedby$ direction follows from \var{apply\_correct}.
+
+  ($\implies$) We reason by induction on the evidence of
+  $\var{Permutation}~l~l'$. The empty case is simple.
+  \begin{itemize}
+  \item We have a permutation function $p$ from the induction
+    hypothesis such that $\var{apply}~p~l = l'$, and we need to
+    construct a permutation function $p'$ such that
+    $\var{apply}~p'~(x::l) = x :: l'$. We let $p' = 0 ::
+    \var{map}~(+1)~p$, shifting every index up by one and mapping
+    the first element of the list to itself.
+  \item We have to construct a permutation function $p$ such that
+    $\var{apply}~p~(y :: x :: l) = x :: y :: l$. We let $p = 1 :: 0 ::
+    \var{map}~(+2)~(\var{seq}~0~(\var{length}~l))$, leaving every
+    element in place except for the first 2.
+  \item We have permutation functions $p_1$ and $p_2$ from our two
+    induction hypotheses, such that
+    \begin{align*}
+      \var{apply}~p_1~l = l' && \var{apply}~p_2~l' = l''
+    \end{align*}
+    We need to construct a $p'$ such that $\var{apply}~p'~l=l''$, so
+    we let $p' = p_2 \comp p_1$. For the definition of composition of
+    permutations, see \cref{appendix:perm_comp}. Then,
+    \begin{equation*}
+      \var{apply}~(p_2 \comp p_1)~l =
+      \var{apply}~p_2~(\var{apply}~p_1~l) = l'' \qedhere
+    \end{equation*}
+  \end{itemize}
+\end{proof}
+
+For completeness, we will briefly mention a third definition of a
+permutation relation that says that two lists are permutations of one
+another when any element occurs an equal number of times in each:
+\lstinputlisting[
+  widthgobble=2, firstline=14, lastline=15,
+]{../theories/BWT/Sorting/PermutationCount.v}
+\var{count\_occ} counts the number of occurences of a given variable
+using a decision procedure for Leibniz equality. Here that decision
+procedure is \texttt{equiv\_dec} from an \var{EqDec} instance where we
+require the equivalence relation itself by Leibniz equality.
+
+\begin{theorem}[PermutationCount\_iff]
+  For all lists $l$ and $l'$,
+  \begin{equation*}
+    \var{Permutation}~l~l' \iff \var{PermutationCount}~l~l'
+  \end{equation*}
+\end{theorem}
+\begin{proof}
+  The ($\implies$) direction follows from induction in the evidence of
+  $\var{Permutation}~l~l'$.
+
+  In the ($\impliedby$) direction, we reason by induction on $l$. In
+  the inductive case, we have to show $\var{Permutation}~(a::l)~l'$.
+  We know that $a \in l'$ because $\var{count\_occ}~a~l' =
+  \var{count\_occ}~a~(a::l) > 0$. That means we can deconstruct $l'$
+  as $L \dplus a :: R$, and
+  \begin{equation*}
+    L \dplus a :: R \eqperm a :: L \dplus R \eqperm a :: l
+  \end{equation*}
+  where the last step follows from the induction hypothesis.
+\end{proof}
 
 %% In this section we prove the lemmas from the previous section:
 %% \begin{enumerate}
@@ -818,6 +1045,11 @@ represents a permutation function on lists of length $n$:
 
 \section{Proving BWT Correct}
 \label{sec:BWT_proof}
+
+\appendix
+
+\section{Permutation Composition}
+\label{appendix:perm_comp}
 
 \printbibliography{}
 

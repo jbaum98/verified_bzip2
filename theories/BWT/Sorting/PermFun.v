@@ -327,7 +327,7 @@ Section Apply.
             apply in_seq. omega.
     Qed.
 
-    Theorem rem_hd_PermFun : forall l i p d,
+    Theorem rem_PermFun_correct : forall l i p d,
         PermFun (length l) (i::p) ->
         apply (i::p) l = nth i l d :: apply (rem_PermFun i p) (rem_nth i l).
     Proof.
@@ -345,14 +345,14 @@ Section Apply.
               by (apply PermFun_range with (p := i :: p); [easy|left; easy]);
             rewrite <- S_pred_pos by omega;
             easy).
-      unfold rem_PermFun; rewrite map_map.
+      unfold rem_PermFun. rewrite map_map.
       apply map_ext_in.
-      intros a HIn.
-      assert (i <> a) by (intro c; subst; contradiction).
-      destruct (lt_dec i a).
+      intros j HIn.
+      assert (i <> j) by (intro c; subst; contradiction).
+      destruct (lt_dec i j).
       - rewrite nth_ge_rem_nth by omega.
-        destruct a; easy.
-      - rewrite nth_lt_rem_nth by omega; easy.
+        destruct j; easy.
+      - assert (i > j) by omega. rewrite nth_lt_rem_nth by easy; easy.
     Qed.
   End RemPermFun.
 
@@ -368,7 +368,7 @@ Section Apply.
       reflexivity.
     - destruct l as [|a l]; [inversion HN|].
       destruct p as [|i p]; [apply PermFun_S_nil in HP; contradiction|].
-    rewrite rem_hd_PermFun with (d := a) by (rewrite <- HN; easy).
+    rewrite rem_PermFun_correct with (d := a) by (rewrite <- HN; easy).
     assert (i < length (a :: l))
       by (apply PermFun_range with (p := i :: p); [rewrite <- HN|left]; easy).
     etransitivity;
@@ -451,10 +451,10 @@ Section Compose.
     - destruct p as [|i p]; [apply PermFun_S_nil in HP; contradiction|].
       destruct l as [|xl l]; [inversion HL|].
       destruct r as [|xr r]; [inversion HR|].
-      rewrite rem_hd_PermFun with (d := (xl, xr))
+      rewrite rem_PermFun_correct with (d := (xl, xr))
         by (rewrite combine_length, HL, HR, Nat.min_id; easy).
-      rewrite rem_hd_PermFun with (d := xl) by (rewrite HL; easy).
-      rewrite rem_hd_PermFun with (d := xr) by (rewrite HR; easy).
+      rewrite rem_PermFun_correct with (d := xl) by (rewrite HL; easy).
+      rewrite rem_PermFun_correct with (d := xr) by (rewrite HR; easy).
       cbn [combine]; rewrite <- combine_nth by (rewrite HL, HR; easy).
       f_equal.
       rewrite <- IHn;
@@ -508,7 +508,7 @@ Section PermutationEx.
   Implicit Type l : list A.
 
   Definition PermutationEx l l' : Prop :=
-   exists p, PermFun (length l) p /\ apply p l = l'.
+    exists p, PermFun (length l) p /\ apply p l = l'.
 
   Theorem PermutationEx_iff : forall l l',
       Permutation l l' <-> PermutationEx l l'.

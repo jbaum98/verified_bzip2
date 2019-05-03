@@ -89,7 +89,8 @@
 
 \newcommand{\interlstingskip}{\nobreak\vskip 1em\goodbreak}
 
-\newcommand{\var}{\texttt}
+\newcommand{\var}[1]{\texttt{#1}}
+\newcommand{\bvar}[1]{\texttt{\textbf{#1}}}
 
 \newcommand{\compcent}[1]{\vcenter{\hbox{$#1\circ$}}}
 
@@ -99,3 +100,6 @@
 
 \RequirePackage{proof}
 \RequirePackage{enumitem}
+
+\newcommand{\eqperm}{\overset{\mathtt{Perm}}{=\joinrel=}}
+\newcommand{\dplus}{\ensuremath{\mathbin{+\mkern-3mu+}}}

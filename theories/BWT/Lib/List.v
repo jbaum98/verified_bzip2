@@ -737,3 +737,26 @@ Qed.
 Theorem in_cons_neq {A} : forall (x y : A) l,
     x <> y -> In x (y :: l) -> In x l.
 Proof. intros x y l NEQ []; intuition. Qed.
+
+Section CountOcc.
+  Context {A : Type} `(ED : EqDec A eq).
+
+  Implicit Type l : list A.
+
+  Lemma count_occ_remove_eq : forall a l r,
+    count_occ equiv_dec (l ++ a :: r) a = S (count_occ equiv_dec (l ++ r) a).
+  Proof.
+    induction l as [|x l IH]; intros r.
+    - cbn. rewrite if_true by reflexivity. easy.
+    - cbn. destruct (x == a); rewrite IH; reflexivity.
+  Qed.
+
+  Lemma count_occ_remove_neq : forall a l r x,
+      a <> x ->
+      count_occ equiv_dec (l ++ a :: r) x = count_occ equiv_dec (l ++ r) x.
+  Proof.
+    induction l as [|y l IH]; intros r x HNeq.
+    - cbn. rewrite if_false by easy. easy.
+    - cbn. destruct (y == x); rewrite IH; easy.
+  Qed.
+End CountOcc.
