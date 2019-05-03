@@ -589,6 +589,16 @@ Section FirstnSkipn.
     rewrite <- app_assoc.
     reflexivity.
   Qed.
+
+  Theorem firstn_nth : forall n (l : list A) i d,
+      i < n ->
+      nth i (firstn n l) d = nth i l d.
+  Proof.
+    induction n as [|n IH]; intros l i d HI; [omega|].
+    destruct l; [destruct i; easy|].
+    destruct i; [easy|].
+    cbn [firstn nth]. apply IH; omega.
+  Qed.
 End FirstnSkipn.
 
 Section RemNth.

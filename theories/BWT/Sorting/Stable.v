@@ -15,52 +15,45 @@ Require Import BWT.Lib.ZipWith.
 Require Import BWT.Lib.Sumbool.
 Require Import BWT.Lib.EqDec.
 
-Section Stable.
+Section StablePerm.
   Context {A : Type} `{E : EqDec A}.
 
-  (** Stable permutations.  Two lists are in the [Stable] relation if
-  equivalent elements appear in the same order in both lists.
-  That is, if the first list is of the form [ ... x ... y ... ]
-  with [x] and [y] being equivalent, the other list is also of
-  the form [ ... x ... y ... ].  *)
-
-  Definition Stable (l l': list A) : Prop :=
+  Definition StablePerm (l l': list A) : Prop :=
     forall x, filter (equiv_decb x) l = filter (equiv_decb x) l'.
 
-  Lemma Stable_refl:
-    forall l, Stable l l.
-    intros; red; intros; auto.
-  Qed.
+  Lemma StablePerm_refl:
+    forall l, StablePerm l l.
+  Proof. intros; red; reflexivity. Qed.
 
-  Lemma Stable_trans:
-    forall l1 l2 l3, Stable l1 l2 -> Stable l2 l3 -> Stable l1 l3.
+  Lemma StablePerm_trans:
+    forall l1 l2 l3, StablePerm l1 l2 -> StablePerm l2 l3 -> StablePerm l1 l3.
   Proof.
     intros; red; intros. transitivity (filter (equiv_decb x) l2); auto.
   Qed.
 
-  Lemma Stable_sym : forall l l',
-      Stable l l' -> Stable l' l.
+  Lemma StablePerm_sym : forall l l',
+      StablePerm l l' -> StablePerm l' l.
   Proof.
     intros l l' H x.
     specialize (H x).
     erewrite eq_sym; eauto.
   Qed.
 
-  Lemma Stable_app:
-    forall l l' m m', Stable l l' -> Stable m m' -> Stable (l ++ m) (l' ++ m').
+  Lemma StablePerm_app:
+    forall l l' m m', StablePerm l l' -> StablePerm m m' -> StablePerm (l ++ m) (l' ++ m').
   Proof.
     intros; red; intros. repeat rewrite filter_app. f_equal; auto.
   Qed.
 
-  Lemma Stable_skip:
-    forall a l l', Stable l l' -> Stable (a::l) (a::l').
+  Lemma StablePerm_skip:
+    forall a l l', StablePerm l l' -> StablePerm (a::l) (a::l').
   Proof.
     intros; red; intros. simpl.
     destruct (equiv_decb x a); simpl. f_equal; auto. auto.
   Qed.
 
-  Lemma Stable_swap:
-    forall a b l, a =/= b -> Stable (a::b::l) (b::a::l).
+  Lemma StablePerm_swap:
+    forall a b l, a =/= b -> StablePerm (a::b::l) (b::a::l).
   Proof.
     intros; red; intros. simpl.
     unfold equiv_decb.
@@ -70,43 +63,50 @@ Section Stable.
     eapply equiv_transitive. apply equiv_symmetric; eauto. eauto.
   Qed.
 
-  Lemma Stable_cons_app:
+  Lemma StablePerm_cons_app:
     forall a l l1 l2,
-      Stable l (l1 ++ l2) ->
+      StablePerm l (l1 ++ l2) ->
       (forall b, In b l1 -> a =/= b) ->
-      Stable (a :: l) (l1 ++ a :: l2).
+      StablePerm (a :: l) (l1 ++ a :: l2).
   Proof.
-    intros; red; intros. rewrite filter_app. simpl.
-    generalize (H x). rewrite filter_app.
-    unfold equiv_decb; case_eq (equiv_dec x a); intro; simpl; auto.
-    rewrite (filter_empty _ l1). simpl. intro. congruence.
-    intros. case_eq (equiv_dec x x0); intro; auto.
-    elim (H0 x0); auto.
-    eapply equiv_transitive; [symmetry; apply e|auto].
+    intros a l l1 l2 HS HI; red; intros.
+    rewrite filter_app.
+    destruct (x == a);
+      [|cbn; rewrite <- !if_equiv_dec_b, !if_false, <- filter_app by easy; apply HS].
+    assert (forall b, In b l1 -> (x ==b b) = false). {
+      intros. destruct (equiv_dec_spec _ x b); [|easy].
+      specialize (HI b H). exfalso; apply HI.
+      transitivity x; symmetry in e; easy.
+    }
+    specialize (HS x); rewrite filter_app in HS.
+    rewrite (filter_empty _ l1) in * by easy.
+    cbn; rewrite <- !if_equiv_dec_b, !if_true by easy.
+    f_equal.
+    apply HS.
   Qed.
 
-  Lemma Stable_nil : forall l,
-      Stable nil l -> l = nil.
+  Lemma StablePerm_nil : forall l,
+      StablePerm nil l -> l = nil.
   Proof.
     induction l.
     - easy.
     - intro S.
-      unfold Stable in S; cbn in S.
+      unfold StablePerm in S; cbn in S.
       specialize (S a).
       rewrite equiv_decb_refl in S.
       inversion S.
   Qed.
 
-  Lemma Stable_unskip:
-    forall a l l', Stable (a::l) (a::l') -> Stable l l'.
+  Lemma StablePerm_unskip:
+    forall a l l', StablePerm (a::l) (a::l') -> StablePerm l l'.
   Proof.
     intros a l l' HS x.
     specialize (HS x). cbn in HS.
     eqdestruct (x ==b a); [inversion HS|]; auto.
   Qed.
 
-  Lemma Stable_1 : forall l x,
-      Stable (x::nil) l -> l = x::nil.
+  Lemma StablePerm_1 : forall l x,
+      StablePerm (x::nil) l -> l = x::nil.
   Proof.
     induction l; intros x HS.
     - specialize (HS x). cbn in HS.
@@ -118,29 +118,29 @@ Section Stable.
           eqdestruct (a ==b x).
           inversion HS; auto.
         }
-        subst. apply Stable_unskip in HS.
-        apply Stable_nil in HS.
+        subst. apply StablePerm_unskip in HS.
+        apply StablePerm_nil in HS.
         subst. reflexivity.
       + specialize (HS a). cbn in HS.
         eqdestruct (a ==b x).
         rewrite equiv_decb_refl in HS.
         inversion HS.
   Qed.
-End Stable.
+End StablePerm.
 
-Add Parametric Relation (A : Type) `(E : EqDec A) : (list A) Stable
-    reflexivity proved by Stable_refl
-    symmetry proved by Stable_sym
-    transitivity proved by Stable_trans
-      as Stable_rel.
+Add Parametric Relation (A : Type) `(E : EqDec A) : (list A) StablePerm
+    reflexivity proved by StablePerm_refl
+    symmetry proved by StablePerm_sym
+    transitivity proved by StablePerm_trans
+      as StablePerm_rel.
 
 Section Permutation.
   Context {A : Type} `{E : EqDec A}.
 
   Implicit Type l : list A.
 
-  Theorem stable_destr : forall h h' l l',
-      Stable (h :: l) (h' :: l') ->
+  Theorem StablePerm_destr : forall h h' l l',
+      StablePerm (h :: l) (h' :: l') ->
       h =/= h' ->
       exists l1 l2, l = l1 ++ h' :: l2 /\ (Forall (fun x => h' =/= x) l1).
   Proof.
@@ -171,8 +171,8 @@ Section Permutation.
       eqdestruct (h' <>b a); [auto|discriminate].
   Qed.
 
-  Lemma Stable_equiv_hd : forall h h' l l',
-      Stable (h :: l) (h' :: l') ->
+  Lemma StablePerm_equiv_hd : forall h h' l l',
+      StablePerm (h :: l) (h' :: l') ->
       h === h' -> h = h'.
   Proof.
     intros h h' l l' HS HEqv.
@@ -182,26 +182,26 @@ Section Permutation.
     inversion HS; auto.
   Qed.
 
-  Lemma Stable_cons_app_to_front : forall l l1 l2 h,
+  Lemma StablePerm_cons_app_to_front : forall l l1 l2 h,
       l = l1 ++ h :: l2 ->
       Forall (fun x => h =/= x) l1 ->
-      Stable l (h :: l1 ++ l2).
+      StablePerm l (h :: l1 ++ l2).
   Proof.
     intros l l1 l2 h HL HL1.
     subst l; symmetry.
-    apply Stable_cons_app; [reflexivity|].
+    apply StablePerm_cons_app; [reflexivity|].
     apply Forall_forall; eapply Forall_impl; [|apply HL1].
     cbn; auto.
   Qed.
 
   Lemma stable_remove_hds : forall l l' h h' l1 l2 l1' l2',
       h =/= h' ->
-      Stable (h :: l) (h' :: l') ->
+      StablePerm (h :: l) (h' :: l') ->
       l = l1 ++ h' :: l2 ->
       l' = l1' ++ h :: l2' ->
       Forall (fun x => h' =/= x) l1 ->
       Forall (fun x => h =/= x) l1' ->
-      Stable (l1 ++ l2) (l1' ++ l2').
+      StablePerm (l1 ++ l2) (l1' ++ l2').
   Proof.
     assert (HF : forall l h y,
                y === h ->
@@ -241,41 +241,41 @@ Section Permutation.
   Ltac cons_app_lengths :=
     subst; cbn in *; try rewrite !app_length in *; cbn in *; omega.
 
-  Lemma Stable_length : forall l l',
-      Stable l l' -> length l = length l'.
+  Lemma StablePerm_length : forall l l',
+      StablePerm l l' -> length l = length l'.
   Proof.
     intros l l'. remember (length l) as n eqn:HL; rewrite HL.
     revert l l' HL.
     induction n as [|n IH]; intros l l' HL HS.
     - symmetry in HL; apply length_zero_iff_nil in HL; subst.
-      apply Stable_nil in HS. subst. reflexivity.
+      apply StablePerm_nil in HS. subst. reflexivity.
     - cbn.
       destruct l as [|h t]; [inversion HL|].
       destruct l' as [|h' t'].
-      symmetry in HS. apply Stable_nil in HS. inversion HS.
+      symmetry in HS. apply StablePerm_nil in HS. inversion HS.
       cbn; f_equal.
       destruct (h == h') as [HEqv|HNeqv].
-      + assert (h = h') by (eapply Stable_equiv_hd; eauto).
+      + assert (h = h') by (eapply StablePerm_equiv_hd; eauto).
         subst.
         rewrite (IH t t');
           [reflexivity|cons_app_lengths|].
-        eapply Stable_unskip; eauto.
-      + destruct (stable_destr h h' t t') as [l1 [l2 [HT HL1]]]; auto.
-        destruct (stable_destr h' h t' t) as [l1' [l2' [HT' HL1']]];
+        eapply StablePerm_unskip; eauto.
+      + destruct (StablePerm_destr h h' t t') as [l1 [l2 [HT HL1]]]; auto.
+        destruct (StablePerm_destr h' h t' t) as [l1' [l2' [HT' HL1']]];
           [symmetry in HS|symmetry in HNeqv|]; auto.
         transitivity (length (h' :: l1 ++ l2)).
-        apply IH; [cbn in HL; omega|apply Stable_cons_app_to_front; easy].
+        apply IH; [cbn in HL; omega|apply StablePerm_cons_app_to_front; easy].
         rewrite HT'.
         transitivity (length (h :: l1' ++ l2')); [|cons_app_lengths].
         transitivity (length (h' :: l1' ++ l2')); [|reflexivity].
         apply IH;
-          [cons_app_lengths|apply Stable_skip; eapply stable_remove_hds; eauto].
+          [cons_app_lengths|apply StablePerm_skip; eapply stable_remove_hds; eauto].
   Qed.
 
-  Lemma Stable_perm_ind : forall n l l',
+  Lemma StablePerm_Perm_ind : forall n l l',
       n = length l ->
       n = length l' ->
-      Stable l l' -> Permutation l l'.
+      StablePerm l l' -> Permutation l l'.
   Proof.
     induction n as [[|n] IH] using (well_founded_induction lt_wf).
     - intros l l' HL HL' HS.
@@ -285,11 +285,11 @@ Section Permutation.
       subst; apply perm_nil.
     - intros [|h t] [|h' t'] HL HL' HS; cbn in HL, HL'; [discriminate..|].
       destruct (h == h') as [HEqv|HNeqv].
-      + assert (h = h') by (eapply Stable_equiv_hd; easy).
+      + assert (h = h') by (eapply StablePerm_equiv_hd; easy).
         subst; apply perm_skip.
-        apply (IH n); [omega..|eapply Stable_unskip; easy].
-      + destruct (stable_destr h h' t t') as [l1 [l2 [HT HL1]]]; auto.
-        destruct (stable_destr h' h t' t) as [l1' [l2' [HT' HL1']]];
+        apply (IH n); [omega..|eapply StablePerm_unskip; easy].
+      + destruct (StablePerm_destr h h' t t') as [l1 [l2 [HT HL1]]]; auto.
+        destruct (StablePerm_destr h' h t' t) as [l1' [l2' [HT' HL1']]];
           [symmetry in HS|symmetry in HNeqv|]; auto.
         rewrite HT, HT'.
         transitivity (h :: h' :: l1 ++ l2);
@@ -299,16 +299,38 @@ Section Permutation.
           [apply perm_skip|apply Permutation_middle].
       destruct n as [|n'];
         [rewrite HT in HL; rewrite app_length in HL; cbn in HL; omega|].
-        apply (IH n'); [omega|cons_app_lengths..|eapply stable_remove_hds; eauto].
+      apply (IH n'); [omega|cons_app_lengths..|eapply stable_remove_hds; eauto].
   Qed.
 
-  Corollary Stable_perm : forall l l', Stable l l' -> Permutation l l'.
+  Corollary StablePerm_Perm : forall l l', StablePerm l l' -> Permutation l l'.
   Proof.
     intros.
-    apply Stable_perm_ind with (n := length l);
-      [|apply Stable_length|]; easy.
+    apply StablePerm_Perm_ind with (n := length l);
+      [|apply StablePerm_length|]; easy.
   Qed.
 End Permutation.
+
+Theorem rem_nth_StablePerm {A} `{EqDec A} : forall (l : list A) i d,
+    i < length l ->
+    (forall k, k < i -> nth i l d =/= nth k l d) ->
+    StablePerm l (nth i l d :: rem_nth i l).
+Proof.
+  intros l i d HI HK.
+  destruct i as [|i'] eqn:Heqni;
+    [destruct l; easy
+    |rewrite <- Heqni in *; assert (0 < i) by omega; clear i' Heqni].
+  rewrite rem_nth_split by omega.
+  rewrite @firstn_skipn_split with (i := i) (l := l) (d := d) at 1 by omega.
+  apply StablePerm_cons_app_to_front; [easy|].
+  apply Forall_forall.
+  intros x HIn.
+  apply In_nth with (d := d) in HIn .
+  destruct HIn as [j [HJ HX]].
+  rewrite <- HX; clear x HX.
+  rewrite firstn_length, Nat.min_l in HJ by omega.
+  rewrite firstn_nth by easy.
+  apply HK; easy.
+Qed.
 
 Section CountOcc.
   Context {A} `{EqDec A}.
@@ -317,11 +339,11 @@ Section CountOcc.
 
   Implicit Type l : list A.
 
-  Theorem Stable_rem1 : forall l1 l2 a,
-      Stable (a :: l1) l2 -> Stable l1 (rem1 eq_dec a l2).
+  Theorem StablePerm_rem1 : forall l1 l2 a,
+      StablePerm (a :: l1) l2 -> StablePerm l1 (rem1 eq_dec a l2).
   Proof.
     induction l1 as [|h1 t1 IH]; intros l2 a HS.
-    - cbn in HS. apply Stable_1 in HS. subst.
+    - cbn in HS. apply StablePerm_1 in HS. subst.
       cbn. rewrite if_true by reflexivity. reflexivity.
     - intro x.
       cbn. eqdestruct (x ==b h1).
@@ -353,11 +375,11 @@ Section CountOcc.
   Qed.
 
   Theorem stable_count_occ : forall l l',
-      Stable l l' ->
+      StablePerm l l' ->
       (forall x, count_occ eq_dec l x = count_occ eq_dec l' x).
   Proof.
     induction l as [|h t IH]; intros l' HS x.
-    - apply Stable_nil in HS. subst; reflexivity.
+    - apply StablePerm_nil in HS. subst; reflexivity.
     - cbn. destruct (eq_dec h x).
       + rewrite e in *; clear e.
         rewrite <- filter_true_count_occ with (f := equiv_decb x) (l := l')
@@ -369,124 +391,124 @@ Section CountOcc.
         reflexivity.
       + rewrite count_occ_rem1_neq with (x0 := h) (l := l') by auto.
         apply IH with (l' := rem1 eq_dec h l').
-        apply Stable_rem1. apply HS.
+        apply StablePerm_rem1. apply HS.
   Qed.
 End CountOcc.
 
-Section StableInd.
+Section StablePermInd.
   Context {A : Type} `{EqDec A}.
 
-  Inductive StableInd : list A -> list A -> Prop :=
-  | stable_ind_nil : StableInd nil nil
-  | stable_ind_skip : forall (x : A) (l l' : list A),
-      StableInd l l' -> StableInd (x :: l) (x :: l')
-  | stable_ind_swap : forall (x y : A) (l : list A),
-      x =/= y -> StableInd (y :: x :: l) (x :: y :: l)
-  | stable_ind_trans : forall l l' l'' : list A,
-      StableInd l l' -> StableInd l' l'' -> StableInd l l''.
+  Inductive StablePermInd : list A -> list A -> Prop :=
+  | StablePermInd_nil : StablePermInd nil nil
+  | StablePermInd_skip : forall (x : A) (l l' : list A),
+      StablePermInd l l' -> StablePermInd (x :: l) (x :: l')
+  | StablePermInd_swap : forall (x y : A) (l : list A),
+      x =/= y -> StablePermInd (y :: x :: l) (x :: y :: l)
+  | StablePermInd_trans : forall l l' l'' : list A,
+      StablePermInd l l' -> StablePermInd l' l'' -> StablePermInd l l''.
 
-  Lemma stable_ind_refl : forall l, StableInd l l.
+  Lemma StablePermInd_refl : forall l, StablePermInd l l.
   Proof. induction l; constructor; auto. Qed.
 
-  Lemma stable_ind_sym : forall l l',
-      StableInd l l' -> StableInd l' l.
+  Lemma StablePermInd_sym : forall l l',
+      StablePermInd l l' -> StablePermInd l' l.
   Proof.
     intros l l' HS.
     induction HS; econstructor; eauto.
     symmetry. auto.
   Qed.
-End StableInd.
+End StablePermInd.
 
-Add Parametric Relation (A : Type) `(E : EqDec A) : (list A) StableInd
-    reflexivity proved by stable_ind_refl
-    symmetry proved by stable_ind_sym
-    transitivity proved by stable_ind_trans
-      as stable_ind_rel.
+Add Parametric Relation (A : Type) `(E : EqDec A) : (list A) StablePermInd
+    reflexivity proved by StablePermInd_refl
+    symmetry proved by StablePermInd_sym
+    transitivity proved by StablePermInd_trans
+      as StablePermInd_rel.
 
-Section StableIndStable.
+Section StablePermInd_Iff.
   Context {A : Type} `{EqDec A}.
 
   Implicit Types l : list A.
 
-  Theorem stable_perm_stable : forall l l', StableInd l l' -> Stable l l'.
+  Theorem StablePermInd_imp : forall l l', StablePermInd l l' -> StablePerm l l'.
     intros l l' SP.
     induction SP.
-    - unfold Stable. intros. reflexivity.
-    - apply Stable_skip. auto.
-    - apply Stable_swap. symmetry. auto.
-    - eapply Stable_trans; eauto.
+    - unfold StablePerm. intros. reflexivity.
+    - apply StablePerm_skip. auto.
+    - apply StablePerm_swap. symmetry. auto.
+    - eapply StablePerm_trans; eauto.
   Qed.
 
-  Remark stable_length_zero : forall l l',
+  Remark StablePermInd_length_zero : forall l l',
       0 = length l ->
       0 = length l' ->
-      StableInd l l'.
+      StablePermInd l l'.
   Proof.
     intros l l' HL HL'.
     symmetry in HL;  apply length_zero_iff_nil in HL.
     symmetry in HL'; apply length_zero_iff_nil in HL'.
-    subst; apply stable_ind_nil.
+    subst; apply StablePermInd_nil.
   Qed.
 
   Ltac cons_app_lengths :=
     subst; cbn in *; try rewrite !app_length in *; cbn in *; omega.
 
-  Lemma stable_ind_iff_ind : forall n l l',
+  Lemma StablePermInd_impby_ind : forall n l l',
       n = length l -> n = length l' ->
-      Stable l l' -> StableInd l l'.
+      StablePerm l l' -> StablePermInd l l'.
   Proof.
     induction n as [[|n] IH] using (well_founded_induction lt_wf);
-      [intros; apply stable_length_zero; auto|].
+      [intros; apply StablePermInd_length_zero; auto|].
     intros [|h t] [|h' t'] HL HL' HS; cbn in HL, HL';
       [discriminate..|].
     injection HL; injection HL'; clear HL HL'; intros HL' HL.
     destruct (h == h') as [HEqv | HNeqv].
-    - assert (h = h') by (eapply Stable_equiv_hd; eauto).
+    - assert (h = h') by (eapply StablePerm_equiv_hd; eauto).
       subst h. constructor. apply (IH n); auto.
-      eapply Stable_unskip. apply HS.
-    - destruct (stable_destr h h' t t') as [l1 [l2 [HT HL1]]]; auto.
-      destruct (stable_destr h' h t' t) as [l1' [l2' [HT' HL1']]];
+      eapply StablePerm_unskip. apply HS.
+    - destruct (StablePerm_destr h h' t t') as [l1 [l2 [HT HL1]]]; auto.
+      destruct (StablePerm_destr h' h t' t) as [l1' [l2' [HT' HL1']]];
         [symmetry in HS|symmetry in HNeqv|]; auto.
-      transitivity (h :: h' :: (l1 ++ l2)); [apply stable_ind_skip|].
-      apply (IH n); [..|cons_app_lengths|apply Stable_cons_app_to_front]; eauto.
+      transitivity (h :: h' :: (l1 ++ l2)); [apply StablePermInd_skip|].
+      apply (IH n); [..|cons_app_lengths|apply StablePerm_cons_app_to_front]; eauto.
       transitivity (h' :: h :: (l1 ++ l2)).
-      apply stable_ind_swap; [symmetry; auto].
-      apply stable_ind_skip.
+      apply StablePermInd_swap; [symmetry; auto].
+      apply StablePermInd_skip.
       transitivity (h :: (l1' ++ l2')).
-      apply stable_ind_skip.
+      apply StablePermInd_skip.
       destruct n as [|n']; [cons_app_lengths|].
       apply (IH n'); [cons_app_lengths..|eapply stable_remove_hds]; eauto.
       symmetry.
-      apply (IH n); [..|cons_app_lengths|apply Stable_cons_app_to_front]; eauto.
+      apply (IH n); [..|cons_app_lengths|apply StablePerm_cons_app_to_front]; eauto.
   Qed.
 
-  Corollary stable_ind_iff : forall l l',
-      Stable l l' <-> StableInd l l'.
+  Corollary StablePermInd_iff : forall l l',
+      StablePerm l l' <-> StablePermInd l l'.
   Proof.
     split.
     - intro HS.
-      apply stable_ind_iff_ind with (n := length l); [reflexivity| |auto].
-      apply Stable_length; easy.
-    - apply stable_perm_stable.
+      apply StablePermInd_impby_ind with (n := length l); [reflexivity| |auto].
+      apply StablePerm_length; easy.
+    - apply StablePermInd_imp.
   Qed.
-End StableIndStable.
+End StablePermInd_Iff.
 
 Section Unique.
   Context {A} `{Preord A}.
 
   Theorem stable_sort_unique : forall l l',
-      Sorted l -> Sorted l' -> Stable l l' ->
+      Sorted l -> Sorted l' -> StablePerm l l' ->
       l = l'.
   Proof.
     induction l as [|hd tl]; intros l' SL SL' St.
-    - apply Stable_nil in St. subst; auto.
+    - apply StablePerm_nil in St. subst; auto.
     - destruct l' as [|hd' tl'];
       [exfalso; eapply Permutation_nil_cons; symmetry;
-        apply (@Stable_perm _ _ _ Preord_EqDec); easy|].
+        apply (@StablePerm_Perm _ _ _ Preord_EqDec); easy|].
       apply Sorted_cons_inv in SL; destruct SL as [HIn SL].
       apply Sorted_cons_inv in SL'; destruct SL' as [HIn' SL'].
       assert (hd === hd'). {
-        apply (@Stable_perm _ _ _ Preord_EqDec) in St; rename St into P.
+        apply (@StablePerm_Perm _ _ _ Preord_EqDec) in St; rename St into P.
         pose proof (Permutation_sym P) as P'.
         destruct (Permutation_cons_in hd hd' tl tl' P);  [subst; reflexivity|].
         destruct (Permutation_cons_in hd' hd tl' tl P'); [subst; reflexivity|].
@@ -497,7 +519,7 @@ Section Unique.
       eqdestruct (hd ==b hd').
       inversion F; subst; clear F.
       f_equal.
-      apply IHtl; [..|eapply Stable_unskip]; easy.
+      apply IHtl; [..|eapply StablePerm_unskip]; easy.
   Qed.
 End Unique.
 
@@ -507,15 +529,15 @@ Section Leibniz.
   Hypothesis eqv_eq : forall x y, x === y -> x = y.
 
   Theorem all_perm_stable : forall l l',
-      Permutation l l' -> Stable l l'.
+      Permutation l l' -> StablePerm l l'.
   Proof.
     intros l l' HP; induction HP.
     - reflexivity.
-    - apply Stable_skip. easy.
+    - apply StablePerm_skip. easy.
     - destruct (equiv_dec x y).
       + apply eqv_eq in e. subst.
-        do 2 apply Stable_skip. reflexivity.
-      + apply Stable_swap; easy.
+        do 2 apply StablePerm_skip. reflexivity.
+      + apply StablePerm_swap; easy.
     - transitivity l'; easy.
   Qed.
 End Leibniz.

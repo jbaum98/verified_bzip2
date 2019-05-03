@@ -102,4 +102,5 @@
 \RequirePackage{enumitem}
 
 \newcommand{\eqperm}{\overset{\mathtt{Perm}}{=\joinrel=}}
+\newcommand{\eqstable}{\overset{\mathtt{Stable}}{=\joinrel=\joinrel=\joinrel=}}
 \newcommand{\dplus}{\ensuremath{\mathbin{+\mkern-3mu+}}}

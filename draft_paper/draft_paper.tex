@@ -137,7 +137,7 @@ via program calculation. \Cref{sec:sorted_perm_stable} provides
 multiple definitions of \var{Sorted}, \var{Permutation}, and
 \var{StablePermutation}, and proves equivalence between them.
 \Cref{sec:sort} implements insertion sort and radixsort, and proves
-their correctness. \Cref{sec:BWT_proof} more formally proves the
+their correctness. \Cref{appendix:BWT_proof} more formally proves the
 theorems about the BWT mentioned in previous sections, including
 \Cref{thm:unbwt_correct}.
 
@@ -577,74 +577,57 @@ where \var{hdsort} sorts the matrix stably on the the first column.
 We can do this because there is only one way to sort the matrix, so
 assuming \var{lexsort} and the radix-sort are correct, they must be
 doing the same thing. We will prove this in
-\cref{sec:sorted_perm_stable,sec:sort}.
+\cref{sec:unique,sec:sort}.
 
-%% In seeking to introduce an extra \verb|map rrot| term, we can note
-%% that rotating and sorting an extra time doesn't change anything when
-%% we are sorting the rotation matrix. This works because rotating the
-%% last column to the front produces a matrix that is sorted on its last
-%% \verb|n - 1| characters, so sorting stably on the first column will
-%% re-sort the matrix. Crucially though, rotating the last column
-%% forwards also permutes the entire matrix, so in addition to having a
-%% sorted list, we have a sorted list of the same elements.
+Using that we can show
+\begin{align*}
+     \var{lexsort}~(\var{rots}~x)
+  &= \var{lexsort}~(\var{rrot}~(\var{rots}~x))
+     && \text{because rrot permutes its elements} \\
+  &= \var{lexsort}~(\var{hdsort}~(\var{rrot}~(\var{rots}~x)))
+     && \text{because hdsort permutes its elements} \\
+  &= (\var{hdsort} \comp \var{rrot})^n~(\var{hdsort}~(\var{rrot}~(\var{rots}~x)))
+     && \text{radix-sort} \\
+  &= (\var{hdsort} \comp \var{rrot})^{n+1}~(\var{rots}~x)
+  && \text{rep\_absorb\_r} \\
+  &= \var{hdsort}~(\var{rrot}~((\var{hdsort} \comp \var{rrot})^n~(\var{rots}~x)))
+     && \text{ rep\_split\_l } \\
+  &= \var{hdsort}~(\var{rrot}~(\var{lexsort}~(\var{rots}~x)))
+     && \text{ radix-sort }
+\end{align*}
 
-%% Using that we can show
-%% \begin{equation*}
-%%   lexsort (rots x)
-%% = { because rrot permutes its elements }
-%%   lexsort (rrot (rots x))
-%% = { because hdsort permutes its elements }
-%%   lexsort (hdsort (rrot (rots x)))
-%% = { radix-sort }
-%%   rep n (hdsort ∘ rrot) (hdsort (rrot (rots x)))
-%% = { rep_absorb_r }
-%%   rep (S n) (hdsort ∘ rrot) (rots x)
-%% = { rep_split_l }
-%%   hdsort (rrot (rep n (hdsort ∘ rrot) (rots x)))
-%% = { radix-sort }
-%%   hdsort (rrot (lexsort (rots x)))
-%% \end{equation*}
+In seeking to introduce an extra \var{map rrot} term, we can note that
+rotating and sorting an extra time doesn't change anything when we are
+sorting the rotation matrix. This works because rotating the last
+column to the front produces a matrix that is sorted on its last $n -
+1$ characters, so sorting stably on the first column will re-sort the
+matrix. Crucially though, rotating the last column forwards also
+permutes the entire matrix, so in addition to having a sorted list, we
+have a sorted list of the same elements.
 
-%% From here we can calculate
-%% \begin{equation*}
-%%   cols (S j) (lexsort (rots l))
-%% = cols (S j) (hdsort (map rrot (lexsort (rots l))))
-%% = { hdsort commutes with cols (S j) }
-%%   hdsort (cols (S j) (map rrot (lexsort (rots l))))
-%% = { reduce cols (S j) }
-%%   hdsort (prepend_col (map last (lexsort (rots l))) (cols j (lexsort (rots l)))
-%% = { by IH and def of bwp }
-%%   hdsort (prepend_col (bwp l) (recreate j (bwp l)))
-%% = (fun x => hdsort (prepend_col x (recreate j x))) bwp
-%% \end{equation*}
+More precisely, we can characterize how $\var{map}~\var{rrot}$
+permutes \var{rots}.
+\begin{equation*}
+  \var{map}~\var{rrot}~(\var{rots}~x) = \var{rrot}~(\var{rots}~x)
+\end{equation*}
 
-%% More precisely, we can characterize how \verb|map rrot| permutes
-%% \verb|rots|
-%% \begin{equation*}
-%% map rrot (rots x) = rrot (rots x)
-%% \end{equation*}
+From here we can calculate
+\begin{align*}
+  &\var{cols}~(j+1)~(\var{lexsort}~(\var{rots}~l)) \\
+&= \var{cols}~(j+1)~(\var{hdsort}~(\var{map}~\var{rrot}~(\var{lexsort}~(\var{rots}~l)))) \\
+&= \var{hdsort}~(\var{cols}~(j+1)~(\var{map}~\var{rrot}~(\var{lexsort}~(\var{rots}~l))))
+&&\text{ \var{hdsort} commutes with $\var{cols}~(j+1)$ } \\
+&= \var{hdsort}~(\var{prepend\_col}~(\var{map}~\var{last}~(\var{lexsort}~(\var{rots}~l)))~(\var{cols}~j~(\var{lexsort}~(\var{rots}~l)))
+  &&\text{ reduce $\var{cols}~(j+1)$ } \\
+&= \var{hdsort}~(\var{prepend\_col}~(\var{bwp}~l)~(\var{recreate}~j~(\var{bwp}~l)))
+  &&\text{ by IH and def of bwp } \\
+&= (\lambda x.~\var{hdsort}~(\var{prepend\_col}~x~(\var{recreate}~j~x)))~\var{bwp}
+\end{align*}
 
-%% From here we can calculate
-%% \begin{equation*}
-%%   cols (S j) (lexsort (rots l))
-%% = cols (S j) (hdsort (map rrot (lexsort (rots l))))
-%% = { hdsort commutes with cols (S j) }
-%%   hdsort (cols (S j) (map rrot (lexsort (rots l))))
-%% = { reduce cols (S j) }
-%%   hdsort (prepend_col (map last (lexsort (rots l))) (cols j (lexsort (rots l)))
-%% = { by IH and def of bwp }
-%%   hdsort (prepend_col (bwp l) (recreate j (bwp l)))
-%% = (fun x => hdsort (prepend_col x (recreate j x))) bwp
-%% \end{equation*}
-
-%% We can use this to define \verb|recreate|:
-%% \begin{equation*}
-%% Fixpoint recreate (j : nat) (l : list A) : list (list A) :=
-%%   match j with
-%%   | O    => map (const []) l
-%%   | S j' => hdsort (prepend_col l (recreate j' l))
-%%   end.
-%% \end{equation*}
+We can use this to define \var{recreate}:
+\lstinputlisting[
+  widthgobble=2, firstline=156, lastline=160,
+]{../theories/BWT/BurrowsWheeler.v}
 
 \section{\var{Sorted}, \var{Permutation}, and \var{StablePermutation}}
 \label{sec:sorted_perm_stable}
@@ -690,8 +673,7 @@ existing elements and the result will also be sorted:
 \end{align*}
 
 By transitivity it suffices to check that the new element is
-smaller than just the first element of the sorted list. That leads to
-a third definition of sorted:
+smaller than just the first element of the sorted list. That leads to a third definition of sorted:
 \begin{gather*}
   \begin{align*}
     \infer[\var{SortedLocal\_nil}]{\var{SortedLocal}~[]}{}
@@ -755,6 +737,7 @@ correct. We prove them equivalent all:
 \end{proof}
 
 \subsection{\var{Permutation}}
+\label{subsec:perm}
 
 The word \textit{permutation} has two related meanings that are often
 used interchangably. We sometimes say that two lists are permutations of each
@@ -765,7 +748,7 @@ correspondence between the two lists. For example, we say that $p$ is
 the permutation that relates $l$ to $l'$ if for all indices $i$ and
 $j$,
 \begin{equation*}
-  l_i = l'_{p(i)}
+  l_{p(i)} = l'_i
 \end{equation*}
 For consistency with Coq's built-in \var{Permuation} relation, in a
 situation like this we will say that $l$ and $l'$ are permutations of
@@ -778,7 +761,7 @@ permutations of each other is precisely when
   \item there exists a permutation function $p : \mathbb{N}_{<n} \to
     \mathbb{N}_{<n}$, where $p$ is a bijection, such that for all indices $i$,
     \begin{equation*}
-      l_i = l'_{p(i)}
+      l_{p(i)} = l'_i
     \end{equation*}
 \end{itemize}
 
@@ -1022,73 +1005,424 @@ require the equivalence relation itself by Leibniz equality.
   where the last step follows from the induction hypothesis.
 \end{proof}
 
-%% In this section we prove the lemmas from the previous section:
-%% \begin{enumerate}
-%% \item
-%% \begin{equation*}
-%% map rrot (rots x) = rrot (rots x)
-%% \end{equation*}
+\subsection{\var{StablePerm}}
+\label{subsec:stable}
 
-%% \item \verb|hdsort| commutes with \verb|cols (S j)|
-%%   This proof is cool because in theory it can be proven via
-%%   parametricity, but that's a metatheorem in Coq.
+A stable sort is a sort that doesn't swap any two elements considered
+equivalent by the ordering. This is relevant when the induced
+equivalence relation does not imply equality, so that we can
+distinguish between elements that the sort considers identical. A good
+example of this is in radixsort: when we sort on a single column, the
+sort can't tell the difference between strings that contain equal
+characters in that column, but it is crucial that it respect the
+initial ordering in cases of a tie.
 
-%% \item
-%% \begin{equation*}
-%% cols (S j) (map rrot l) = prepend_col (map last l) (cols j l)
-%% \end{equation*}
-%% \end{enumerate}
+For stable sorts, we need a stronger property than \var{Permutation}.
+We can extend our mathematical definition. We say that two lists $l$
+and $l'$ are stable permutations of each other when we have a
+permutation $p$ that relates them, and that satisfies an additional
+stability property: for all indices $i$ and $j$ where
+$(\var{apply}~p~l)_i \equiv (\var{apply}~p~l)_j$
+\begin{gather*}
+  i < j \implies p(i) < p(j)
+\end{gather*}
+Equivalently, we can say that for all indices $i$ and $j$ where $l_j \equiv
+l_j$ we must have
+\begin{gather*}
+  i < j \implies p^{-1}(i) < p^{-1}(j)
+\end{gather*}
+
+Based on this, we define a stronger version of the \var{PermFun}
+property, \var{StablePermFun}. However, while $\var{PermFun}~n~p$
+means that $p$ represents a permutation function on lists of length
+$n$, we need to specify the list with resepct to which $p$ is stable,
+so we say $\var{StablePermFun}~l~p$ for some list $l$.
+\lstinputlisting[
+  widthgobble=2, firstline=557, lastline=561,
+]{../theories/BWT/Sorting/PermFun.v}
+As above, we can also define this property using the inverse
+permutation:
+\lstinputlisting[
+  widthgobble=2, firstline=563, lastline=567,
+]{../theories/BWT/Sorting/PermFun.v}
+As usual, we will prove these definitions equivalent. First, though,
+we need to define \var{image} and \var{preimage}.
+\lstinputlisting[
+  widthgobble=2, firstline=85, lastline=86,
+]{../theories/BWT/Sorting/PermFun.v}
+We will not prove it here, but $\var{preimage}~p$ and $\var{image}~p$
+are both of bijections of type $\mathbb{N}_{<n} \to \mathbb{N}_{<n}$
+and are invereses of each other. We also have the following two
+theorems:
+\begin{theorem}[nth\_preimage\_apply, nth\_image\_apply]
+  For all lists $l$, permutations $p$, and indices $i$,
+  \begin{align*}
+    (\var{apply}~p~l)_{p^{-1}(i)} = l_i && l_{p(i)} = (\var{apply}~p~l)_i
+  \end{align*}
+\end{theorem}
+\begin{proof}
+  The first equation (\var{nth\_preimage\_apply}) holds because:
+  \begin{align*}
+       (\var{apply}~p~l)_{p^{-1}(i)}
+    &= (\var{map}~(\lambda j.~l_j)~p)_{\var{findIndex}~i~p} \\
+    &= l_{p_{(\var{findIndex}~i~p)}} \\
+    &= l_i
+  \end{align*}
+  and the second follows from this:
+  \begin{equation*}
+      (\var{apply}~p~l)_i
+    = (\var{apply}~p~l)_{p^{-1}(p(i))}
+    = l_{p(i)}
+    \qedhere
+  \end{equation*}
+\end{proof}
+
+\begin{theorem}[StablePermFun\_iff]
+  For all lists $l$ and permutation $p$,
+  \begin{equation*}
+    \var{StablePermFun}~l~p \iff \var{StablePermFun\_preimage}~l~p
+  \end{equation*}
+\end{theorem}
+\begin{proof}
+  We will only prove the $\implies$ direction; the other direction is
+  very similar. We have that $l_i \equiv l_j$, and that $i < j$, and we
+  have to show that $p^{-1}(i) < p^{-1}(j)$. We will show this by
+  proving that $p^{-1}(i) \ge p^{-1}(j)$ leads to a contradiction.
+
+  Suppose $p^{-1}(i) \ge p^{-1}(j)$. We actually know that $p^{-1}(i) >
+  p^{-1}(j)$ because $i \neq j$. From $l_i \equiv l_j$ and
+  $\var{StablePermFun}~l~p$, along with $p^{-1}(j) < p^{-1}(i)$, we
+  know that $p(p^{-1}(j)) < p(p^{-1}(i))$. However, this implies $j <
+  i$, which is a contradiction. Therefore, $p^{-1}(i) < p^{-1}(j)$.
+\end{proof}
+
+Now, we can define \var{StablePermEx} to describe when two lists are
+stable permutations of each other:
+\lstinputlisting[
+  widthgobble=2, firstline=607, lastline=608,
+]{../theories/BWT/Sorting/PermFun.v}
+
+While \var{StablePermEx} corresponds to \var{PermutationEx}, how can
+we modify \var{Permutation} to create an inductive relation for stable
+lists? Intuitively, the problematic inference rule is
+\var{Permutation\_swap}: we can only swap two elements and preserve
+stability if they are not equivalent. With this fix, we have \var{StablePermInd}:
+\begin{gather*}
+  \infer[\var{StablePermInd\_nil}]{\var{StablePermInd}~[]~[]}{}
+  \\ \\
+  \infer[\var{StablePermInd\_skip}]{\var{StablePermInd}~(x :: l)~(x :: l')}{%
+    \var{StablePermInd}~l~l'
+  }
+  \\ \\
+  \infer[\var{StablePermInd\_swap}]
+        {\var{StablePermInd}~(x :: y :: l)~(y :: x :: l)}
+        {x \not\equiv y}
+  \\ \\
+  \infer[\var{StablePermInd\_trans}]{\var{StablePermInd}~l~l''}{
+    \var{StablePermInd}~l~l' & \var{StablePermInd}~l'~l''
+  }
+\end{gather*}
+
+Unforunately, neither of these two definitions will be particularly
+useful for proving the theorems we would like to prove with them. The
+best definition for stability does not come by analogy with
+\var{Permutation}. The intuition is that for any two lists that are
+stable permutations of each other, if we filter each list by
+equivalence with any element, the resulting lists should be identical.
+This is because they must have the same elements, since the original
+lists are permutations of one another, and those elements must be in
+the same order, since the original lists are specifically stable
+permutations of one another.
+\lstinputlisting[
+  widthgobble=2, firstline=21, lastline=22,
+]{../theories/BWT/Sorting/Stable.v}
+
+We will prove equivalence between these three definitions, but first
+we will mention some properties of \var{Stable}. \var{Stable} is an
+equivalence relation, meaning it is reflexive, transitive, and symmetric.
+
+\begin{lemma}[StablePerm\_app]
+  For all lists $l$, $l'$, $m$ and $m'$,
+  \begin{equation*}
+    \var{StablePerm}~l~l' \implies \var{StablePerm}~m~m' \implies
+    \var{StablePerm}~(l \dplus m)~(l' \dplus m')
+  \end{equation*}
+\end{lemma}
+\begin{proof}
+  This follows from the distributivity of \var{filter} over \var{app}.
+\end{proof}
+
+\begin{lemma}[StablePerm\_skip]
+  For all lists $l$ and $l'$, and elements $a$,
+  \begin{equation*}
+    \var{StablePerm}~l~l' \implies \var{StablePerm}~(a::l)~(a::l')
+  \end{equation*}
+\end{lemma}
+\begin{proof}
+  For any $x$, we have to show $\var{filter}~(\equiv x)~(a::l) =
+  \var{filter}~(\equiv x)~(a::l')$. If $x \equiv a$, $a$ is added to both lists,
+  and if $x \not\equiv a$ it is added to neither.
+\end{proof}
+
+\begin{lemma}[StablePerm\_swap]
+  For all lists $l$ and $l'$, and elements $a$ and $b$ where $a \not\equiv b$,
+  \begin{equation*}
+     \var{StablePerm}~(a::b::l)~(b::a::l)
+  \end{equation*}
+\end{lemma}
+\begin{proof}
+  For any $x$, we have to show $\var{filter}~(\equiv x)~(a::b::l) =
+  \var{filter}~(\equiv x)~(b::a::l)$. The proof follows from case analysis
+  on $x \equiv a$ and $x \equiv b$.
+\end{proof}
+
+\begin{lemma}[StablePerm\_cons\_app]
+  For all lists $l$, $l_1$ and $l_2$, and elements $a$ such that $\forall b
+  \in l_1,~a \not\equiv b$,
+  \begin{equation*}
+     \var{StablePerm}~l~(l_1 \dplus l_2) \implies \var{StablePerm}~(a
+     :: l)~(l_1 \dplus a :: l_2)
+  \end{equation*}
+\end{lemma}
+\begin{proof}
+  For any $x$, we have to show
+  \begin{equation*}
+    \var{filter}~(\equiv x)~(a::l) = \var{filter}~(\equiv x)~(l_1 \dplus a :: l_2)
+  \end{equation*}
+  If $x \not\equiv a$ the proof is easy, so assume $x \equiv a$. Then we have
+  \begin{align*}
+      \var{filter}~(\equiv x)~(l_1 \dplus a :: l_2)
+    &= \var{filter}~(\equiv x)~l_1 \dplus \var{filter}~(a :: l_2) \\
+    &= [] \dplus a::\var{filter}~l_2 \\
+    &= a::\var{filter}~l
+  \end{align*}
+  where we know that $\var{filter}~(\equiv x)~l_1 = []$ because $\forall b \in
+  l_1,~a \not\equiv b$, and the last step follows from
+  $\var{StablePerm}~l~(l_1 \dplus l_2)$.
+\end{proof}
+
+\begin{theorem}[StablePerm\_destr]
+  For all lists $l$ and $l'$, and elements $h$ and $h'$ such that $h
+  \not\equiv h'$,
+  \begin{gather*}
+    \var{StablePerm}~(h :: l)~(h' :: l') \implies \\
+    \exists~l_1~l_2, ~l = l_1 \dplus h' :: l_2 \land (\forall x \in l_1, h' \not\equiv x)
+  \end{gather*}
+\end{theorem}
+\begin{proof}
+  Let $l_1 = \var{take\_while}~(\not\equiv h')~l$ and $l_2 =
+  \var{drop\_while}~(\not\equiv h')~l$. Clearly $l = l_1 \dplus l_2$, and
+  because $\var{StablePerm}~(h :: l)~(h' :: l')$, we know the first
+  element of $l_2$ must be $h'$. Let $l_2'$ be the rest of $l_2$, and
+  we have two lists $l_1$ and $l_2'$ that satisfy the theorem.
+\end{proof}
+
+\begin{theorem}[StablePerm\_length]
+  For all lists $l$ and $l'$
+  \begin{equation*}
+    \var{StablePerm}~l~l' \implies \var{length}~l = \var{length}~l'
+  \end{equation*}
+\end{theorem}
+\begin{proof}
+  We reason by induction on $n = \var{length}~l$. In the inductive
+  case, we need to show that $\var{length}~(h::t) =
+  \var{length}~(h'::t')$ given that $\var{StablePerm}~(h::t)~(h'::t')$
+  and the induction hypothesis that for all lists of length $n$,
+  \var{StablePerm} implies their lengths are equal.
+
+  If $h \equiv h'$, then from $\var{StablePerm}~(h::t)~(h'::t')$ we know
+  that $h = h'$. We can then remove $h$ from the front of $h::t$ and
+  $h::t'$ and apply the induction hypothesis.
+
+  If $h \not\equiv h'$, we can destructure $t$ and $t'$ as $l_1 \dplus h'
+  :: l_2$ and $l_1' \dplus h :: l_2'$ respectively, using
+  \var{StablePerm\_destr}. Then,
+  \begin{equation*}
+      \var{length}~t
+    = \var{length}~(h' :: l_1  \dplus l_2)
+    = \var{length}~(h  :: l_1' \dplus l_2')
+    =\var{length}~t'
+  \end{equation*}
+  where the first and last steps follow from the induction hypothesis,
+  using the fact that $\var{StablePerm}~t~(h'::l_1 \dplus l_2)$ and
+  $\var{StablePerm}~t'~(h::l_1' \dplus l_2')$.
+\end{proof}
+
+\begin{theorem}[StablePerm\_Perm]
+  For all lists $l$ and $l'$,
+  \begin{equation*}
+    \var{StablePerm}~l~l' \implies \var{Permutation}~l~l'
+  \end{equation*}
+\end{theorem}
+\begin{proof}
+  We reason by strong induction on the length of both lists (we know
+  the lengths are equal by \var{StablePerm\_length}). In the inductive
+  case, we need to show $\var{Permutation}~(h :: t)~(h' :: t')$. If $h
+  \equiv h$, we know that $h = h'$, and the proof follows by
+  \var{perm\_skip}.
+
+  If $h \not\equiv$, we again destructure $t$ and $t'$ as $l_1 \dplus h' ::
+  l_2$ and $l_1' \dplus h :: l_2'$ respectively, using
+  \var{StablePerm\_destr}.
+  \begin{align*}
+    h::t &= h :: l_1 \dplus h' :: l_2 \\
+    &\eqperm h :: h' :: l_1 \dplus l_2 \\
+    &\eqperm h' :: h :: l_1 \dplus l_2 \\
+    &\eqperm h' :: h :: l_1' \dplus l_2' \\
+    &\eqperm h' :: l_1' \dplus h :: l_2' = h'::t
+  \end{align*}
+  The crucial step is $l_1 \dplus l_2 \eqperm l_1' \dplus l_2'$, which
+  follows from the induction hypothesis.
+\end{proof}
+
+\begin{theorem}[StablePermInd\_iff]
+  For all lists $l$ and $l'$
+  \begin{equation*}
+    \var{StablePerm}~l~l' \iff \var{StablePermInd}~l~l'
+  \end{equation*}
+\end{theorem}
+\begin{proof}
+  The ($\impliedby$) direction follows easily by induction on
+  $\var{StablePermInd}~l~l'$, using \var{StablePerm\_skip},
+  \var{StablePerm\_swap}, and \var{StablePerm\_trans}.
+
+  The ($\implies$) direction is proved very similarly to
+  \var{StablePerm\_Perm}, using \var{StablePerm\_destr} to split up
+  the lists.
+\end{proof}
+
+Now we prove equivalence with \var{StablePermEx}.
+
+\begin{theorem}[apply\_correct\_stable]
+  For all lists $l$ and permutation functions $p$,
+  \begin{equation*}
+    \var{StablePermFun}~l~p \implies \var{StablePerm}~(\var{apply}~p~l)~l
+  \end{equation*}
+\end{theorem}
+\begin{proof}
+  We reason by induction on the length of $l$. In the inductive case,
+  we need to show
+  \begin{equation*}
+    \var{StablePerm}~(\var{apply}~(i :: p)~(a :: l))~(a :: l)
+  \end{equation*}
+
+  Using $\eqstable$ to chain \var{StablePerm}s transitively,
+  \begin{align*}
+    \var{apply}~(i :: p)~(a :: l)
+    &= (a :: l)_i  ::
+    \var{apply}~(\var{rem\_PermFun}~i~p)~(\var{rem\_nth}~i~(a :: l)) \\
+    &\eqstable (a :: l)_i :: \var{rem\_nth}~i~(a :: l) \\
+    &\eqstable (a :: l)_i
+  \end{align*}
+  where we rely on the induction hypothesis between the first and
+  second lines.
+\end{proof}
+
+\begin{theorem}[StablePermEx\_iff]
+  For all lists $l$ and $l'$
+  \begin{equation*}
+    \var{StablePerm}~l~l' \iff \var{StablePermEx}~l~l'
+  \end{equation*}
+\end{theorem}
+\begin{proof}
+  We use \var{StablePermInd\_iff} and prove $\var{StablePermInd}~l~l'
+  \iff \var{StablePermEx}~l~l'$.
+
+  The $\implies$ direction is very similar to the $\implies$ direction
+  of the \var{PermutationEx\_iff} proof: we reason by induction on
+  $\var{StablePermInd}~l~l'$, constructing the same permutation
+  functions in each case, but this time we have to prove that it is
+  stable as well. The $\impliedby$ direction follows from
+  \var{apply\_correct\_stable}.
+\end{proof}
+
+\section{Uniqueness of Stable Sorts}
+\label{sec:unique}
+
+Using our definitions of \var{StablePerm} and \var{Sorted}, we can
+prove the theorem that allowed us to replace \var{lexsort} with
+radixsort.
+
+\begin{theorem}[stable\_sort\_unique]
+  \begin{equation*}
+    \var{Sorted}~l \implies \var{Sorted}~l' \implies
+    \var{StablePerm}~l~l' \implies l = l'.
+  \end{equation*}
+\end{theorem}
+
+With \var{lexsort}, we are guaranteed stability because we are using
+an order, not just a preorder, and for orders all sorts are stable.
+
+\begin{theorem}[all\_perm\_stable]
+  If we have that equivalence implies Leibniz equality, then for all
+  lists $l$ and $l'$
+  \begin{equation*}
+      \var{Permutation}~l~l' \implies \var{StablePerm}~l~l'
+  \end{equation*}
+\end{theorem}
 
 \section{Insertion Sort, Radixsort, and \texttt{lexsort}}
 \label{sec:sort}
 
+\lstinputlisting[
+  widthgobble=2, firstline=11, lastline=21,
+]{../theories/BWT/Sorting/InsertionSort.v}
 
-\section{Proving BWT Correct}
-\label{sec:BWT_proof}
+\begin{theorem}[sort\_sorted]
+  \begin{equation*}
+    \var{Sorted}~(\var{sort}~l)
+  \end{equation*}
+\end{theorem}
+
+\begin{theorem}[sort\_stable]
+  \begin{equation*}
+    \var{Stable}~(\var{sort}~l)
+  \end{equation*}
+\end{theorem}
+
+\lstinputlisting[
+  widthgobble=2, firstline=22, lastline=23,
+]{../theories/BWT/Sorting/RadixSort.v}
+
+\begin{theorem}[radixsort\_sorted]
+  \begin{equation*}
+    (\forall x \in l,~\var{length}~x = n) \implies \var{Sorted}~(\var{radixsort}~l~n)
+  \end{equation*}
+\end{theorem}
 
 \appendix
+
+\section{Proving BWT Correct}
+\label{appendix:BWT_proof}
+
+In this section we prove the lemmas from the derivation that we left out:
+\begin{enumerate}
+\item
+\begin{equation*}
+  \var{map}~\var{rrot}~(\var{rots}~x) = \var{rrot}~(\var{rots}~x)
+\end{equation*}
+
+\item \var{hdsort} commutes with $\var{cols} (j+1)$.
+  This proof is cool because in theory it can be proven via
+  parametricity, but that's a metatheorem in Coq.
+
+\item
+  \begin{equation*}
+    \var{cols}~(j+1)~(\var{map}~\var{rrot}~l) = \var{prepend\_col}~(\var{map}~\var{last}~l)~(\var{cols}~j~l)
+  \end{equation*}
+\end{enumerate}
+
 
 \section{Permutation Composition}
 \label{appendix:perm_comp}
 
+\begin{theorem}[compose\_apply]
+  For all lists $l$ and permutation functions $p_1$ and $p_2$
+  \begin{equation*}
+      \var{apply}~(p_2 \comp p_1)~l = \var{apply}~p2~(\var{apply}~p1~l)
+  \end{equation*}
+\end{theorem}
+
 \printbibliography{}
 
 \end{document}
-
-%% We prove this using a few lemmas about \var{findIndex},
-%% \var{lexsort}, and \var{rots}.
-
-%% \begin{lemma}[findIndex\_correct]
-%%   For all elements $x$, lists $l$,
-%%   \begin{equation*}
-%%     (\exists y \in l,~x \equiv y) \implies l_{(\var{findIndex}~x~xs)} \equiv x
-%%   \end{equation*}
-%%   \begin{proof}
-%%     This follows by induction on $xs$: At every step, either the
-%%     current element is equivalent to $x$ and we return $0$, or there
-%%     must be such a $y$ in the rest of the list.
-%%   \end{proof}
-%% \end{lemma}
-
-%% \begin{lemma}[orig\_in\_sorted\_rots]
-%%   For every non-empty list $l$,
-%%   \begin{equation*}
-%%     \exists y \in \var{lexsort}~(\var{rots}~l),~x = y
-%%   \end{equation*}
-%%   \begin{proof}
-%%     Clearly $l$ is in $\var{rots}~l$ at index 0, and because
-%%     \var{lexsort} produces a permutation of its input, $l$ must be
-%%     in $\var{lexsort}~(\var{rots}~l)$ as well.
-%%   \end{proof}
-%% \end{lemma}
-
-%% \begin{theorem}[bwn\_correct]
-%%   For every non-empty list $xs$,
-%%   \begin{equation*}
-%%     (\var{lexsort}~(\var{rots}~xs))_{(\var{bwn}~xs)} = xs
-%%   \end{equation*}
-%%   \begin{proof}
-%%     This follows from \textsf{findIndex\_correct} if we can show that
-%%     $\exists y \in xs,~x = y$, which we have by \textsf{orig\_in\_sorted\_rots}.
-%%   \end{proof}
-%% \end{theorem}

@@ -201,7 +201,7 @@ Section Apply.
 
   Theorem nth_image_apply : forall p i l d,
       PermFun (length l) p -> i < length l ->
-     nth (image p i) l d = nth i (apply p l) d.
+      nth (image p i) l d = nth i (apply p l) d.
   Proof.
     intros p i l d HP HI.
     rewrite <- preimage_image with (i := i) (p := p) (n := length l) at 2 by easy.
@@ -554,22 +554,22 @@ End PermutationEx.
 Section Stable.
   Context {A} `{EqDec A}.
 
-  Definition stable_perm (l : list A) (p : list nat) :=
-    perm (length l) p /\ forall i j d,
+  Definition StablePermFun (l : list A) (p : list nat) :=
+    PermFun (length l) p /\ forall i j d,
+      nth i (apply p l) d === nth j (apply p l) d ->
       i < j < length l ->
-      nth i l d === nth j l d ->
       image p i < image p j.
 
-  Definition stable_perm_preimage (l : list A) (p : list nat) :=
-    perm (length l) p /\ forall i j d,
+  Definition StablePermFun_preimage (l : list A) (p : list nat) :=
+    PermFun (length l) p /\ forall i j d,
+      nth i l d === nth j l d ->
       i < j < length l ->
-      nth i (apply p l) d === nth j (apply p l) d ->
       preimage p i < preimage p j.
 
-  Theorem stable_perm_image_preimage : forall l p,
-      stable_perm l p <-> stable_perm_preimage l p.
+  Theorem StablePermFun_iff : forall l p,
+      StablePermFun l p <-> StablePermFun_preimage l p.
   Proof.
-    intros; split; (intros [HP HS]; split; [easy|]); intros i j d HIJ HE.
+    intros; split; (intros [HP HS]; split; [easy|]); intros i j d HE HIJ.
     - rewrite <- image_preimage with (i := i) (p := p) (n := length l) in HE
         by (omega || easy).
       rewrite <- image_preimage with (i := j) (p := p) (n := length l) in HE
@@ -583,10 +583,9 @@ Section Stable.
         by (omega || easy).
       rewrite <- image_preimage with (i := j) (n := length l) (p := p)
         by (omega || easy).
-      apply HS with (d := d).
+      apply HS with (d := d); [easy|].
       split; [omega|].
       apply preimage_bound; [easy|omega].
-      easy.
     - rewrite <- preimage_image with (i := i) (p := p) (n := length l) in HE
         by (omega || easy).
       rewrite <- preimage_image with (i := j) (p := p) (n := length l) in HE
@@ -600,82 +599,173 @@ Section Stable.
         by (omega || easy).
       rewrite <- preimage_image with (i := j) (n := length l) (p := p)
         by (omega || easy).
-      apply HS with (d := d).
+      apply HS with (d := d); [easy|].
       split; [omega|].
       apply image_bound; [easy|omega].
-      easy.
   Qed.
 
-  Theorem stable_perm_nil : stable_perm [] [].
+  Definition StablePermEx l l' :=
+    exists p, StablePermFun l p /\ apply p l = l'.
+
+  Theorem StablePermFun_nil : StablePermFun [] [].
   Proof.
-    split; [apply perm_nil|].
-    intros i j d HIJ HE.
+    split; [apply PermFun_nil; easy|].
+    intros i j d HE HIJ.
     cbn in HIJ. omega.
   Qed.
 
-  Theorem stable_perm_compose : forall p1 p2 l,
-      stable_perm l p1 -> stable_perm (apply p1 l) p2 ->
-      stable_perm l (compose p2 p1).
+  Theorem StablePermFun_compose : forall p1 p2 l,
+      StablePermFun l p1 -> StablePermFun (apply p1 l) p2 ->
+      StablePermFun l (compose p2 p1).
   Proof.
-    setoid_rewrite stable_perm_image_preimage.
     intros p1 p2 l [HP1 HS1] [HP2 HS2].
     rewrite apply_length in HP2 by easy.
-    split; [apply compose_Perm; easy|].
-    intros i j d HIJ HE.
+    split; [apply compose_preserve; easy|].
+    intros i j d HE HIJ.
     rewrite @apply_def with (d := 0)
-      by (apply perm_length in HP1; rewrite HP1; easy).
-    unfold preimage.
+      by (apply PermFun_length in HP1; rewrite HP1; easy).
+    unfold image.
     rewrite nth_indep with (n := i) (d' := nth 0 p1 0)
-      by (rewrite map_length; apply perm_length in HP2; omega).
+      by (rewrite map_length; apply PermFun_length in HP2; omega).
     rewrite nth_indep with (n := j) (d' := nth 0 p1 0)
-      by (rewrite map_length; apply perm_length in HP2; omega).
+      by (rewrite map_length; apply PermFun_length in HP2; omega).
     rewrite !map_nth with (f := fun x => nth x p1 0).
     apply HS1 with (d := d).
-    split; [|apply perm_range with (p := p2);
-             [easy|apply nth_In; apply perm_length in HP2; omega]].
-    apply HS2 with (d := d);
-      [rewrite apply_length; [omega|easy]|].
-    rewrite <- compose_apply by easy. easy.
-    rewrite compose_apply in HE by easy.
-    rewrite @apply_def with (d := d) in HE
-      by (rewrite apply_length; easy).
-    rewrite nth_indep with (n := i) (d := d) (d' := nth j (apply p1 l) d) in HE
-      by (rewrite map_length; apply perm_length in HP2; omega).
-    rewrite !map_nth with (f := (fun i => nth i (apply p1 l) d)) in HE.
-    rewrite nth_indep with (n := j) (d := d) (d' := nth j (apply p1 l) d) in HE
-      by (rewrite map_length; apply perm_length in HP2; omega).
-    rewrite !map_nth with (f := (fun i => nth i (apply p1 l) d)) in HE.
-    rewrite !nth_indep with (d := 0) (d' := j)
-      by (apply perm_length in HP2; omega).
-    apply HE.
+    - rewrite compose_apply in HE by easy.
+      rewrite @apply_def with (d := d) in HE
+        by (rewrite apply_length; easy).
+      rewrite nth_indep with (n := i) (d := d) (d' := nth j (apply p1 l) d) in HE
+        by (rewrite map_length; apply PermFun_length in HP2; omega).
+      rewrite !map_nth with (f := (fun i => nth i (apply p1 l) d)) in HE.
+      rewrite nth_indep with (n := j) (d := d) (d' := nth j (apply p1 l) d) in HE
+        by (rewrite map_length; apply PermFun_length in HP2; omega).
+      rewrite !map_nth with (f := (fun i => nth i (apply p1 l) d)) in HE.
+      rewrite !nth_indep with (d := 0) (d' := j)
+        by (apply PermFun_length in HP2; omega).
+      apply HE.
+    - split; [|apply PermFun_range with (p := p2);
+             [easy|apply nth_In; apply PermFun_length in HP2; omega]].
+      apply HS2 with (d := d);
+        [|rewrite apply_length; [omega|easy]].
+      rewrite <- compose_apply by easy. easy.
   Qed.
 
-  Theorem stable_perm_ex_Stable : forall l l',
-      Stable l l' -> (exists p, stable_perm l p /\ apply p l = l').
+  Theorem preimage_lt_rem_perm : forall p j i n,
+      PermFun (S n) (i :: p) ->
+      j < i -> preimage (rem_PermFun i p) j = pred (preimage (i :: p) j).
   Proof.
-    setoid_rewrite stable_perm_image_preimage.
+    intros p j i n HP HIJ.
+    unfold preimage, rem_PermFun.
+    cbn. rewrite if_false by (intro c; unfold equiv in c; omega).
+    cbn.
+    match goal with
+    | |- context [findIndex ?j (map ?f ?l)] =>
+      rewrite <- (findIndex_map f p)
+    end; [|easy|fold (rem_PermFun i p)|].
+    rewrite if_false by omega.
+    easy.
+    eapply rem_PermFun_preserve; apply HP.
+    apply Exists_exists.
+    exists j; split; [|easy].
+    apply in_cons_neq with (y := i); [omega|].
+    eapply Permutation_in; [symmetry; apply PermFun_Permutation_seq; apply HP|].
+    apply in_seq.
+    split; [omega|].
+    transitivity i; [omega|].
+    eapply PermFun_range; [apply HP|left]; easy.
+  Qed.
+
+  Theorem preimage_ge_rem_perm : forall p j i n,
+      PermFun (S n) (i :: p) ->
+      i <= j < n -> preimage (rem_PermFun i p) j = pred (preimage (i :: p) (S j)).
+  Proof.
+    intros p j i n HP HIJ.
+    unfold preimage, rem_PermFun.
+    cbn [findIndex]. rewrite if_false by (intro c; unfold equiv in c; omega).
+    cbn.
+    match goal with
+    | |- context [findIndex ?j (map ?f ?l)] =>
+      rewrite <- (findIndex_map f p)
+    end; [|easy|fold (rem_PermFun i p)|].
+    rewrite if_true by omega.
+    easy.
+    eapply rem_PermFun_preserve; apply HP.
+    apply Exists_exists.
+    exists (S j); split; [|easy].
+    apply in_cons_neq with (y := i); [omega|].
+    eapply Permutation_in; [symmetry; apply PermFun_Permutation_seq; apply HP|].
+    apply in_seq. omega.
+  Qed.
+
+  Theorem rem_PermFun_preserve_Stable : forall p i l,
+      i < length l ->
+      StablePermFun l (i :: p) ->
+      StablePermFun (rem_nth i l) (rem_PermFun i p).
+  Proof.
+    setoid_rewrite StablePermFun_iff.
+    intros p k l HI [HP HS].
+    split; [apply rem_PermFun_preserve; rewrite rem_nth_length; destruct l; easy|].
+    intros i j d HE HIJ.
+    assert (IK : preimage (k :: p) k = 0) by (cbn; rewrite if_true; easy).
+    remember (length l) as n.
+    destruct n; [apply PermFun_length in HP; omega|].
+    rewrite rem_nth_length in HIJ by omega.
+    destruct (le_lt_dec k i); [|destruct (le_lt_dec k j)].
+    - assert (k <= j) by omega.
+      rewrite !preimage_ge_rem_perm with (n := n) by (omega || easy).
+      apply (Nat.pred_lt_mono (preimage (k :: p) (S i))).
+      rewrite <- IK.
+      intro c.
+      apply preimage_inj with (n := S n) in c; (omega || easy).
+      apply HS with (d := d); [|omega].
+      rewrite !nth_ge_rem_nth in HE by omega.
+      easy.
+    - rewrite preimage_ge_rem_perm with (j := j) (n := n) by (omega || easy).
+      rewrite preimage_lt_rem_perm with (j := i) (n := n) by (omega || easy).
+      apply (Nat.pred_lt_mono (preimage (k :: p) i)).
+      rewrite <- IK.
+      intro c.
+      apply preimage_inj with (n := S n) in c; (omega || easy).
+      apply HS with (d := d); [|omega].
+      rewrite @nth_ge_rem_nth with (j := j) in HE by omega.
+      rewrite @nth_lt_rem_nth with (j := i) in HE by omega.
+      easy.
+    - rewrite !preimage_lt_rem_perm with (n := n) by easy.
+      apply (Nat.pred_lt_mono (preimage (k :: p) i)).
+      rewrite <- IK.
+      intro c.
+      apply preimage_inj with (n := S n) in c; (omega || easy).
+      apply HS with (d := d); [|omega].
+      rewrite !nth_lt_rem_nth in HE by omega.
+      easy.
+  Qed.
+
+  Theorem StablePermEx_imp : forall l l',
+      StablePerm l l' -> StablePermEx l l'.
+  Proof.
     intros l l' HS.
-    apply stable_ind_iff in HS.
+    apply StablePermInd_iff in HS.
     induction HS.
-    - exists []. split; [apply stable_perm_image_preimage; apply stable_perm_nil|easy].
+    - exists []. split; [apply StablePermFun_nil|easy].
     - destruct IHHS as [p [HSP HA]].
       exists (0 :: map S p).
       destruct HSP as [HP HSP].
       split; [split|].
-      + unfold perm. cbn. apply perm_skip.
+      + apply PermFun_Permutation_seq. cbn. apply perm_skip.
         rewrite <- seq_shift.
         apply Permutation_map.
+        apply PermFun_Permutation_seq.
         easy.
-      + intros i j d HIJ HE.
-        pose proof (perm_length _ _ HP); cbn in HIJ.
-        unfold preimage.
+      + intros i j d HE HIJ.
+        pose proof (PermFun_length _ _ HP); cbn in HIJ.
+        unfold image.
         rewrite !nth_indep with (d := 0) (d' := 1)
           by (cbn; rewrite map_length; omega).
         destruct i; destruct j; [omega| |omega|].
         * cbn [nth]. rewrite map_nth. omega.
         * cbn. rewrite !map_nth.
           apply lt_n_S.
-          apply HSP with (d := d); [omega|].
+          apply HSP with (d := d); [|omega].
           cbn [apply map] in HE.
           rewrite map_map in HE.
           cbn in HE.
@@ -687,10 +777,10 @@ Section Stable.
         easy.
     - exists (1 :: 0 :: map (fun x => S (S x)) (seq 0 (length l))).
       split; [split|].
-      + unfold perm. cbn [length seq].
+      + apply PermFun_Permutation_seq. cbn [length seq].
         rewrite <- map_map, !seq_shift.
         apply perm_swap.
-      + intros i j d HIJ HE.
+      + intros i j d HE HIJ.
         destruct i; destruct j;
           [omega|destruct j|omega|
            destruct i; destruct j; [omega| |omega|]];
@@ -715,8 +805,7 @@ Section Stable.
     - destruct IHHS1 as [p1 [HSP1 HA1]].
       destruct IHHS2 as [p2 [HSP2 HA2]].
       exists (compose p2 p1).
-      rewrite <- stable_perm_image_preimage in *.
-      split; [apply stable_perm_compose;
+      split; [apply StablePermFun_compose;
               [|rewrite <- HA1 in HSP2]; easy|].
       rewrite compose_apply, HA1, HA2
         by (destruct HSP1 as [HP1 _]; destruct HSP2 as [HP2 _];
@@ -724,226 +813,70 @@ Section Stable.
       reflexivity.
   Qed.
 
-  Theorem firstn_nth : forall n (l : list A) i d,
-      i < n ->
-      nth i (firstn n l) d = nth i l d.
+  Theorem apply_correct_stable : forall p l,
+      StablePermFun l p -> StablePerm (apply p l) l.
   Proof.
-    induction n as [|n IH]; intros l i d HI; [omega|].
-    destruct l; [destruct i; easy|].
-    destruct i; [easy|].
-    cbn [firstn nth]. apply IH; omega.
-  Qed.
-
-  Theorem rem_nth_Stable : forall (l : list A) i d,
-      i < length l ->
-      (forall k, k < i -> nth i l d =/= nth k l d) ->
-      Stable l (nth i l d :: rem_nth i l).
-  Proof.
-    intros l i d HI HK.
-    destruct i as [|i'] eqn:Heqni;
-      [destruct l; easy
-      |rewrite <- Heqni in *; assert (0 < i) by omega; clear i' Heqni].
-    rewrite rem_nth_split by omega.
-    rewrite @firstn_skipn_split with (i := i) (l := l) (d := d) at 1 by omega.
-    apply Stable_cons_app_to_front; [easy|].
-    apply Forall_forall.
-    intros x HIn.
-    apply In_nth with (d := d) in HIn .
-    destruct HIn as [j [HJ HX]].
-    rewrite <- HX; clear x HX.
-    rewrite firstn_length, Nat.min_l in HJ by omega.
-    rewrite firstn_nth by easy.
-    apply HK; easy.
-  Qed.
-
-  Theorem image_lt_rem_perm : forall p j i n,
-      perm (S n) (i :: p) ->
-      j < i -> image (rem_perm i p) j = pred (image (i :: p) j).
-  Proof.
-    intros p j i n HP HIJ.
-    unfold image, rem_perm.
-    cbn. rewrite if_false by (intro c; unfold equiv in c; omega).
-    cbn.
-    match goal with
-    | |- context [findIndex ?j (map ?f ?l)] =>
-      rewrite <- (findIndex_map f p)
-    end; [|easy|fold (rem_perm i p)|].
-    rewrite if_false by omega.
-    easy.
-    eapply Permutation_NoDup;
-      [symmetry; apply rem_perm_Perm; apply HP|apply seq_NoDup].
-    apply Exists_exists.
-    exists j; split; [|easy].
-    apply in_cons_neq with (y := i); [omega|].
-    eapply Permutation_in; [symmetry; apply HP|].
-    apply in_seq.
-    split; [omega|].
-    transitivity i; [omega|].
-    eapply perm_range; [apply HP|left]; easy.
-  Qed.
-
-  Theorem image_ge_rem_perm : forall p j i n,
-      perm (S n) (i :: p) ->
-      i <= j < n -> image (rem_perm i p) j = pred (image (i :: p) (S j)).
-  Proof.
-    intros p j i n HP HIJ.
-    unfold image, rem_perm.
-    cbn [findIndex]. rewrite if_false by (intro c; unfold equiv in c; omega).
-    cbn.
-    match goal with
-    | |- context [findIndex ?j (map ?f ?l)] =>
-      rewrite <- (findIndex_map f p)
-    end; [|easy|fold (rem_perm i p)|].
-    rewrite if_true by omega.
-    easy.
-    eapply Permutation_NoDup;
-      [symmetry; apply rem_perm_Perm; apply HP|apply seq_NoDup].
-    apply Exists_exists.
-    exists (S j); split; [|easy].
-    apply in_cons_neq with (y := i); [omega|].
-    eapply Permutation_in; [symmetry; apply HP|].
-    apply in_seq.  omega.
-  Qed.
-
-  Theorem image_lt_rem_perm'' : forall p j i n,
-      perm n (i :: p) ->
-      j < i -> image (rem_perm i p) j = image p j.
-  Proof.
-    induction p; intros j i n HP HIJ.
-    - assert (n = 1) by (apply perm_length in HP; easy); subst.
-      assert (i = 0) by (apply perm_range with (i := i) in HP; [omega|left; easy]).
-      omega.
-    - unfold rem_perm, image.
-      match goal with
-      | |- context [findIndex ?j (map ?f ?l)] =>
-        rewrite <- (findIndex_map f (a :: p))
-      end.
-      rewrite if_false by omega.
-      reflexivity.
-      easy.
-      fold (rem_perm i (a :: p)).
-      destruct n; [apply perm_length in HP; cbn in HP; discriminate|].
-      eapply Permutation_NoDup;
-        [symmetry; apply rem_perm_Perm; apply HP|apply seq_NoDup].
-      assert (i < n) by (eapply perm_range; [apply HP|left; easy]).
-      assert (In j (i :: a :: p)). {
-        eapply Permutation_in; [symmetry; apply HP|].
-        apply in_seq. omega.
-      }
-      apply Exists_exists.
-      exists j. split; [|easy].
-      cbn in H1; cbn. intuition.
-  Qed.
-
-  Theorem rem_perm_Stable : forall p i l,
-      i < length l ->
-      stable_perm l (i :: p) ->
-      stable_perm (rem_nth i l) (rem_perm i p).
-  Proof.
-    intros p k l HI [HP HS].
-    split; [apply rem_perm_Perm; rewrite rem_nth_length; destruct l; easy|].
-    intros i j d HIJ HE.
-    assert (IK : image (k :: p) k = 0) by (cbn; rewrite if_true; easy).
-    remember (length l) as n.
-    destruct n; [apply perm_length in HP; omega|].
-    rewrite rem_nth_length in HIJ by omega.
-    destruct (le_lt_dec k i); [|destruct (le_lt_dec k j)].
-    - assert (k <= j) by omega.
-      rewrite !image_ge_rem_perm with (n := n) by (omega || easy).
-      apply (Nat.pred_lt_mono (image (k :: p) (S i))).
-      rewrite <- IK.
-      intro c.
-      apply image_inj with (n := S n) in c; (omega || easy).
-      apply HS with (d := d); [omega|].
-      rewrite !nth_ge_rem_nth in HE by omega.
-      easy.
-    - rewrite image_ge_rem_perm with (j := j) (n := n) by (omega || easy).
-      rewrite image_lt_rem_perm with (j := i) (n := n) by (omega || easy).
-      apply (Nat.pred_lt_mono (image (k :: p) i)).
-      rewrite <- IK.
-      intro c.
-      apply image_inj with (n := S n) in c; (omega || easy).
-      apply HS with (d := d); [omega|].
-      rewrite @nth_ge_rem_nth with (j := j) in HE by omega.
-      rewrite @nth_lt_rem_nth with (j := i) in HE by omega.
-      easy.
-    - rewrite !image_lt_rem_perm with (n := n) by easy.
-      apply (Nat.pred_lt_mono (image (k :: p) i)).
-      rewrite <- IK.
-      intro c.
-      apply image_inj with (n := S n) in c; (omega || easy).
-      apply HS with (d := d); [omega|].
-      rewrite !nth_lt_rem_nth in HE by omega.
-      easy.
-  Qed.
-
-  Theorem stable_perm_StablePerm : forall p l,
-      stable_perm l p -> Stable (apply p l) l.
-  Proof.
-    setoid_rewrite stable_perm_image_preimage.
     intros p l.
     remember (length l) as n.
     revert p l Heqn.
     induction n as [|n IH]; intros p l HL [HP HS].
     - symmetry in HL; apply length_zero_iff_nil in HL; subst.
-      apply perm_0 in HP; subst.
+      apply PermFun_0 in HP; subst.
       reflexivity.
     - destruct l as [|a l]; [inversion HL|].
-      destruct p as [|i p]; [apply perm_S_nil in HP; contradiction|].
-      rewrite rem_hd_perm with (d := a) by easy.
+      destruct p as [|i p]; [apply PermFun_S_nil in HP; contradiction|].
+      rewrite rem_PermFun_correct with (d := a) by easy.
       assert (forall k, k < i -> nth i (a :: l) a =/= nth k (a::l) a). {
         intros k HK.
         assert (k < length (a :: l)). {
           transitivity i; [easy|].
-          apply perm_range with (p := i :: p); [|left]; easy.
+          apply PermFun_range with (p := i :: p); [|left]; easy.
         }
-        specialize (HS 0 (image (i::p) k) a).
-        rewrite nth_image_apply in HS by easy.
+        specialize (HS 0 (preimage (i::p) k) a).
+        rewrite nth_preimage_apply in HS by easy.
         cbn [apply map] in HS; rewrite !nth_first in HS; cbn [hd] in HS.
-        rewrite preimage_image with (n := length (a :: l)) in HS by easy.
-        assert (L: 0 < image (i :: p) k < length (a :: l)). {
-          destruct (Nat.eq_dec (image (i :: p) k) 0).
-          - subst. unfold image in e.
+        rewrite image_preimage with (n := length (a :: l)) in HS by easy.
+        assert (L: 0 < preimage (i :: p) k < length (a :: l)). {
+          destruct (Nat.eq_dec (preimage (i :: p) k) 0).
+          - subst. unfold preimage in e.
             apply f_equal with (f := fun x => nth x (i :: p) 0) in e.
             rewrite findIndex_correct in e. cbn in e.
             omega.
-            apply perm_i_exists with (n := length (a :: l)); [easy|].
+            apply PermFun_i_exists with (n := length (a :: l)); [easy|].
             transitivity i; [easy|].
-            apply perm_range with (p := i :: p); [|left]; easy.
+            apply PermFun_range with (p := i :: p); [|left]; easy.
           - split; [omega|].
-            unfold image.
-            erewrite <- perm_length by apply HP.
+            unfold preimage.
+            erewrite <- PermFun_length by apply HP.
             apply findIndex_bounds.
-            apply perm_i_exists with (n := length (a :: l)); [easy|].
+            apply PermFun_i_exists with (n := length (a :: l)); [easy|].
             transitivity i; [easy|].
-            apply perm_range with (p := i :: p); [|left]; easy.
+            apply PermFun_range with (p := i :: p); [|left]; easy.
         }
         intro c.
-        specialize (HS L c).
+        specialize (HS c L).
         cbn in HS.
         omega.
       }
       transitivity (nth i (a :: l) a :: rem_nth i (a :: l)).
-      apply Stable_skip.
+      apply StablePerm_skip.
       apply IH.
       rewrite rem_nth_length;
-        [cbn in *; omega|eapply perm_range; [apply HP|left; easy]].
-      apply stable_perm_image_preimage.
-      apply rem_perm_Stable;
-        [eapply perm_range; [apply HP|left; easy]
-        |apply stable_perm_image_preimage; easy].
-      symmetry. apply rem_nth_Stable;
-                  [eapply perm_range; [apply HP|left; easy]|easy].
+        [cbn in *; omega|eapply PermFun_range; [apply HP|left; easy]].
+      apply rem_PermFun_preserve_Stable;
+        [eapply PermFun_range; [apply HP|left; easy]|easy].
+      symmetry. apply rem_nth_StablePerm;
+                  [eapply PermFun_range; [apply HP|left; easy]|easy].
   Qed.
 
-  Theorem stable_perm_ex_StablePerm_iff : forall l l',
-       Stable l l' <-> exists p, stable_perm l p /\ apply p l = l'.
+  Theorem StablePermEx_iff : forall l l',
+       StablePerm l l' <-> StablePermEx l l'.
   Proof.
     split.
-    - apply stable_perm_ex_Stable.
+    - apply StablePermEx_imp.
     - intros [p []].
       subst l'.
-      symmetry; apply stable_perm_StablePerm.
+      symmetry; apply apply_correct_stable.
       easy.
   Qed.
 End Stable.
