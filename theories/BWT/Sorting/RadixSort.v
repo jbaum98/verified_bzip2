@@ -5,7 +5,7 @@ Require Import Coq.omega.Omega.
 
 Require Import BWT.Sorting.Ord.
 Require Import BWT.Sorting.Sorted.
-Require Import BWT.Sorting.Stable.
+Require Import BWT.Sorting.StablePerm.
 Require Import BWT.Sorting.InsertionSort.
 Require Import BWT.Rotation.Rotation.
 Require Import BWT.Lib.Repeat.
@@ -13,6 +13,7 @@ Require Import BWT.Sorting.Key.
 Require Import BWT.Lib.List.
 Require Import BWT.Columns.
 Require Import BWT.Sorting.Lexicographic.
+Require Import BWT.Sorting.PermFun.
 
 Section RadixSort.
   Context {A : Type} {O : Preord A}.
@@ -31,7 +32,7 @@ Section RadixSort.
   Proof.
     induction n; intro l; [reflexivity|].
     cbn; symmetry.
-    apply Permutation_trans with (l' := map rrot (rep (hdsort ∘ map rrot) n l)).
+    transitivity (map rrot (rep (hdsort ∘ map rrot) n l)).
     symmetry. apply sort_perm.
     apply Permutation_map.
     symmetry. apply IHn.

@@ -748,6 +748,36 @@ Theorem in_cons_neq {A} : forall (x y : A) l,
     x <> y -> In x (y :: l) -> In x l.
 Proof. intros x y l NEQ []; intuition. Qed.
 
+Section Forall.
+  Context {A : Type}.
+
+  Implicit Type l : list A.
+
+  Theorem Forall_app : forall P l1 l2,
+      Forall P (l1 ++ l2) <-> Forall P l1 /\ Forall P l2.
+  Proof.
+    intros P l1 l2.
+    rewrite !Forall_forall.
+    setoid_rewrite in_app_iff.
+    intuition.
+  Qed.
+
+  Theorem Forall_nth : forall P l,
+      Forall P l <-> (forall i d, i < length l -> P (nth i l d)).
+  Proof.
+    intros P l.
+    split.
+    - intros HF i d HI.
+      eapply Forall_forall; [apply HF|].
+      apply nth_In; easy.
+    - intros HP.
+      apply Forall_forall; intros x HIn.
+      destruct (In_nth _ _ x HIn) as [i [HI Hx]].
+      rewrite <- Hx.
+      apply HP; easy.
+  Qed.
+End Forall.
+
 Section CountOcc.
   Context {A : Type} `(ED : EqDec A eq).
 

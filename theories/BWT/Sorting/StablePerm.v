@@ -496,7 +496,7 @@ End StablePermInd_Iff.
 Section Unique.
   Context {A} `{Preord A}.
 
-  Theorem stable_sort_unique : forall l l',
+  Theorem StablePerm_Sorted_eq : forall l l',
       Sorted l -> Sorted l' -> StablePerm l l' ->
       l = l'.
   Proof.
@@ -512,6 +512,7 @@ Section Unique.
         pose proof (Permutation_sym P) as P'.
         destruct (Permutation_cons_in hd hd' tl tl' P);  [subst; reflexivity|].
         destruct (Permutation_cons_in hd' hd tl' tl P'); [subst; reflexivity|].
+        rewrite Forall_forall in HIn, HIn'.
         split; auto.
       }
       pose proof (St hd) as F. cbn in F.
@@ -541,3 +542,40 @@ Section Leibniz.
     - transitivity l'; easy.
   Qed.
 End Leibniz.
+
+Section Weaken.
+  Context {A : Type}.
+
+  Variables (O1 O2: Preord A).
+
+  Local Arguments le {_} _.
+  Local Arguments eqv {_} _.
+  Local Arguments equiv_decb {_} _ {_} {_}.
+  Local Arguments StablePerm {_} {_} {_} _.
+  Local Arguments Preord_EqDec {_} _.
+
+  Variables l l' : list A.
+
+  Hypothesis le_weaken : forall x y,
+      In x l -> In y l -> le O2 x y -> le O1 x y.
+
+  Theorem StablePerm_weaken :
+      StablePerm (Preord_EqDec O1) l l' -> StablePerm (Preord_EqDec O2) l l'.
+  Proof.
+    setoid_rewrite StablePermInd_iff.
+    intros HS.
+    induction HS; [easy|..].
+    - constructor. apply IHHS.
+      intros a b Ha Hb. apply le_weaken; right; easy.
+    - constructor.
+      unfold complement, Equivalence.equiv in *.
+      intro c; apply H; clear H.
+      destruct c.
+      split; apply le_weaken; intuition.
+    - transitivity l'; [apply IHHS1; easy|apply IHHS2].
+      apply StablePermInd_iff in HS1; apply StablePerm_Perm in HS1.
+      symmetry in HS1.
+      intros x y Hx Hy.
+      apply le_weaken; (eapply Permutation_in; [apply HS1|]); easy.
+  Qed.
+End Weaken.

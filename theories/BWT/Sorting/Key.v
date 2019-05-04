@@ -6,7 +6,9 @@ Require Import BWT.Sorting.InsertionSort.
 Require Import BWT.Sorting.Lexicographic.
 Require Import BWT.Sorting.Ord.
 Require Import BWT.Sorting.Sorted.
+Require Import BWT.Sorting.StablePerm.
 Require Import BWT.Lib.List.
+Require Import BWT.Lib.TakeWhile.
 
 Section KeyOrd.
   Context {A K : Type} `{O: Preord K}.
@@ -75,12 +77,13 @@ Section KeyOrd.
     induction l; [split; intros; apply Sorted_nil|].
     split; cbn; intros HS; apply Sorted_cons_inv in HS; destruct HS as [HLe HS].
     - cbn. apply Sorted_cons.
-      intros. apply in_map_iff in H.
+      apply Forall_forall; intros.
+      apply in_map_iff in H.
       destruct H as [kx [Hkx HIn]].
-      rewrite <- Hkx. apply HLe. auto.
+      rewrite <- Hkx. rewrite Forall_forall in HLe. apply HLe. auto.
       apply IHl; auto.
-    - apply Sorted_cons.
-      intros. apply HLe. apply in_map. auto.
+    - apply Sorted_cons. rewrite Forall_forall.
+      intros. rewrite Forall_forall in HLe. apply HLe. apply in_map. auto.
       apply IHl. auto.
   Qed.
 End KeyOrd.
@@ -258,6 +261,51 @@ Section Firstn.
       apply key_lt_firstn_S. apply (IHk j); [omega|auto].
       rewrite <- H. auto.
   Qed.
+
+  Local Arguments StablePerm {_} {_} {_} _.
+  Local Arguments Preord_EqDec {_} _.
+
+  Theorem PrefixStable_le : forall i j l l',
+      i <= j ->
+      StablePerm (Preord_EqDec (keyOrd (firstn i))) l l' ->
+      StablePerm (Preord_EqDec (keyOrd (firstn j))) l l'.
+  Proof.
+    intros i j l l' HIJ.
+    apply StablePerm_weaken.
+    intros; apply key_le_firstn_ge with (k := j); easy.
+  Qed.
+
+  Theorem PrefixStable_length : forall n l l',
+      Forall (fun x => length x = n) l ->
+      StablePerm (Preord_EqDec (keyOrd (firstn n))) l l' ->
+      StablePerm (Preord_EqDec (List_Lex_Preord)) l l'.
+  Proof.
+    intros n l l' Hn.
+    apply StablePerm_weaken.
+    cbn. intros x y Hx Hy.
+    rewrite Forall_forall in Hn.
+    assert (length x = n) by (apply Hn; easy).
+    assert (length y = n) by (apply Hn; easy).
+    rewrite !firstn_all2 by omega.
+    easy.
+  Qed.
+
+  Theorem PrefixStable_firstn_1 : forall l l',
+      StablePerm (Preord_EqDec (keyOrd (firstn 1))) l l' ->
+      StablePerm (Preord_EqDec (List_Lex_Preord)) l l'.
+  Proof.
+    intros l l'.
+    apply StablePerm_weaken.
+    cbn [le List_Lex_Preord keyOrd].
+    intros x y Hx Hy.
+    intro HLe.
+    destruct x; [apply lex_le_nil|].
+    destruct y; [apply lex_le_not_nil_r in HLe; contradiction|].
+    cbn.
+    inversion HLe; subst; clear HLe.
+    - apply lex_le_cons_lt; easy.
+    - apply lex_le_cons_eq; [|constructor]; easy.
+  Qed.
 End Firstn.
 
 Section HdSort.
@@ -265,7 +313,6 @@ Section HdSort.
 
   Definition hdsort : list (list A) -> list (list A)
     := @sort _ (keyOrd (firstn 1)).
-
 End HdSort.
 
 Section Prefix.
@@ -281,8 +328,8 @@ Section Prefix.
   Proof.
     intros l. unfold PrefixSorted.
     induction l; [apply Sorted_nil|].
-    apply Sorted_cons.
-    intros. apply key_le_firstn_O. apply IHl.
+    apply Sorted_cons; [|easy].
+    apply Forall_forall. intros; apply key_le_firstn_O.
   Qed.
 End Prefix.
 

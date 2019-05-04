@@ -9,7 +9,7 @@ Require Import BWT.Lib.Permutation.
 Require Import BWT.Lib.Sumbool.
 Require Import BWT.Lib.List.
 Require Import BWT.Lib.FindIndex.
-Require Import BWT.Sorting.Stable.
+Require Import BWT.Sorting.StablePerm.
 
 Definition PermFun (n : nat) (p : list nat) : Prop :=
     NoDup p /\ forall i, In i p <-> i < n.
@@ -386,6 +386,21 @@ Section Apply.
     apply PermFun_length in H.
     rewrite map_length. easy.
   Qed.
+
+  Theorem apply_map : forall p l f,
+      PermFun (length l) p ->
+      apply p (map f l) = map f (apply p l).
+  Proof.
+    intros p l f Hp.
+    destruct l as [|d t] eqn:HL; [easy|]; rewrite <- HL in *; clear t HL.
+    rewrite !apply_def with (d := d) by (rewrite ?map_length; easy).
+    rewrite map_map.
+    apply map_ext_in.
+    intros x Hx.
+    rewrite nth_indep with (d' := f d)
+      by (rewrite map_length; eapply PermFun_range; [apply Hp|apply Hx]).
+    rewrite map_nth. easy.
+  Qed.
 End Apply.
 
 Section Compose.
@@ -500,6 +515,14 @@ Section Compose.
       [repeat (rewrite ?apply_length, ?L1 || apply compose_preserve); easy..|].
     apply (compose_preserve (length l)); easy.
   Qed.
+
+  Theorem image_compose : forall p1 p2 i,
+      image (compose p1 p2) i = image p1 (image p2 i).
+  Admitted.
+
+  Theorem preimage_compose : forall p1 p2 i,
+      preimage (compose p1 p2) i = preimage p1 (preimage p2 i).
+  Admitted.
 End Compose.
 
 Section PermutationEx.

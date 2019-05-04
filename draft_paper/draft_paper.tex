@@ -7,13 +7,19 @@
 \begin{document}
 
 \maketitle
+\vfill
 
 \section{Introduction}
 \label{sec:intro}
 
 The Burrows-Wheeler transform (BWT) is an invertible transformation
 that makes a string more amenable to compression by other methods
-\cite{bw}. The forwards transform is straightforward to describe: for
+\cite{bw}. It accomplishes this by creating runs of repeated letters
+in the produced string. Of course, a simple way to create runs is to
+sort the string, but that would be useless for compression because the
+original string would be unrecoverable.
+
+The forwards transform is straightforward to describe: for
 a string of length \(n\), form the \(n \times n\) rotaion matrix of all
 cyclic shifts of the original string, sort it lexicographically, and
 take the last column of the matrix. In addition, we note the index
@@ -27,7 +33,7 @@ compress. Although it is not obvious, the transformed string, together
 with the index, provide enough information to recover the the original
 string. The BWT is discussed more in \cref{sec:bwt}.
 
-\begin{figure}
+\begin{figure}[!hb]
   \centering
   \begin{tt}
   \begin{tabular}{rc}
@@ -1135,7 +1141,7 @@ the same order, since the original lists are specifically stable
 permutations of one another.
 \lstinputlisting[
   widthgobble=2, firstline=21, lastline=22,
-]{../theories/BWT/Sorting/Stable.v}
+]{../theories/BWT/Sorting/StablePerm.v}
 
 We will prove equivalence between these three definitions, but first
 we will mention some properties of \var{Stable}. \var{Stable} is an
@@ -1361,8 +1367,11 @@ an order, not just a preorder, and for orders all sorts are stable.
   \end{equation*}
 \end{theorem}
 
-\section{Insertion Sort, Radixsort, and \texttt{lexsort}}
+\section{Radixsort}
 \label{sec:sort}
+
+As
+
 
 \lstinputlisting[
   widthgobble=2, firstline=11, lastline=21,

@@ -12,25 +12,19 @@ Section Sorted.
   Inductive Sorted: list A -> Prop :=
   | Sorted_nil : Sorted nil
   | Sorted_cons : forall a l,
-      (forall x, In x l -> le a x) ->
+      Forall (le a) l ->
       Sorted l -> Sorted (a :: l).
 
   Remark Sorted_1:
     forall x, Sorted (x :: nil).
-  Proof.
-    intros. constructor. intros. elim H. constructor.
-  Qed.
+  Proof. intros; constructor; constructor. Qed.
 
   Remark Sorted_2:
     forall x y, le x y -> Sorted (x :: y :: nil).
-  Proof.
-    intros. constructor.
-    intros. simpl in H0. destruct H0. subst x0. auto. contradiction.
-    apply Sorted_1.
-  Qed.
+  Proof. intros; (repeat constructor || easy). Qed.
 
   Lemma Sorted_cons_inv {x l} :
-      Sorted (x :: l) -> (forall y, In y l -> le x y) /\ Sorted l.
+      Sorted (x :: l) -> (Forall (le x) l) /\ Sorted l.
   Proof. intro HS. inversion HS; split; auto. Qed.
 
   Lemma Sorted_const : forall l,
@@ -39,10 +33,9 @@ Section Sorted.
   Proof.
     intros l [x HF].
     induction HF; [apply Sorted_nil|].
-    apply Sorted_cons.
-    intros a HIn.
-    apply (proj1 (Forall_forall (eq x) l)) with (x0 := a) in HF; auto.
-    subst. reflexivity. auto.
+    apply Sorted_cons; [|easy].
+    eapply Forall_impl; [|apply HF].
+    intros; subst; reflexivity.
   Qed.
 
   Theorem Sorted_rem1 {eq_dec : forall x y, {x=y}+{x<>y}} : forall l x,
@@ -52,9 +45,11 @@ Section Sorted.
     induction HS; intros x; [constructor|].
     cbn.
     destruct (eq_dec x a); [auto|].
-    apply Sorted_cons; intros.
-    apply H. apply in_rem1_in in H0. auto.
-    apply IHHS.
+    apply Sorted_cons; [|easy].
+    apply Forall_forall.
+    intros y HIny.
+    apply in_rem1_in in HIny; revert HIny.
+    apply Forall_forall; easy.
   Qed.
 End Sorted.
 
@@ -71,61 +66,55 @@ Section SortedLocal.
   Lemma SortedLocal_iff : forall l, Sorted l <-> SortedLocal l.
   Proof.
     split.
-    - induction l as [|a [|b l]]; intros H; constructor;
-        inversion H; subst; clear H; auto using in_eq.
-    - induction l as [|a [|b l]]; intros.
-      + constructor.
-      + constructor; [contradiction|constructor].
-      + inversion H; subst; clear H.
-        specialize (IHl H2); clear H2.
-        constructor; auto.
-        intros. eapply le_trans; eauto.
-        inversion IHl; subst; clear IHl.
-        destruct H; subst; auto using le_refl.
+    - induction l as [|a [|b l]]; intros H; [constructor..|].
+      apply Sorted_cons_inv in H; destruct H.
+      constructor; [apply IHl; easy|].
+      eapply Forall_inv; apply H.
+    - induction l as [|a [|b l]]; intros HS;
+        [apply Sorted_nil|apply Sorted_1|].
+      inversion HS; subst; clear HS.
+      specialize (IHl H1); clear H1.
+      constructor; auto.
+      constructor; [easy|].
+      apply Sorted_cons_inv in IHl.
+      eapply Forall_impl; [|apply IHl].
+      intros; transitivity b; easy.
   Qed.
 
   Theorem Sorted_app : forall a l1 l2,
       Sorted (l1 ++ a :: l2) <->
-      Sorted l1 /\ Sorted (a :: l2) /\ Forall (fun x => le x a) l1.
+      Sorted l1 /\ Sorted (a :: l2) /\ Forall (ge a) l1.
   Proof.
     intros a l1 l2.
     split.
     - intros HS.
       remember (l1 ++ a :: l2) as l.
       revert a l1 l2 Heql.
-      induction HS; intros x l1 l2 HL.
-      apply app_cons_not_nil in HL; contradiction.
-      destruct l1. inversion HL; subst; clear HL.
-      split; auto using Sorted_nil, Sorted_cons.
+      induction HS; intros x l1 l2 HL;
+        [apply app_cons_not_nil in HL; contradiction|].
+      destruct l1;
+        [inversion HL; subst; clear HL; split; auto using Sorted_nil, Sorted_cons|].
+      inversion HL; subst a0; clear HL; rename H2 into HL.
       destruct (IHHS x l1 l2) as [HS1 [HS2 HF]]; [inversion HL; auto|].
       repeat split.
-      + apply Sorted_cons.
-        inversion HL; subst; clear HL.
-        intros y HIn.
-        apply H. apply in_or_app.
-        left. auto.
-        apply HS1.
+      + apply Sorted_cons; [|easy].
+        apply @Forall_app with (l1 := l1) (l2 := x :: l2).
+        rewrite <- HL. easy.
       + apply HS2.
-      + constructor.
-        inversion HL; subst; clear HL.
-        apply H. apply in_or_app. right. left. auto.
-        auto.
+      + constructor; [|easy].
+        apply Forall_forall with (l := l) (P := le a); [easy|].
+        rewrite HL; apply in_or_app. right. left. auto.
     - induction l1 as [|h t]; intros [HS1 [HS2 HF]]; [apply HS2|].
-      cbn; apply Sorted_cons.
-      intros x HIn.
-      apply in_app_or in HIn.
-      destruct HIn.
-      + apply Sorted_cons_inv in HS1; destruct HS1 as [HLe _].
-        apply HLe. auto.
-      + inversion HF; subst; clear HF.
-        destruct H; [subst; auto|].
-        apply Sorted_cons_inv in HS2; destruct HS2 as [HLe _].
-        transitivity a; [auto|].
-        apply HLe. auto.
-      + apply IHt. repeat split.
-        * apply Sorted_cons_inv in HS1; destruct HS1; auto.
-        * auto.
-        * inversion HF; auto.
+      cbn; apply Sorted_cons;
+        [|apply IHt; inversion HS1; inversion HS2; inversion HF; easy].
+      apply Forall_app.
+      split; [apply Sorted_cons_inv in HS1; easy|].
+      assert (le h a)
+        by (apply Forall_forall with (l := h :: t) (P := ge a); [|left]; easy).
+      apply Sorted_cons_inv in HS2.
+      constructor; [easy|].
+      apply Forall_impl with (P := le a); [|apply HS2].
+      intros; transitivity a; easy.
   Qed.
 End SortedLocal.
 
@@ -158,7 +147,7 @@ Section SortedIx.
       apply Sorted_cons_inv in HS; destruct HS as [Hh HS].
       destruct i as [|i]; destruct j as [|j]; [| |omega|].
       + cbn. reflexivity.
-      + cbn. apply Hh. apply nth_In. cbn in HIJ; omega.
+      + cbn. apply Forall_nth; [easy|cbn in HIJ; omega].
       + cbn. apply IH; [easy|cbn in HIJ; omega].
     - intros HSix.
       apply SortedLocal_iff; rewrite SortedLocal_iff in IH.

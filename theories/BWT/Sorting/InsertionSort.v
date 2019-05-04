@@ -1,64 +1,67 @@
 Require Import Coq.Lists.List.
 Require Import Coq.Sorting.Permutation.
+Import Coq.Lists.List.ListNotations.
 
 Require Import BWT.Sorting.Ord.
 Require Import BWT.Sorting.Sorted.
-Require Import BWT.Sorting.Stable.
+Require Import BWT.Sorting.StablePerm.
+Require Import BWT.Lib.Sumbool.
+Require Import BWT.Lib.Permutation.
 
 Section InsertionSort.
   Context {A : Type} {O : Preord A}.
 
   Fixpoint insert (x : A) (l : list A) :=
     match l with
-    | nil => x :: nil
-    | h::t => if le_dec x h then x :: h :: t else h :: insert x t
+    | [] => [x]
+    | h :: t =>
+      if le_dec x h then x :: h :: t else h :: insert x t
     end.
 
-  Fixpoint sort (l: list A) : list A :=
-    match l with
-    | nil => nil
-    | h::t => insert h (sort t)
-    end.
+  Definition sort : list A -> list A :=
+    fold_right insert [].
 
-  Lemma insert_perm: forall x l, Permutation (x::l) (insert x l).
+  Lemma insert_perm: forall x l,
+      Permutation (x :: l) (insert x l).
   Proof.
-    intros. revert x. induction l as [ | hd tl IH]; intros x.
-    - simpl. apply Permutation_refl.
-    - simpl. destruct (le_dec x  hd).
-      + apply Permutation_refl.
-      + rewrite perm_swap. apply Permutation_cons.
-        reflexivity.
-        apply IH.
+    intros; revert x; induction l as [|h t IH]; intros x;
+      [reflexivity|].
+    cbn. destruct (le_dec x h); [reflexivity|].
+    rewrite perm_swap.
+    apply Permutation_cons; [easy|apply IH].
   Qed.
 
   Theorem sort_perm: forall l, Permutation l (sort l).
   Proof.
-    induction l as [ | hd tl IH].
-    - simpl. apply Permutation_refl.
-    - simpl. apply perm_skip with (x := hd) in IH.
-      eapply perm_trans.
-      + apply IH.
-      + apply insert_perm.
+    induction l as [|h t IH]; [reflexivity|].
+    cbn.
+    transitivity (h :: sort t); [apply perm_skip; easy|].
+    apply insert_perm.
   Qed.
 
-  Lemma insert_sorted:
-    forall a l, Sorted l -> Sorted (insert a l).
+  Lemma insert_forall_le : forall x l,
+      Forall (le x) l -> insert x l = x :: l.
   Proof.
-    intros a l Sl; revert a.
-    induction Sl as [ | hd tl HIn HS IH]; intros a; [apply Sorted_1|].
-    simpl; destruct (le_dec a hd).
-    - apply Sorted_cons.
-      intros x HIn'; simpl in HIn'.
-      destruct HIn'; [subst; auto|].
-      eapply le_trans. apply l. apply HIn; auto.
-      constructor. apply HIn. apply HS.
-    - apply Sorted_cons.
-      intros x HIn'.
-      apply Permutation_in with (l' := a::tl) in HIn';
-        [|auto using insert_perm, Permutation_sym].
-      destruct HIn'; [subst; apply lt_le_rev; auto|].
-      apply HIn; auto.
+    intros x l HF.
+    destruct l as [|h t]; [easy|].
+    cbn. rewrite if_true by (eapply Forall_inv; apply HF).
+    reflexivity.
+  Qed.
+
+  Lemma insert_sorted: forall x l,
+      Sorted l -> Sorted (insert x l).
+  Proof.
+    intros x l Sl; revert x.
+    induction Sl as [|a t HF HS IH]; intros x; [apply Sorted_1|].
+    cbn; destruct (le_dec x a).
+    - revert IH; setoid_rewrite SortedLocal_iff; intros IH.
+      apply SortedLocal_cons; [|easy].
+      rewrite <- insert_forall_le by easy.
       apply IH.
+    - apply Sorted_cons; [|easy].
+      apply Permutation_forall with (l := x :: t);
+        [apply insert_perm|].
+      constructor; [apply lt_le; easy|easy].
   Qed.
 
   Theorem sort_sorted: forall l, Sorted (sort l).
@@ -68,22 +71,22 @@ Section InsertionSort.
     - simpl. apply insert_sorted. apply IH.
   Qed.
 
-  Lemma insert_stable : forall a l, @Stable A eqv _ _ (a :: l) (insert a l).
+  Lemma insert_stable : forall a l, @StablePerm A eqv _ _ (a :: l) (insert a l).
   Proof.
-    induction l as [|b l]; [apply Stable_skip; reflexivity|].
+    induction l as [|b l]; [apply StablePerm_skip; reflexivity|].
     cbn. destruct (le_dec a b).
     - reflexivity.
     - transitivity (b :: a :: l).
-      apply Stable_swap.
+      apply StablePerm_swap.
       intros []. contradiction.
-      apply Stable_skip. easy.
+      apply StablePerm_skip. easy.
   Qed.
 
-  Theorem sort_stable : forall l, @Stable A eqv _ _ l (sort l).
+  Theorem sort_stable : forall l, @StablePerm A eqv _ _ l (sort l).
   Proof.
     induction l; [reflexivity|].
     cbn. transitivity (a :: sort l).
-    apply Stable_skip. apply IHl.
+    apply StablePerm_skip. apply IHl.
     apply insert_stable.
   Qed.
 End InsertionSort.

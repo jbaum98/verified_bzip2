@@ -6,7 +6,7 @@
 \ProcessOptions\relax
 \LoadClass{article}
 
-\RequirePackage{amsmath}
+\RequirePackage[fleqn]{amsmath}
 \RequirePackage{amssymb}
 \RequirePackage{mathtools}
 \RequirePackage{hyperref}
@@ -34,20 +34,20 @@
 \declaretheorem[style=lemma,numberwithin=section]{example}
 \declaretheorem[style=lemma,numberwithin=section]{remark}
 
+\RequirePackage[letterpaper,left=1.5in,right=1.5in,top=1in,bottom=1in]{geometry}
+
 \setlength{\parskip}{1.5em}
 \setlength{\parindent}{0in}
-
-\RequirePackage[letterpaper,margin=1in]{geometry}
 
 \RequirePackage{fontspec}
 \setmonofont[
   Contextuals=Alternate,
   RawFeature=+XV00,
   Scale=0.9,
-  UprightFont={* Light},
-  ItalicFont={* Light Italic},
-  BoldFont={* Medium},
-  BoldItalicFont={* Medium Italic}
+  UprightFont={*},
+  ItalicFont={* Italic},
+  BoldFont={* Semibold},
+  BoldItalicFont={* Semibold Italic}
 ]{Iosevka}
 
 \RequirePackage{listings}
@@ -92,11 +92,11 @@
 \newcommand{\var}[1]{\texttt{#1}}
 \newcommand{\bvar}[1]{\texttt{\textbf{#1}}}
 
-\newcommand{\compcent}[1]{\vcenter{\hbox{$#1\circ$}}}
-
-\newcommand{\comp}{\mathbin{\mathchoice
-  {\compcent\scriptstyle}{\compcent\scriptstyle}
-  {\compcent\scriptscriptstyle}{\compcent\scriptscriptstyle}}}
+%% \newcommand{\compcent}[1]{\vcenter{\hbox{$#1\circ$}}}
+%% \newcommand{\comp}{\mathbin{\mathchoice
+%%   {\compcent\scriptstyle}{\compcent\scriptstyle}
+%%   {\compcent\scriptscriptstyle}{\compcent\scriptscriptstyle}}}
+\newcommand{\comp}{\circ}
 
 \RequirePackage{proof}
 \RequirePackage{enumitem}
@@ -104,3 +104,14 @@
 \newcommand{\eqperm}{\overset{\mathtt{Perm}}{=\joinrel=}}
 \newcommand{\eqstable}{\overset{\mathtt{Stable}}{=\joinrel=\joinrel=\joinrel=}}
 \newcommand{\dplus}{\ensuremath{\mathbin{+\mkern-3mu+}}}
+
+\RequirePackage{microtype}
+\RequirePackage[sc]{mathpazo}
+\linespread{1.05} % Palladio needs more leading (space between lines)
+\RequirePackage[T1]{fontenc}
+
+\RequirePackage[semibold]{sourcesanspro}
+\RequirePackage{sectsty}
+\allsectionsfont{\sffamily}
+
+\RequirePackage[margin=15pt,font=small,labelfont={bf,sf}]{caption}
