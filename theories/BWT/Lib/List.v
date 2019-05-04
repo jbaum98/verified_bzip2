@@ -176,6 +176,16 @@ Section Forall2.
   Proof.
     intros. induction H0; constructor; auto.
   Qed.
+
+  Lemma Forall_rev {A} : forall P (x y : list A),
+      Forall2 P x y -> Forall2 P (rev x) (rev y).
+  Proof.
+    induction x; intros y HF; [inversion HF; subst; easy|].
+    destruct y as [|b y]; [inversion HF|].
+    inversion HF; subst; clear HF.
+    cbn. apply Forall2_app; [apply IHx; easy|].
+    constructor; easy.
+  Qed.
 End Forall2.
 
 Section Map.

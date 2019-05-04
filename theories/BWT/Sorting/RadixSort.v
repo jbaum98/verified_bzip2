@@ -81,65 +81,48 @@ Section RadixSort.
     apply HL. apply HIn.
   Qed.
 
-  Local Arguments StablePerm {_} {_} _ {_}.
-  Local Arguments StablePermEx {_} {_} _.
-  Local Arguments eqv_rel {_} _.
-  Local Arguments eqv {_} _.
-  Local Arguments le {_} _.
-
-  Theorem radixsort_StablePerm_ind : forall n j l,
-      j <= n ->
-      Forall (fun x => length x = n) l ->
-      StablePerm (eqv_rel (keyOrd (firstn j)))
-                 (rep (map rrot) j l) (radixsort l j).
+  Theorem StablePerm_map_rrot : forall m m' : list (list A),
+      StablePerm m m' -> StablePerm (map rrot m) (map rrot m').
   Proof.
-    induction j; intros l HIJ HL; [reflexivity|].
-    cbn [rep radixsort]; unfold Basics.compose at 1; fold (radixsort l j).
-    remember (radixsort l j) as R.
-    assert (Hhl : length (hdsort (map rrot R)) = length R). {
-      etransitivity.
-      apply Permutation_length. symmetry. apply sort_perm.
-      rewrite map_length. easy.
-    }
-    assert (IH : StablePerm (eqv_rel (keyOrd (firstn j)))
-                            (rep (map rrot) j l) (radixsort l j))
-      by (apply IHj; [omega|easy]); clear IHj.
-    apply StablePermEx_iff in IH; apply StablePermEx_iff.
-    destruct IH as [p [HSP Hp]].
-    assert (Hhs : StablePerm (eqv_rel (keyOrd (firstn 1)))
-                             (hdsort (map rrot R)) (map rrot R))
-      by (symmetry; apply sort_stable).
-    apply StablePermEx_iff in Hhs.
-    destruct Hhs as [ph [HSPh Hph]].
-    rewrite <- HeqR in *.
-    exists (compose p ph).
-    split; [split|].
-    - apply compose_preserve; admit.
-    - intros i k d HE HIK; unfold Equivalence.equiv in *.
-      rewrite !image_compose.
-      apply HSP with (d := d); unfold Equivalence.equiv.
+    intros m m' HS.
+    apply StablePermInd_iff in HS.
+    induction HS.
+    - reflexivity.
+    - cbn. apply StablePerm_skip. apply IHHS.
+    - cbn. apply StablePerm_swap.
+      intro c; apply H.
+      symmetry.
+      apply lex_eqv_iff in c.
+      apply lex_eqv_iff.
+      rewrite <- @r_l_rot_inverse with (l := x).
+      rewrite <- @r_l_rot_inverse with (l := y).
+      apply Forall2_lrot. easy.
+    - transitivity (map rrot l'); easy.
+  Qed.
 
-      rewrite Hp.
-      rewrite compose_apply in HE.
-      rewrite @nth_image_apply with (p := p).
-      split; (apply @key_le_firstn_ge with (k := S j); [omega|]).
+  Lemma radixsort_stable_ind : forall j l,
+      StablePerm (rep (map rrot) j l) (radixsort l j).
+  Proof.
+    induction j; intros l; [reflexivity|].
+    cbn; symmetry.
+    transitivity (map rrot (rep (hdsort ∘ map rrot) j l)).
+    apply PrefixStable_firstn_1.
+    symmetry. apply sort_stable.
+    apply StablePerm_map_rrot. symmetry. apply IHj.
+  Qed.
 
-      destruct HE.
-      apply HE.
-      split; [|admit].
-      apply HSPh with (d := d); unfold Equivalence.equiv.
-      split; (apply @key_le_firstn_ge with (k := S j); [omega|apply HE..]).
-    - rewrite compose_apply by (apply HSPh || rewrite Hhl; apply HSP).
-      rewrite Hph, apply_map by apply HSP.
-      f_equal. apply Hp.
-
-
-  Theorem insert_sorted_S : forall colmat' colmat a n,
-      PrefixSorted (S n) colmat' ->
-      Permutation colmat colmat' ->
-      PrefixSorted n (tl a :: map tl colmat) ->
-      PrefixSorted (S n) (insert (keyOrd (firstn 1)) a colmat').
-
+  Theorem radixsort_stable : forall n l,
+      Forall (fun x => length x = n) l ->
+      StablePerm l (radixsort l n).
+  Proof.
+    intros n l HL.
+    etransitivity; [|apply radixsort_stable_ind].
+    rewrite rep_map.
+    replace (map (rep rrot n) l) with (map (fun x => x) l); [rewrite map_id; easy|].
+    apply map_forall_eq.
+    eapply Forall_impl; [|apply HL].
+    intros. rewrite <- H. symmetry; apply rrot_rep_id.
+  Qed.
 
   Theorem radixsort_sorted_ind : forall n j l,
       j <= n ->

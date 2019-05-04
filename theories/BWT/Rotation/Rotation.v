@@ -419,3 +419,31 @@ Section Injective.
     auto.
   Qed.
 End Injective.
+
+Section Forall2.
+  Context {A : Type}.
+
+  Lemma Forall2_lrot : forall P (x y : list A),
+      Forall2 P x y -> Forall2 P (lrot x) (lrot y).
+  Proof.
+    intros P x y HF.
+    destruct x as [|a x]; [inversion HF; subst; easy|].
+    destruct y as [|b y]; [inversion HF|].
+    inversion HF; subst; clear HF.
+    cbn. apply Forall2_app; [easy|].
+    constructor; easy.
+  Qed.
+
+  Lemma Forall2_rrot : forall P (x y : list A),
+      Forall2 P x y -> Forall2 P (rrot x) (rrot y).
+  Proof.
+    intros P x y HF.
+    rewrite <- rev_involutive with (l := rrot x).
+    rewrite <- rev_involutive with (l := rrot y).
+    apply Forall_rev.
+    rewrite <- !lrot_rev.
+    apply Forall2_lrot.
+    apply Forall_rev.
+    easy.
+  Qed.
+End Forall2.
