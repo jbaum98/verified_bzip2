@@ -81,7 +81,67 @@ Section RadixSort.
     apply HL. apply HIn.
   Qed.
 
-  Theorem radixsort_sorted_ind `{@Ord A O} : forall n j l,
+  Local Arguments StablePerm {_} {_} _ {_}.
+  Local Arguments StablePermEx {_} {_} _.
+  Local Arguments eqv_rel {_} _.
+  Local Arguments eqv {_} _.
+  Local Arguments le {_} _.
+
+  Theorem radixsort_StablePerm_ind : forall n j l,
+      j <= n ->
+      Forall (fun x => length x = n) l ->
+      StablePerm (eqv_rel (keyOrd (firstn j)))
+                 (rep (map rrot) j l) (radixsort l j).
+  Proof.
+    induction j; intros l HIJ HL; [reflexivity|].
+    cbn [rep radixsort]; unfold Basics.compose at 1; fold (radixsort l j).
+    remember (radixsort l j) as R.
+    assert (Hhl : length (hdsort (map rrot R)) = length R). {
+      etransitivity.
+      apply Permutation_length. symmetry. apply sort_perm.
+      rewrite map_length. easy.
+    }
+    assert (IH : StablePerm (eqv_rel (keyOrd (firstn j)))
+                            (rep (map rrot) j l) (radixsort l j))
+      by (apply IHj; [omega|easy]); clear IHj.
+    apply StablePermEx_iff in IH; apply StablePermEx_iff.
+    destruct IH as [p [HSP Hp]].
+    assert (Hhs : StablePerm (eqv_rel (keyOrd (firstn 1)))
+                             (hdsort (map rrot R)) (map rrot R))
+      by (symmetry; apply sort_stable).
+    apply StablePermEx_iff in Hhs.
+    destruct Hhs as [ph [HSPh Hph]].
+    rewrite <- HeqR in *.
+    exists (compose p ph).
+    split; [split|].
+    - apply compose_preserve; admit.
+    - intros i k d HE HIK; unfold Equivalence.equiv in *.
+      rewrite !image_compose.
+      apply HSP with (d := d); unfold Equivalence.equiv.
+
+      rewrite Hp.
+      rewrite compose_apply in HE.
+      rewrite @nth_image_apply with (p := p).
+      split; (apply @key_le_firstn_ge with (k := S j); [omega|]).
+
+      destruct HE.
+      apply HE.
+      split; [|admit].
+      apply HSPh with (d := d); unfold Equivalence.equiv.
+      split; (apply @key_le_firstn_ge with (k := S j); [omega|apply HE..]).
+    - rewrite compose_apply by (apply HSPh || rewrite Hhl; apply HSP).
+      rewrite Hph, apply_map by apply HSP.
+      f_equal. apply Hp.
+
+
+  Theorem insert_sorted_S : forall colmat' colmat a n,
+      PrefixSorted (S n) colmat' ->
+      Permutation colmat colmat' ->
+      PrefixSorted n (tl a :: map tl colmat) ->
+      PrefixSorted (S n) (insert (keyOrd (firstn 1)) a colmat').
+
+
+  Theorem radixsort_sorted_ind : forall n j l,
       j <= n ->
       Forall (fun x => length x = n) l ->
       PrefixSorted j (radixsort l j).
@@ -95,7 +155,7 @@ Section RadixSort.
       exists a. auto.
     }
     rewrite <- HL in *; clear HL l0 l1.
-    destruct H0 as [d _].
+    destruct H as [d _].
     rewrite map_rrot_prepend with (d0 := d).
     apply sort_sorted_S.
     rewrite map_tl_prepend.
