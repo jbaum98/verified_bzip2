@@ -160,7 +160,7 @@ Section RadixSort.
     omega.
   Qed.
 
-  Theorem radixsort_sorted `{@Ord A O} : forall n l,
+  Theorem radixsort_sorted : forall n l,
       Forall (fun x => length x = n) l ->
       Sorted (radixsort l n).
   Proof.
@@ -171,6 +171,6 @@ Section RadixSort.
     rewrite <- map_id. apply map_forall_eq.
     apply radixsort_length with (j := n) in HL.
     eapply Forall_impl; [|apply HL].
-    intros. rewrite <- H0. apply firstn_all.
+    intros. rewrite <- H. apply firstn_all.
   Qed.
 End RadixSort.

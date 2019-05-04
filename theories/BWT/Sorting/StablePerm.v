@@ -171,6 +171,35 @@ Section Permutation.
       eqdestruct (h' <>b a); [auto|discriminate].
   Qed.
 
+  Theorem StablePerm_destr' : forall h l l',
+      StablePerm (h :: l) l' ->
+      exists l1 l2, l' = l1 ++ h :: l2 /\ (Forall (fun x => h =/= x) l1).
+  Proof.
+    intros h l l' HS.
+    specialize (HS h). cbn in HS.
+    rewrite <- if_equiv_dec_b, if_true in HS by reflexivity.
+    remember (take_while (nequiv_decb h) l') as l1.
+    remember (drop_while (nequiv_decb h) l') as l2.
+    assert (HL : l' = l1 ++ l2) by (subst; apply take_drop_while_id).
+    rewrite HL, filter_app in HS.
+    rewrite @filter_empty with (l := l1), app_nil_l in HS
+      by (subst l1; apply Forall_forall; eapply Forall_impl; [|apply take_while_all];
+          cbn; setoid_rewrite Bool.negb_true_iff; easy).
+    destruct l2 as [|a l2]; [inversion HS|].
+    exists l1, l2.
+    split.
+    - rewrite HL; do 2 f_equal.
+      cbn in HS.
+      rewrite <- (Bool.negb_involutive (h ==b a)) in HS.
+      replace (negb (h ==b a)) with (h <>b a) in HS by reflexivity.
+      erewrite (drop_while_hd (nequiv_decb h)) in HS by (symmetry; eauto).
+      cbn in HS; inversion HS; auto.
+    - subst l1.
+      eapply Forall_impl; [|apply take_while_all].
+      clear. cbn; intros.
+      eqdestruct (h <>b a); [auto|discriminate].
+  Qed.
+
   Lemma StablePerm_equiv_hd : forall h h' l l',
       StablePerm (h :: l) (h' :: l') ->
       h === h' -> h = h'.
