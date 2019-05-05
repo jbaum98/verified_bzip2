@@ -442,16 +442,12 @@ Section Compose.
       compose p (seq 0 n) = p.
   Proof.
     intros p n HP.
-    destruct p as [|i p];
-    [destruct n; [easy|apply PermFun_S_nil in HP; contradiction]|].
     rewrite apply_def with (d := 0) by (rewrite seq_length; easy).
-    cbn [map].
-    f_equal; [apply seq_nth; eapply PermFun_range; [apply HP|left; easy]|].
     rewrite <- map_id.
     apply map_ext_in.
     intros a HIn.
-    rewrite seq_nth by (eapply PermFun_range; [apply HP|right; easy]).
-    reflexivity.
+    apply seq_nth.
+    eapply PermFun_range; [apply HP|easy].
   Qed.
 
   Theorem apply_combine {A B} : forall n p (l : list A) (r : list B),
@@ -515,14 +511,6 @@ Section Compose.
       [repeat (rewrite ?apply_length, ?L1 || apply compose_preserve); easy..|].
     apply (compose_preserve (length l)); easy.
   Qed.
-
-  Theorem image_compose : forall p1 p2 i,
-      image (compose p1 p2) i = image p1 (image p2 i).
-  Admitted.
-
-  Theorem preimage_compose : forall p1 p2 i,
-      preimage (compose p1 p2) i = preimage p1 (preimage p2 i).
-  Admitted.
 End Compose.
 
 Section PermutationEx.

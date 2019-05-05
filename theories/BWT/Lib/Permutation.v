@@ -131,15 +131,16 @@ Proof.
     [..|symmetry in P|];
     [reflexivity|apply Permutation_nil_cons in P; contradiction..|].
   cbn in *.
-  destruct (Permutation_in (xl, xr) P) as [HE | HP]; [left; easy|..].
-  - inversion HE; subst; f_equal.
+  inversion H1; subst; clear H1.
+  destruct (Permutation_in (yl, xr) P) as [HE | HP]; [left; easy|..].
+  - inversion HE; subst; clear HE.
+    f_equal.
     apply IH.
     eapply Permutation_cons_inv; apply P.
     eapply NoDup_cons_iff; apply ND.
-    inversion H1; easy.
+    easy.
   - exfalso.
-    apply NoDup_cons_iff with (a := xl) (l := map fst l1); [easy|].
-    inversion H1; subst; clear H1.
+    apply NoDup_cons_iff with (a := yl) (l := map fst l1); [easy|].
     rewrite H2.
     apply in_map_iff. exists (yl, xr). easy.
 Qed.

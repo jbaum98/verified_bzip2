@@ -539,7 +539,7 @@ ensuring that these constraints are not violated one more character
 deep in the string. By the time we have reached the last column, we
 have satisfied all the constraints.
 
-We can also think of this as computing the fixpoint of $\var{hdsort} \circ
+We can also think of this as computing the fixpoint of $\var{hdsort} \comp
 \var{map}~\var{rrot}$: we continually move the rightmost column to the
 front and sort on it, until we have sorted the whole matrix and this
 becomes a no-op. The fact that the last column corresponds to the
@@ -683,7 +683,7 @@ Now we can prove that the sorted rotation matrix is indeed a fixpoint.
 \begin{theorem}[lexsort\_rots\_hdsort]
   For all lists $l$,
   \begin{equation*}
-    (\var{hdsort} \circ
+    (\var{hdsort} \comp
     \var{map}~\var{rrot})~(\var{lexsort}~(\var{rots}~l)) =
     \var{lexsort}~(\var{rots}~l)
   \end{equation*}
@@ -693,20 +693,20 @@ Now we can prove that the sorted rotation matrix is indeed a fixpoint.
   two sorts are equivalent, and we can replace \var{lexsort} with an
   LSD radixsort implemented as
   \begin{equation*}
-    \var{radixsort}~m \coloneqq (\var{hdsort} \circ \var{map}~\var{rrot})^n~m
+    \var{radixsort}~m \coloneqq (\var{hdsort} \comp \var{map}~\var{rrot})^n~m
   \end{equation*}
   where $m$ is a matrix with $n$ columns. In this case, we are sorting
   the rotation matrix and we let $n = \var{length}~l$. Then we have
   \begin{align*}
-       &(\var{hdsort} \circ \var{map}~\var{rrot})~(\var{lexsort}~(\var{rots}~l)) \\
-    ={}&(\var{hdsort} \circ \var{map}~\var{rrot})~((\var{hdsort} \circ \var{map}~\var{rrot})^n~(\var{rots}~l)) \\
-    ={}&(\var{hdsort} \circ \var{map}~\var{rrot})^{n+1}~(\var{rots}~l) \\
-    ={}&(\var{hdsort} \circ \var{map}~\var{rrot})^n~((\var{hdsort} \circ \var{map}~\var{rrot})~(\var{rots}~l)) \\
-    ={}&\var{lexsort}~((\var{hdsort} \circ \var{map}~\var{rrot})~(\var{rots}~l)) \\
-    ={}&\var{lexsort}~((\var{hdsort} \circ \var{rrot})~(\var{rots}~l)) \\
+       &(\var{hdsort} \comp \var{map}~\var{rrot})~(\var{lexsort}~(\var{rots}~l)) \\
+    ={}&(\var{hdsort} \comp \var{map}~\var{rrot})~((\var{hdsort} \comp \var{map}~\var{rrot})^n~(\var{rots}~l)) \\
+    ={}&(\var{hdsort} \comp \var{map}~\var{rrot})^{n+1}~(\var{rots}~l) \\
+    ={}&(\var{hdsort} \comp \var{map}~\var{rrot})^n~((\var{hdsort} \comp \var{map}~\var{rrot})~(\var{rots}~l)) \\
+    ={}&\var{lexsort}~((\var{hdsort} \comp \var{map}~\var{rrot})~(\var{rots}~l)) \\
+    ={}&\var{lexsort}~((\var{hdsort} \comp \var{rrot})~(\var{rots}~l)) \\
     ={}&\var{lexsort}~(\var{rots}~l)
   \end{align*}
-  The last step follows because the function $\var{hdsort} \circ
+  The last step follows because the function $\var{hdsort} \comp
   \var{rrot}$ permutes the rotation matrix
 \end{proof}
 
@@ -1788,7 +1788,7 @@ In a functional setting, we can define an LSD radixsort elegantly by
 repeatedly moving the last column to the front of the matrix and
 sorting on the first column. For a matrix with $n$ columns,
 \begin{equation*}
-  \var{radixsort} = (\var{hdsort} \circ \var{map}~\var{rrot})^n
+  \var{radixsort} = (\var{hdsort} \comp \var{map}~\var{rrot})^n
 \end{equation*}
 Or, in Coq:
 \lstinputlisting[
@@ -1806,16 +1806,16 @@ times.
   For all matrices $m$ and $j : \mathbb{N}$,
   \begin{equation*}
     \var{Permutation}~((\var{map}~\var{rrot})^j~m)~
-                      ((\var{hdsort} \circ \var{map}~\var{rrot})^j~m)
+                      ((\var{hdsort} \comp \var{map}~\var{rrot})^j~m)
   \end{equation*}
 \end{lemma}
 \begin{proof}
   We reason by induction on $j$. In the inductive case,
   \begin{align*}
-    (\var{hdsort} \circ \var{map}~\var{rrot})^{j+1}~m ={}&
-    \var{hdsort}~(\var{map}~\var{rrot}~(\var{hdsort} \circ
+    (\var{hdsort} \comp \var{map}~\var{rrot})^{j+1}~m ={}&
+    \var{hdsort}~(\var{map}~\var{rrot}~(\var{hdsort} \comp
     \var{map}~\var{rrot})^j~m) \\
-    \eqperm{}& \var{map}~\var{rrot}~((\var{hdsort} \circ
+    \eqperm{}& \var{map}~\var{rrot}~((\var{hdsort} \comp
     \var{map}~\var{rrot})^j~m) \\
     \eqperm{}& \var{map}~\var{rrot}~((\var{map}~\var{rrot})^j~m) \\
     ={}& (\var{map}~\var{rrot})^{j+1}~m \qedhere
@@ -1833,7 +1833,7 @@ times.
     m ={}&
     \var{map}~\var{rrot}^n~m \\
     ={}& (\var{map}~\var{rrot})^n~m \\
-    \eqperm{}& (\var{hdsort} \circ \var{map}~\var{rrot})^n~m \\
+    \eqperm{}& (\var{hdsort} \comp \var{map}~\var{rrot})^n~m \\
     ={}& \var{radixsort}~m~n \qedhere
   \end{align*}
 \end{proof}
@@ -1869,16 +1869,16 @@ first we need a lemma.
   For all matrices $m$ and $j : \mathbb{N}$,
   \begin{equation*}
     \var{StablePerm}~((\var{map}~\var{rrot})^j~m)~
-                     ((\var{hdsort} \circ \var{map}~\var{rrot})^j~m)
+                     ((\var{hdsort} \comp \var{map}~\var{rrot})^j~m)
   \end{equation*}
 \end{lemma}
 \begin{proof}
   We reason by induction on $j$. In the inductive case,
   \begin{align*}
-    (\var{hdsort} \circ \var{map}~\var{rrot})^{j+1}~m ={}&
-    \var{hdsort}~(\var{map}~\var{rrot}~(\var{hdsort} \circ
+    (\var{hdsort} \comp \var{map}~\var{rrot})^{j+1}~m ={}&
+    \var{hdsort}~(\var{map}~\var{rrot}~(\var{hdsort} \comp
     \var{map}~\var{rrot})^j~m) \\
-    \eqstable{}& \var{map}~\var{rrot}~((\var{hdsort} \circ
+    \eqstable{}& \var{map}~\var{rrot}~((\var{hdsort} \comp
     \var{map}~\var{rrot})^j~m) \\
     \eqstable{}& \var{map}~\var{rrot}~((\var{map}~\var{rrot})^j~m) \\
     ={}& (\var{map}~\var{rrot})^{j+1}~m
@@ -2128,12 +2128,182 @@ sort.
 \section{Permutation Composition}
 \label{appendix:perm_comp}
 
+In this section, we define \var{compose} to compose permutations,
+which we will denote using $\comp$ in proofs. We prove the following
+property:
+
 \begin{theorem}[compose\_apply]
   For all lists $l$ and permutation functions $p_1$ and $p_2$
   \begin{equation*}
-      \var{apply}~(p_2 \comp p_1)~l = \var{apply}~p2~(\var{apply}~p1~l)
+      \var{apply}~(p_2 \comp p_1)~l = \var{apply}~p_2~(\var{apply}~p_1~l)
   \end{equation*}
 \end{theorem}
+
+Because we represent the permutations as lists of outputs, we can
+simply apply one permutation to the other permutation to compose them.
+\lstinputlisting[
+  widthgobble=2, firstline=409, lastline=409
+]{../theories/BWT/Sorting/PermFun.v}
+This definition, while simple, does not make it obvious that
+\var{compose\_apply} holds.
+\begin{equation}
+  \label{eq:compose_apply}
+  \var{apply}~(\var{apply}~p_2~p_1)~l = \var{apply}~p_2~(\var{apply}~p_1~l)
+\end{equation}
+
+Conceptually, the theorem works because when we permute the list $l$,
+we can think of it as permuting the original indices $\iota =
+[0,~1,~\ldots,~n-1]$. If we rephrase \Cref{eq:compose_apply} the effect on
+on $I$, we get
+\begin{equation*}
+  \var{apply}~(\var{apply}~p_2~p_1)~\iota = \var{apply}~p_2~(\var{apply}~p_1~\iota)
+\end{equation*}
+This equation clearly holds if we can prove that $\iota$ is the identity
+of \var{apply}, giving as an outline of a proof.
+
+We will use the function \var{combine} defined in the Coq standared
+library to annotate every element of $l$ with its index.
+\begin{lstlisting}
+  Fixpoint combine (l : list A) (l' : list B) : list (A*B) :=
+    match l,l' with
+    | x :: tl, y :: tl' => (x,y) :: (combine tl tl')
+    | _, _ => nil
+    end.
+\end{lstlisting}
+
+To formalize the idea that we can reason about the indices of the
+original list $l$ in place of $l$, we need the following theorem.
+Intuitively, it says that if we have two lists of pairs, if we know
+that the $x$-coordinates are equal and we know that the list of pairs
+are permutations of one another, then we know the $y$-coordinates must
+be equal as well, because the permutation condition guarantees that
+each $x$-coordinate is paired with the same $y$-coordinate in both
+lists.
+\begin{theorem}[Permutation\_combine\_eq]
+  For all lists $xs$, $ys_1$, and $ys_2$ with all the same length,
+  if $xs$ has no duplicates then
+  \begin{equation*}
+    \var{Permutation}~(\var{combine}~xs~ys_1)~(\var{combine}~xs~ys_2) \implies ys_1 = ys_2
+  \end{equation*}
+\end{theorem}
+\begin{proof}
+  We reason by induction on the list $\var{combine}~xs~ys_1$. In the
+  inductive case, we have to show that
+  \begin{equation*}
+    y_1 :: ys_1 = y_2 :: ys_2
+  \end{equation*}
+  given that
+  \begin{equation*}
+    (x,~y_1) :: \var{combine}~xs~ys_1 \eqperm (x, y_2) :: \var{combine}~xs~ys_2
+  \end{equation*}
+  This means that $(x, y_1) \in (x, y_2) :: \var{combine}~xs~ys_2$, so
+  either $(x, y_1) = (x, y_2)$, in which case we are done, or $(x,
+  y_1) \in \var{combine}~xs~ys_2$. In the latter case, we have a
+  contradiction, because we know that $x :: xs$ contains no
+  duplicates, so $x$ cannot be in $xs$.
+\end{proof}
+
+We also need to show that \var{apply} distributes over \var{combine}:
+\begin{theorem}[apply\_combine]
+  For all lists $xs$ and $ys$ with equal length,
+  \begin{equation*}
+    \var{apply}~p~(\var{combine}~xs~ys) =
+    \var{combine}~(\var{apply}~p~xs)~(\var{apply}~p~ys)
+  \end{equation*}
+\end{theorem}
+\begin{proof}
+  Let $n = \var{length}~xs = \var{length}~ys$. We reason by induction
+  on n. In the inductive case, we have to show
+  \begin{align*}
+       & \var{apply}~(i::p)~(\var{combine}~(x::xs)~(y::ys)) \\
+    ={}& \var{combine}~(\var{apply}~(i::p)~(x::xs))~(\var{apply}~(i::p)~(y::ys))
+  \end{align*}
+  We can use \var{rem\_PermFun\_correct} to simplify both sides of the
+  equation. We have that the heads of both lists must are equal:
+  \begin{equation*}
+    (\var{combine}~(x::xs)~(y::ys))_i = ((x::xs)_i, (y::ys)_i)
+  \end{equation*}
+  That the tails are equal follows from the induction hypothesis, so
+  we are done.
+\end{proof}
+
+Now we show that $\iota$ is the identity of $\var{compose}$/$\var{apply}$.
+\begin{theorem}[compose\_id\_l]
+  For all permutation functions $p$ on lists of length $n$,
+  \begin{equation*}
+    \var{compose}~(\var{seq}~0~n)~p = p
+  \end{equation*}
+\end{theorem}
+\begin{proof}
+  The proof follows from induction on $p$. In the inductive case,
+  \begin{align*}
+       \var{compose}~(\var{seq}~0~(n+1))~(i::p)
+    &= \var{map}~(\lambda j.~(i::p)_j)~(\var{seq}~0~(n+1)) \\
+    &= \var{map}~(\lambda j.~(i::p)_j)~(0 :: \var{seq}~1~(n+1)) \\
+    &= i :: \var{map}~(\lambda j.~(i::p)_j)~(\var{seq}~1~(n+1)) \\
+    &= i :: \var{map}~(\lambda j.~(i::p)_j)~(\var{map}~(\lambda j.~j+1)~(\var{seq}~0~n)) \\
+    &= i :: \var{map}~(\lambda j.~(i::p)_{j+1})~(\var{seq}~0~n) \\
+    &= i :: \var{map}~(\lambda j.~p_j)~(\var{seq}~0~n) \\
+    &= i :: \var{compose}~(\var{seq}~0~n)~p \\
+    &= i :: p \qedhere
+  \end{align*}
+\end{proof}
+
+\begin{theorem}[compose\_id\_r]
+  For all permutation functions $p$ on lists of length $n$,
+  \begin{equation*}
+    \var{compose}~p~(\var{seq}~0~n) = p
+  \end{equation*}
+\end{theorem}
+\begin{proof}
+  \begin{equation*}
+       \var{compose}~p~(\var{seq}~0~n)
+    = \var{map}~(\lambda j.~(\var{seq}~0~n)_j)~p
+    = \var{map}~(\lambda j.~j)~p
+    = p \qedhere
+  \end{equation*}
+\end{proof}
+
+Now we can prove the main theorem:
+\begin{theorem}[compose\_apply]
+  For all lists $l$ and permutation functions $p_1$ and $p_2$
+  \begin{equation*}
+      \var{apply}~(p_2 \comp p_1)~l = \var{apply}~p_2~(\var{apply}~p_1~l)
+  \end{equation*}
+\end{theorem}
+\begin{proof}
+  Letting $\iota = \var{seq}~0~(\var{length}~l)$, we annotate $l$ with
+  indices. By \var{apply\_correct}, we have
+  \begin{equation*}
+     \var{combine}~\iota~l \eqperm \var{apply}~(p_2 \comp p_1)~(\var{combine}~\iota~l)
+  \end{equation*}
+  and
+  \begin{equation*}
+    \var{combine}~\iota~l
+    \eqperm
+    \var{apply}~p_1~(\var{combine}~\iota~l)
+    \eqperm
+    \var{apply}~p_2~(\var{apply}~p_1~(\var{combine}~\iota~l))
+  \end{equation*}
+  We combine these by transtivity, and then simplify, using \var{app}
+  as an abbreviation for \var{apply}.
+  \begin{align*}
+    \var{pap}~(p_2 \comp p_1)~(\var{combine}~\iota~l)
+    &\eqperm
+    \var{app}~p_2~(\var{app}~p_1~(\var{combine}~\iota~l)) \\
+    \var{combine}~(\var{app}~(p_2 \comp p_1)~\iota)~(\var{app}~(p_2 \comp p_1)~l)
+    &\eqperm
+    \var{app}~p_2~(\var{combine}~(\var{app}~p_1~\iota)~(\var{app}~p_1~l)) \\
+    \var{combine}~(p_2 \comp p_1)~(\var{app}~(p_2 \comp p_1)~l)
+    &\eqperm
+    \var{app}~p_2~(\var{combine}~p_1~(\var{app}~p_1~l)) \\
+    \var{combine}~(p_2 \comp p_1)~(\var{app}~(p_2 \comp p_1)~l)
+    &\eqperm
+    \var{combine}~(\var{app}~p_2~p_1)~(\var{app}~p_2~(\var{app}~p_1~l))
+  \end{align*}
+  Because $p_2 \comp p_1 = \var{app}~p_2~p_1$, we can apply
+  \var{Permutation\_combine\_eq}.
+\end{proof}
 
 \nocite{*}
 \printbibliography{}
