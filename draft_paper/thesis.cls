@@ -101,9 +101,11 @@
 \RequirePackage{proof}
 \RequirePackage{enumitem}
 
-\newcommand{\eqperm}{\overset{\mathtt{Perm}}{=\joinrel=}}
+\newcommand{\eqperm}{\overset{\mathtt{Perm}}{=\joinrel=\joinrel=}}
 \newcommand{\eqstable}{\overset{\mathtt{Stable}}{=\joinrel=\joinrel=\joinrel=}}
 \newcommand{\dplus}{\ensuremath{\mathbin{+\mkern-3mu+}}}
+\newcommand{\lexle}{\ensuremath{\le_{\var{L}}}}
+\newcommand{\equivle}{\ensuremath{\equiv_{\var{L}}}}
 
 \RequirePackage{microtype}
 \RequirePackage[sc]{mathpazo}
@@ -111,7 +113,11 @@
 \RequirePackage[T1]{fontenc}
 
 \RequirePackage[semibold]{sourcesanspro}
-\RequirePackage{sectsty}
-\allsectionsfont{\sffamily}
+\RequirePackage{titlesec}
+\titleformat*{\section}{\sffamily\Large\bfseries}
 
 \RequirePackage[margin=15pt,font=small,labelfont={bf,sf}]{caption}
+
+\setcounter{tocdepth}{1}
+\usepackage{xcolor}
+\usepackage{colortbl}

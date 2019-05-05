@@ -401,11 +401,11 @@ Section Insert.
           apply HLe2.
   Qed.
 
-  Theorem sort_sorted_S : forall (m : list (list A)) n,
-    PrefixSorted n (map tl m) ->
-    PrefixSorted (S n) (hdsort m).
+  Theorem hdsort_sorted_S : forall (m : list (list A)) j,
+    PrefixSorted j (map tl m) ->
+    PrefixSorted (S j) (hdsort m).
   Proof.
-    induction m; intros n HS; [constructor|].
+    induction m; intros j HS; [constructor|].
     cbn [hdsort sort fold_right].
     eapply insert_sorted_S.
     + apply IHm. inversion HS; auto.

@@ -18,14 +18,14 @@ Section Sort.
     Definition StableSort f :=
       forall l, Sorted (f l) /\ StablePerm (f l) l.
 
-    Remark StableSort_Sort : forall f,
+    Corollary StableSort_Sort : forall f,
         StableSort f -> Sort f.
     Proof.
       intros f HF l; destruct (HF l).
       split; [|apply StablePerm_Perm]; easy.
     Qed.
 
-    Theorem StableSort_unique : forall f g,
+    Corollary StableSort_unique : forall f g,
         StableSort f -> StableSort g ->
         (forall l, f l = g l).
     Proof.

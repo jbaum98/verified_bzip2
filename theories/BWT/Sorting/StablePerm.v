@@ -529,27 +529,26 @@ Section Unique.
       Sorted l -> Sorted l' -> StablePerm l l' ->
       l = l'.
   Proof.
-    induction l as [|hd tl]; intros l' SL SL' St.
-    - apply StablePerm_nil in St. subst; auto.
-    - destruct l' as [|hd' tl'];
+    induction l as [|h t IH]; intros l' SL SL' St;
+    [apply StablePerm_nil in St; subst; auto|].
+    destruct l' as [|h' t'];
       [exfalso; eapply Permutation_nil_cons; symmetry;
-        apply (@StablePerm_Perm _ _ _ Preord_EqDec); easy|].
-      apply Sorted_cons_inv in SL; destruct SL as [HIn SL].
-      apply Sorted_cons_inv in SL'; destruct SL' as [HIn' SL'].
-      assert (hd === hd'). {
-        apply (@StablePerm_Perm _ _ _ Preord_EqDec) in St; rename St into P.
-        pose proof (Permutation_sym P) as P'.
-        destruct (Permutation_cons_in hd hd' tl tl' P);  [subst; reflexivity|].
-        destruct (Permutation_cons_in hd' hd tl' tl P'); [subst; reflexivity|].
-        rewrite Forall_forall in HIn, HIn'.
-        split; auto.
-      }
-      pose proof (St hd) as F. cbn in F.
-      rewrite equiv_decb_refl in F.
-      eqdestruct (hd ==b hd').
-      inversion F; subst; clear F.
-      f_equal.
-      apply IHtl; [..|eapply StablePerm_unskip]; easy.
+       apply (@StablePerm_Perm _ _ _ Preord_EqDec); easy|].
+    apply Sorted_cons_inv in SL; destruct SL as [HIn SL].
+    apply Sorted_cons_inv in SL'; destruct SL' as [HIn' SL'].
+    assert (h === h'). {
+      apply (@StablePerm_Perm _ _ _ Preord_EqDec) in St; rename St into P.
+      pose proof (Permutation_sym P) as P'.
+      destruct (Permutation_cons_in h h' t t' P);  [subst; reflexivity|].
+      destruct (Permutation_cons_in h' h t' t P'); [subst; reflexivity|].
+      rewrite Forall_forall in HIn, HIn'.
+      split; auto.
+    }
+    pose proof (St h) as F. cbn in F.
+    rewrite <- !if_equiv_dec_b, !if_true in F by easy.
+    inversion F; subst; clear F.
+    f_equal.
+    apply IH; [..|eapply StablePerm_unskip]; easy.
   Qed.
 End Unique.
 

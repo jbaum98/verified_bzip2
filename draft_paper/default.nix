@@ -17,7 +17,8 @@ let
       mathtools
       lkproof
       enumitem
-      mathpazo caption microtype sectsty sourcesanspro xkeyval
+      mathpazo caption microtype titlesec sourcesanspro xkeyval
+      xcolor
       ;
     });
 in compileTex {

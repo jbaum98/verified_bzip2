@@ -9,6 +9,7 @@ Require Import BWT.Sorting.StablePerm.
 Require Import BWT.Sorting.InsertionSort.
 Require Import BWT.Rotation.Rotation.
 Require Import BWT.Lib.Repeat.
+Require Import BWT.Lib.Permutation.
 Require Import BWT.Sorting.Key.
 Require Import BWT.Lib.List.
 Require Import BWT.Columns.
@@ -20,34 +21,37 @@ Section RadixSort.
 
   Open Scope program_scope.
 
-  Definition radixsort (l : list (list A)) (n : nat): list (list A)
-    := rep (hdsort ∘ map rrot) n l.
+  Implicit Type m : list (list A).
+  Implicit Type n : nat.
+
+  Definition radixsort m (n : nat) : list (list A)
+    := rep (hdsort ∘ map rrot) n m.
 
   Remark radixsort_S : forall l j,
       radixsort l (S j) = hdsort (map rrot (radixsort l j)).
   Proof. reflexivity. Qed.
 
-  Lemma radixsort_perm_ind : forall n l,
-      Permutation (rep (map rrot) n l) (radixsort l n).
+  Lemma radixsort_perm_inv : forall j m,
+      Permutation (rep (map rrot) j m) (rep (hdsort ∘ map rrot) j m).
   Proof.
-    induction n; intro l; [reflexivity|].
+    induction j as [|j IH]; intro m; [reflexivity|].
     cbn; symmetry.
-    transitivity (map rrot (rep (hdsort ∘ map rrot) n l)).
+    transitivity (map rrot (rep (hdsort ∘ map rrot) j m)).
     symmetry. apply sort_perm.
     apply Permutation_map.
-    symmetry. apply IHn.
+    symmetry. apply IH.
   Qed.
 
-  Theorem radixsort_perm : forall n l,
-      Forall (fun x => length x = n) l ->
-      Permutation l (radixsort l n).
+  Theorem radixsort_perm : forall n m,
+      Forall (fun r => length r = n) m ->
+      Permutation m (radixsort m n).
   Proof.
-    intros n l HL.
+    intros n m HL.
     unfold radixsort.
     rewrite <- map_id at 1.
     rewrite map_forall_eq with (g := rep rrot n).
     rewrite <- rep_map.
-    apply radixsort_perm_ind.
+    apply radixsort_perm_inv.
     eapply Forall_impl; [|apply HL].
     cbn; intros a HN.
     rewrite <- HN. symmetry. apply rrot_rep_id.
@@ -81,7 +85,7 @@ Section RadixSort.
     apply HL. apply HIn.
   Qed.
 
-  Theorem StablePerm_map_rrot : forall m m' : list (list A),
+  Lemma StablePerm_map_rrot : forall m m' : list (list A),
       StablePerm m m' -> StablePerm (map rrot m) (map rrot m').
   Proof.
     intros m m' HS.
@@ -100,8 +104,8 @@ Section RadixSort.
     - transitivity (map rrot l'); easy.
   Qed.
 
-  Lemma radixsort_stable_ind : forall j l,
-      StablePerm (rep (map rrot) j l) (radixsort l j).
+  Lemma radixsort_stable_inv : forall j m,
+      StablePerm (rep (map rrot) j m) (rep (hdsort ∘ map rrot) j m).
   Proof.
     induction j; intros l; [reflexivity|].
     cbn; symmetry.
@@ -116,7 +120,7 @@ Section RadixSort.
       StablePerm l (radixsort l n).
   Proof.
     intros n l HL.
-    etransitivity; [|apply radixsort_stable_ind].
+    etransitivity; [|apply radixsort_stable_inv].
     rewrite rep_map.
     replace (map (rep rrot n) l) with (map (fun x => x) l); [rewrite map_id; easy|].
     apply map_forall_eq.
@@ -124,53 +128,40 @@ Section RadixSort.
     intros. rewrite <- H. symmetry; apply rrot_rep_id.
   Qed.
 
-  Theorem radixsort_sorted_ind : forall n j l,
+  Lemma radixsort_sorted_inv : forall n j m,
       j <= n ->
-      Forall (fun x => length x = n) l ->
-      PrefixSorted j (radixsort l j).
+      Forall (fun r => length r = n) m ->
+      PrefixSorted j (radixsort m j).
   Proof.
-    induction j; intros l HJ HF; [apply PrefixSorted_zero|].
+    induction j; intros m HJ HL; [apply PrefixSorted_zero|].
+    destruct m as [|r m]; [rewrite radixsort_nil; apply Sorted_nil|].
+    destruct r as [|d t] eqn:Ht;
+      [apply Forall_inv in HL; cbn in HL; omega|rewrite <- Ht in *; clear t Ht].
     rewrite radixsort_S.
-    destruct l eqn:HL; [rewrite radixsort_nil; apply Sorted_nil|].
-    assert (exists d : A, True). {
-      destruct l0.
-      inversion HF; subst. cbn in HJ. omega.
-      exists a. auto.
-    }
-    rewrite <- HL in *; clear HL l0 l1.
-    destruct H as [d _].
-    rewrite map_rrot_prepend with (d0 := d).
-    apply sort_sorted_S.
-    rewrite map_tl_prepend.
+    apply hdsort_sorted_S.
+    rewrite map_rrot_prepend with (d0 := d)
+      by (eapply Forall_impl; [|apply radixsort_length with (j := j) (n := n); easy];
+          cbn; intros; intro c; subst; cbn in HJ; omega).
+    rewrite map_tl_prepend by (rewrite !map_length; omega).
     apply key_sorted. rewrite map_map.
-    rewrite map_forall_eq with (g := firstn j).
-    apply key_sorted.
+    rewrite map_forall_eq with (g := firstn j)
+      by (apply radixsort_length with (j := j) in HL;
+          eapply Forall_impl; [|apply HL]; cbn; intros; apply firstn_init; omega).
+    apply key_sorted; fold (PrefixSorted j (radixsort (r :: m) j)).
     apply IHj; [omega|auto].
-    apply Forall_forall. intros x Hin.
-    apply firstn_init.
-    apply radixsort_length with (j := j) in HF.
-    apply Forall_forall with (x := x) in HF.
-    rewrite HF. omega. auto.
-    rewrite !map_length. omega.
-    apply radixsort_length with (j := j) in HF.
-    eapply Forall_impl; [|apply HF].
-    intros a HLa.
-    cbn in HLa.
-    intro c. rewrite c in HLa. cbn in HLa.
-    omega.
   Qed.
 
-  Theorem radixsort_sorted : forall n l,
-      Forall (fun x => length x = n) l ->
-      Sorted (radixsort l n).
+  Theorem radixsort_sorted : forall n m,
+      Forall (fun x => length x = n) m ->
+      Sorted (radixsort m n).
   Proof.
-    intros n l HL.
-    replace (radixsort l n) with (map (firstn n) (radixsort l n)).
-    apply key_sorted. apply radixsort_sorted_ind with (n := n).
-    omega. auto.
-    rewrite <- map_id. apply map_forall_eq.
-    apply radixsort_length with (j := n) in HL.
-    eapply Forall_impl; [|apply HL].
-    intros. rewrite <- H. apply firstn_all.
+    intros n m HL.
+    rewrite <- map_id.
+    rewrite map_forall_eq with (g := firstn n)
+      by (apply radixsort_length with (j := n) in HL;
+          eapply Forall_impl; [|apply HL];
+          cbn; intros; subst; symmetry; apply firstn_all).
+    apply key_sorted; fold (PrefixSorted n (radixsort m n)).
+    apply radixsort_sorted_inv with (n := n); [omega|easy].
   Qed.
 End RadixSort.

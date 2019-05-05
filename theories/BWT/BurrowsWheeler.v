@@ -21,7 +21,8 @@ Require Import BWT.Sorting.Ord.
 Require Import BWT.Sorting.Lexicographic.
 Require Import BWT.Sorting.Key.
 Require Import BWT.Sorting.RadixSort.
-Require Import BWT.Sorting.Stable.
+Require Import BWT.Sorting.StablePerm.
+Require Import BWT.Sorting.Sort.
 
 Import Coq.Lists.List.ListNotations.
 
@@ -102,7 +103,7 @@ Section Radixsort.
       radixsort l n = lexsort l.
   Proof.
     intros l n HL.
-    apply stable_sort_unique;
+    apply StablePerm_Sorted_eq;
       [apply radixsort_sorted; easy|apply lexsort_sorted|].
     apply all_perm_stable; [apply eqv_eq|].
     transitivity l;
@@ -137,7 +138,7 @@ Section Radixsort.
     end.
     unfold compose.
     rewrite map_rrot_rots.
-    apply stable_sort_unique;
+    apply StablePerm_Sorted_eq;
       [apply radixsort_sorted..|]; [apply hdsort_rrot_length|apply rots_row_length|].
     apply all_perm_stable; [apply eqv_eq|].
     transitivity (rots l).
@@ -159,7 +160,7 @@ Section Recreate.
     | S j' => hdsort (prepend_col l (recreate j' l))
     end.
 
-  Theorem recreate_correct_ind : forall j l,
+  Theorem recreate_correct_inv : forall j l,
       j <= length l ->
       recreate j (bwp l) = cols j (lexsort (rots l)).
   Proof.
@@ -169,9 +170,9 @@ Section Recreate.
       rewrite bwp_length, lexsort_length, rots_length.
       reflexivity.
     - rewrite <- lexsort_rots_hdsort.
-      rewrite cols_S_hdsort.
+      rewrite cols_hdsort_comm.
       destruct (length_nonempty_destr l j) as [HNE d]; [auto|].
-      rewrite cols_rrot with (d0 := d).
+      rewrite cols_map_rrot with (d0 := d).
       rewrite <- IH by omega.
       rewrite <- bwp_nonempty with (d0:=d) by auto.
       reflexivity.
@@ -183,7 +184,7 @@ Section Recreate.
       recreate (length l) (bwp l) = lexsort (rots l).
   Proof.
     intros.
-    rewrite recreate_correct_ind by omega.
+    rewrite recreate_correct_inv by omega.
     rewrite cols_id; auto.
     eapply Forall_impl; [|apply sort_rots_all_len].
     cbv beta; intros; omega.

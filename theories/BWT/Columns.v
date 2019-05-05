@@ -19,7 +19,7 @@ Section Cols.
   Definition cols (j : nat) : list (list A) -> list (list A)
     := map (firstn j).
 
-  Theorem cols_S_hdsort : forall j l,
+  Theorem cols_hdsort_comm : forall j l,
       cols (S j) (hdsort l) = hdsort (cols (S j) l).
   Proof.
     intros j l.
@@ -44,7 +44,8 @@ End Cols.
 Section PrependColumn.
   Context {A : Type}.
 
-  Definition prepend_col := zipWith (@cons A).
+  Definition prepend_col : list A -> list (list A) -> list (list A)
+    := zipWith cons.
 
   Lemma prepend_cons : forall ahd bhd atl btl,
       prepend_col (ahd :: atl) (bhd :: btl) = (ahd :: bhd) :: prepend_col atl btl.
@@ -73,7 +74,7 @@ Section PrependColumn.
     apply firstn_init; auto.
   Qed.
 
-  Lemma cols_rrot : forall j l d,
+  Lemma cols_map_rrot : forall j l d,
       Forall (fun x => j < length x) l ->
       cols (S j) (map rrot l) = prepend_col (map (fun x => last x d) l) (cols j l).
   Proof.
@@ -101,14 +102,13 @@ End PrependColumn.
 Section AppendCol.
   Context {A : Type}.
 
-  Definition append_col (c : list A) (m : list (list A)) :=
-    map lrot (prepend_col c m).
+  Implicit Types (c : list A) (m : list (list A)).
+
+  Definition append_col c m := map lrot (prepend_col c m).
 
   Theorem map_lrot_prepend : forall c m,
       map lrot (prepend_col c m) = append_col c m.
-  Proof.
-    reflexivity.
-  Qed.
+  Proof. reflexivity. Qed.
 
   Theorem map_rrot_append : forall c m,
       map rrot (append_col c m) = prepend_col c m.
@@ -120,31 +120,32 @@ Section AppendCol.
     rewrite map_id. reflexivity.
   Qed.
 
-  Theorem append_last_init : forall l d,
-      Forall (fun x => ~ x = []) l ->
-      append_col (map (fun x => last x d) l) (map init l) = l.
+  Theorem append_last_init : forall m d,
+      Forall (fun r => ~ r = []) m ->
+      append_col (map (fun r => last r d) m) (map init m) = m.
   Proof.
-    induction l; intros.
+    induction m as [|r m IH]; intros.
     - reflexivity.
     - inversion H; subst; clear H.
-      simpl. unfold append_col in *. cbn.
-      rewrite IHl; auto.
+      cbn [append_col prepend_col zipWith map].
+      fold (append_col (map (fun r : list A => last r d) m) (map init m)).
+      rewrite IH; auto.
       f_equal.
-      destruct a; try contradiction.
+      destruct r; try contradiction.
       symmetry. apply init_last_destr.
   Qed.
 
-  Theorem map_lrot_append : forall l d,
-      Forall (fun x => ~ x = []) l ->
-      map lrot l = append_col (map (hd d) l) (map (@tl A) l).
+  Theorem map_lrot_append : forall m d,
+      Forall (fun r => ~ r = []) m ->
+      map lrot m = append_col (map (hd d) m) (map (@tl A) m).
   Proof.
     intros. unfold append_col.
     rewrite prepend_hd_tl; auto.
   Qed.
 
-  Theorem map_rrot_prepend : forall (l : list (list A)) d,
-      Forall (fun x => ~ x = []) l ->
-      map rrot l = prepend_col (map (fun x => last x d) l) (map init l).
+  Theorem map_rrot_prepend : forall m d,
+      Forall (fun r => ~ r = []) m ->
+      map rrot m = prepend_col (map (fun r => last r d) m) (map init m).
   Proof.
     intros.
     apply map_injective with (f := lrot); [apply lrot_injective|].
