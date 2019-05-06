@@ -1658,10 +1658,21 @@ of lists is sorted if you only look at the first $n$ elements of each:
   widthgobble=2, firstline=323, lastline=324,
 ]{../theories/BWT/Sorting/Key.v}
 
+We can describe the relationship between orders that can look at fewer
+or more characters with the following two theorems. We will briefly
+offer an explanation of why these theorems makes sense, but these
+explanations do not mirror the Coq proofs we have for these theorems.
 
-Although it is difficult to prove, it is intuitive that prefix orders
-that can look at more elements of the lists are ``stronger'' than
-those that can look at fewer.
+\begin{theorem}[key\_lt\_firstn\_ge]
+  For all $j$ and $k$ such that $j \le k$,
+  \begin{equation*}
+    x <_j y \implies x <_k y
+  \end{equation*}
+\end{theorem}
+\begin{proof}
+  If $x <_j y$, then there must be some index $i < j$ such that $x_i <
+  y_i$. Then $i < k$ as well, so $x <_k y$.
+\end{proof}
 
 \begin{theorem}[key\_le\_firstn\_ge]
   For all $j$ and $k$ such that $k \ge j$,
@@ -1669,6 +1680,15 @@ those that can look at fewer.
     x \le_k y \implies x \le_j y
   \end{equation*}
 \end{theorem}
+\begin{proof}
+  If $x \le_k y$, then either the first $k$ characters are all
+  equivalent, in which case the first $j$ characters are all
+  equivalent as well, or there was some $i < k$ such that $x_i < y_i$,
+  but at every index before $i$ $x$ and $y$ are equivalent. If $j <
+  i$, then the first $j$ characters are still equivalent, and we have
+  $x \equiv y \implies x \le_j y$. If $j \ge i$, then the deciding character is
+  among the first $j$ and $x \le_j k$.
+\end{proof}
 
 If we consider the implications this has for stability, a weaker order
 can distinguish between fewer elements, which means that it considers
@@ -2124,6 +2144,90 @@ sort.
 
 \section{\var{hdsorted\_sorted\_S}}
 \label{appendix:hdsort_sorted_S}
+
+In this section, we prove the following theorem:
+\begin{theorem}[hdsort\_sorted\_S]
+  For all matrices $m$ and naturals $j$,
+  \begin{equation*}
+    \var{PrefixSorted}~j~(\var{map}~\var{tl}~m) \implies
+    \var{PrefixSorted}~(j+1)~(\var{hdsort}~m)
+  \end{equation*}
+\end{theorem}
+
+First we prove this lemma:
+\begin{lemma}[insert\_Sorted\_S]
+  For all matrices $m$, rows $r$, and naturals $j$,
+  \begin{gather*}
+    \var{PrefixSorted}~(j+1)~(\var{hdsort}~m) \implies \\
+    \var{PrefixSorted}~j~(\var{tl}~r :: \var{map}~{tl}~m) \implies \\
+    \var{PrefixSorted}~(j+1)~(\var{insert}_1~r~(\var{hdsort}~m))
+  \end{gather*}
+  where $\var{insert}_1$ is \var{insert} that uses the 1-prefix
+  lexicographic ordering used by \var{hdsort}.
+\end{lemma}
+\begin{proof}
+  We can destruct $\var{insert}_1~r~(\var{hdsort}~m)$ as $m_1 \dplus r
+  :: m_2$, where $m_1 \dplus m_2 = \var{hdsort}~m$. Then by
+  \var{Sorted\_app\_cons}, it suffices to show
+  \begin{gather*}
+    \var{PrefixSorted}~(j+1)~m_1 \land \\
+    \var{PrefixSorted}~(j+1)~(r :: m_2) \land \\
+    (\forall x \in m_1,~ r >_{j+1} x)
+  \end{gather*}
+  \begin{itemize}
+  \item $\var{PrefixSorted}~(j+1)~m_1$ follows from the fact that
+    $\var{hdsort}~m = m_1 \dplus m_2$ and
+    $\var{PrefixSorted}~(j+1)~(\var{hdsort}~m)$.
+  \item By similar reasoning, we know that
+    $\var{PrefixSorted}~(j+1)~m_2$, so in order to show
+    $\var{PrefixSorted}~(j+1)~(r :: m_2)$ all we need to prove is that
+    for every row $x$ in $m_2$,
+    \begin{equation*}
+      r \le_{j+1} x
+    \end{equation*}
+    We know from the fact that $\var{insert}_1~r~(\var{hdsort}~m) =
+    m_1 \dplus r :: m_2$ that $r \le_1 x$. Then by \var{key\_firstn\_S},
+    we only need to show that
+    \begin{equation*}
+      \var{tl}~r \le_j \var{tl}~x
+    \end{equation*}
+    This follows from $\var{PrefixSorted}~j~(\var{tl}~r :: \var{map}~{tl}~m)$.
+  \item We have that for any $x \in m_1$, $r >_1 x$ by the fact that
+    $\var{insert}_1~r~(\var{hdsort}~m) = m_1 \dplus r :: m_2$. This
+    gives us $r >_{j+1} x$ by \var{key\_lt\_firstn\_ge}. \qedhere
+  \end{itemize}
+\end{proof}
+
+
+%% \begin{proof}
+%%   We reason by induction on $m$. In the inductive case, we need to show
+%%   \begin{equation*}
+%%     \var{PrefixSorted}~(j+1)~(\var{hdsort}~(r::m))
+%%   \end{equation*}
+%%   If we simplify \var{hdsort}, this becomes
+%%   \begin{equation*}
+%%     \var{PrefixSorted}~(j+1)~(\var{insert}_1~r~(\var{hdsort}~m))
+%%   \end{equation*}
+%%   where $\var{insert}_1$ is \var{insert} using the $1$-prefix
+%%   lexicographic ordering used in \var{hdsort}.
+%%   We know from our assumption that
+%%   \begin{equation*}
+%%     \var{PrefixSorted}~j~(\var{tl}~x :: \var{map}~\var{tl}~m)
+%%   \end{equation*}
+%%   and from our induction hypothesis we have
+%%   \begin{equation*}
+%%     \var{PrefixSorted}~(j+1)~(\var{hdsort}~m)
+%%   \end{equation*}
+%% \end{proof}
+
+  %% We can deconstruct $\var{insert}_1~r~(\var{hdsort}~m)$ as
+  %% $m_1 \dplus r :: m_2$, where we also know that $m = m_1 \dplus m_2$.
+  %% Now we have to show
+  %% \begin{equation*}
+  %%   \var{PrefixSorted}~(j+1)~(m_1 \dplus r :: m_2)
+  %% \end{equation*}
+
+
 
 \section{Permutation Composition}
 \label{appendix:perm_comp}

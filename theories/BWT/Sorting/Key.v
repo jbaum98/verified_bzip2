@@ -1,6 +1,8 @@
 Require Import Coq.Lists.List.
 Require Import Coq.omega.Omega.
 Require Import Coq.Sorting.Permutation.
+Require Import Coq.Classes.EquivDec.
+Import Coq.Lists.List.ListNotations.
 
 Require Import BWT.Sorting.InsertionSort.
 Require Import BWT.Sorting.Lexicographic.
@@ -9,6 +11,7 @@ Require Import BWT.Sorting.Sorted.
 Require Import BWT.Sorting.StablePerm.
 Require Import BWT.Lib.List.
 Require Import BWT.Lib.TakeWhile.
+Require Import BWT.Lib.Permutation.
 
 Section KeyOrd.
   Context {A K : Type} `{O: Preord K}.
@@ -338,67 +341,50 @@ Section Insert.
 
   Local Arguments eqv {_} _.
   Local Arguments le {_} _.
+  Local Arguments ge {_} _.
+  Local Arguments gt {_} _.
   Local Arguments le_dec {_} _.
   Local Arguments lt {_} _.
   Local Arguments tl {_}.
   Local Arguments Sorted {_}.
+  Local Arguments SortedLocal {_}.
+  Local Arguments StablePerm {_} _ {_} {_}.
   Local Arguments insert {_}.
   Local Arguments sort {_}.
 
-  Theorem insert_sorted_S : forall colmat' colmat a n,
-      PrefixSorted (S n) colmat' ->
-      StablePerm colmat colmat' ->
-      PrefixSorted n (tl a :: map tl colmat) ->
-      PrefixSorted (S n) (insert (keyOrd (firstn 1)) a colmat').
+  Let insert1 := insert (keyOrd (firstn 1)).
+  Let le_dec1 := le_dec (keyOrd (firstn 1)).
+  Let StablePerm1 := StablePerm (@eqv _ (keyOrd (firstn 1))).
+
+  Theorem insert_sorted_S : forall m x j,
+      PrefixSorted (S j) (hdsort m) ->
+      PrefixSorted j (tl x :: map tl m) ->
+      PrefixSorted (S j) (insert1 x (hdsort m)).
   Proof.
-    induction colmat' as [|b colmat']; intros colmat a n HS' HP HS.
-    apply Sorted_1.
-    cbn [insert]. destruct (le_dec (keyOrd (firstn 1)) a b).
-    - apply SortedLocal_iff.
-      constructor. apply SortedLocal_iff.
-      apply HS'. apply key_firstn_S; [auto|].
-      apply Sorted_cons_inv in HS; destruct HS as [HLe HS].
-      rewrite Forall_forall in HLe.
-      apply HLe. apply in_map. eapply Permutation_in. symmetry. apply StablePerm_Perm. apply HP.
-      left; auto.
-    - apply Sorted_cons.
-      + apply Forall_forall.
-        intros x HIn.
-        apply Permutation_in with (l' := a :: colmat') in HIn;
-          [|symmetry; apply insert_perm].
-        destruct HIn.
-        * subst.
-          apply lt_le.
-          apply key_lt_firstn_ge with (j := 1); [omega|].
-          auto.
-        * apply Sorted_cons_inv in HS'; destruct HS' as [HLe _].
-          rewrite Forall_forall in HLe.
-          apply HLe. auto.
-      + symmetry in HP.
-        destruct (StablePerm_destr' _ _ _ HP) as [l1 [l2 [Hcolmat HNIl1]]].
-        apply IHcolmat' with (colmat := l1 ++ l2).
-        eapply Sorted_cons_inv; apply HS'.
-        apply @StablePerm_unskip with (a := b).
-        transitivity colmat.
-        rewrite Hcolmat.
-        apply StablePerm_cons_app; [reflexivity|apply Forall_forall; apply HNIl1].
-        symmetry; apply HP.
-        rewrite map_app.
-        rewrite Hcolmat in HS. rewrite map_app in HS. cbn [map] in HS.
-        rewrite app_comm_cons in HS.
-        apply Sorted_app in HS. destruct HS as [HS1 [HS2 HF]].
-        destruct (map tl l2) as [|mt2h mt2t]; [rewrite app_nil_r; apply HS1|].
-        rewrite app_comm_cons.
-        apply Sorted_app. repeat split.
-        * apply HS1.
-        * apply Sorted_cons_inv in HS2; destruct HS2 as [HLe2 HS2].
-          apply HS2.
-        * apply Sorted_cons_inv in HS2; destruct HS2 as [HLe2 HS2].
-          eapply Forall_impl; [|apply HF].
-          intros.
-          transitivity (tl b); [|apply H].
-          eapply Forall_inv with (P := le _ (tl b)).
-          apply HLe2.
+    intros m x j HShm HStm.
+    destruct (@insert_destr _ (keyOrd (firstn 1)) x (hdsort m))
+             as [m1 [m2 [HIm [Hm [Hm1 Hm2]]]]]; [apply sort_sorted|].
+    fold insert1 in HIm.
+    rewrite HIm.
+    rewrite Hm in HShm.
+    assert (HSm1 : PrefixSorted (S j) m1) by (apply (Sorted_app m1 m2); easy).
+    assert (HSm2 : PrefixSorted (S j) m2) by (apply (Sorted_app m1 m2); easy).
+    apply Sorted_app_cons.
+    split; [|split]; [easy|..].
+    - apply Sorted_cons; [|easy].
+      apply Forall_forall.
+      intros y Hy.
+      apply key_firstn_S; [|apply in_map with (f := tl) in Hy];
+        revert Hy; apply Forall_forall; [apply Hm2|].
+      apply Forall_app with (l1 := map tl m1).
+      rewrite <- map_app, <- Hm.
+      apply Permutation_forall with (l := map tl m).
+      apply Permutation_map. apply sort_perm.
+      apply Sorted_cons_inv. apply HStm.
+    - eapply Forall_impl; [|apply Hm1].
+      intros y Hy.
+      apply lt_le.
+      apply @key_lt_firstn_ge with (j := 1); [omega|easy].
   Qed.
 
   Theorem hdsort_sorted_S : forall (m : list (list A)) j,
@@ -407,9 +393,7 @@ Section Insert.
   Proof.
     induction m; intros j HS; [constructor|].
     cbn [hdsort sort fold_right].
-    eapply insert_sorted_S.
-    + apply IHm. inversion HS; auto.
-    + apply PrefixStable_firstn_1. apply sort_stable.
-    + auto.
+    eapply insert_sorted_S; [|easy].
+    apply IHm. eapply Sorted_cons_inv. apply HS.
   Qed.
 End Insert.

@@ -81,7 +81,7 @@ Section SortedLocal.
       intros; transitivity b; easy.
   Qed.
 
-  Theorem Sorted_app : forall a l1 l2,
+  Theorem Sorted_app_cons : forall a l1 l2,
       Sorted (l1 ++ a :: l2) <->
       Sorted l1 /\ Sorted (a :: l2) /\ Forall (ge a) l1.
   Proof.
@@ -115,6 +115,15 @@ Section SortedLocal.
       constructor; [easy|].
       apply Forall_impl with (P := le a); [|apply HS2].
       intros; transitivity a; easy.
+  Qed.
+
+  Theorem Sorted_app : forall l1 l2,
+      Sorted (l1 ++ l2) -> Sorted l1 /\ Sorted l2.
+  Proof.
+    intros l1 l2 HS.
+    destruct l2. rewrite app_nil_r in HS.
+    split; [easy|apply Sorted_nil].
+    split; apply (Sorted_app_cons a l1 l2); easy.
   Qed.
 End SortedLocal.
 
