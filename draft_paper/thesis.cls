@@ -17,7 +17,7 @@
 
 \RequirePackage{thmtools, thm-restate}
 
-\RequirePackage[style=ieee]{biblatex}
+\RequirePackage[style=numeric-comp]{biblatex}
 \bibliography{draft_paper}
 
 \declaretheoremstyle[
@@ -114,6 +114,7 @@
 \RequirePackage[semibold]{sourcesanspro}
 \RequirePackage{titlesec}
 \titleformat*{\section}{\sffamily\Large\bfseries}
+\titleformat*{\subsection}{\sffamily\Large}
 
 \RequirePackage[margin=15pt,font=small,labelfont={bf,sf}]{caption}
 

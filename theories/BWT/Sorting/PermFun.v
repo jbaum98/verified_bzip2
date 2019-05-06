@@ -78,12 +78,12 @@ Qed.
 Section Image.
   Context {A : Type}.
 
+  Definition image (p : list nat) i := nth i p 0.
+  Definition preimage (p : list nat) i := findIndex i p.
+
   Variables (p : list nat) (n :nat).
 
   Hypothesis HP : PermFun n p.
-
-  Definition image i := nth i p 0.
-  Definition preimage i := findIndex i p.
 
   Lemma PermFun_i_exists : forall i,
       i < n -> Exists (equiv i) p.
@@ -97,7 +97,7 @@ Section Image.
   Qed.
 
   Theorem preimage_image : forall i,
-      i < n -> preimage (image i) = i.
+      i < n -> preimage p (image p i) = i.
   Proof.
     intros i HI.
     unfold image, preimage.
@@ -106,7 +106,7 @@ Section Image.
   Qed.
 
   Theorem image_preimage : forall i,
-      i < n -> image (preimage i) = i.
+      i < n -> image p (preimage p i) = i.
   Proof.
     intros i HI.
     unfold image, preimage.
@@ -115,7 +115,7 @@ Section Image.
   Qed.
 
   Theorem image_inj : forall i j,
-      i < n -> j < n -> image i = image j -> i = j.
+      i < n -> j < n -> image p i = image p j -> i = j.
   Proof.
     intros i j HI HJ HE.
     apply (NoDup_nth p 0); [|erewrite PermFun_length by apply HP..|]; [|easy..].
@@ -124,7 +124,7 @@ Section Image.
 
   Theorem preimage_inj : forall i j,
       i < n -> j < n ->
-      preimage i = preimage j -> i = j.
+      preimage p i = preimage p j -> i = j.
   Proof.
     intros i j HI HJ HE.
     unfold preimage in HE.
@@ -134,7 +134,7 @@ Section Image.
   Qed.
 
   Theorem image_bound : forall i,
-      i < n -> image i < n.
+      i < n -> image p i < n.
   Proof.
     intros i HI.
     apply PermFun_range with (p := p); [easy|].
@@ -144,7 +144,7 @@ Section Image.
   Qed.
 
   Theorem preimage_bound : forall i,
-      i < n -> preimage i < n.
+      i < n -> preimage p i < n.
   Proof.
     intros i HI.
     rewrite <- PermFun_length with (p := p) by easy.

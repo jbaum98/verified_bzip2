@@ -19,6 +19,7 @@ let
       enumitem
       mathpazo caption microtype titlesec sourcesanspro xkeyval
       xcolor paralist
+      xltxtra realscripts eulervm
       ;
     });
 in compileTex {

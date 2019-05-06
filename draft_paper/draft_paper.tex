@@ -107,9 +107,9 @@ calculation, in which programs are derived from their specifications
 via algebraic manipulations, is useful for proving the correctness of
 algorithms in a machine-checked setting. Bird has applied this
 approach to greedy algorithms, the Boyer-Moore algorithm, the
-Knuth-Morris-Pratt algoirthm, Sudoku solvers, arithmetic coding, and
-the Schorr-Waite algorithm, the Johnson-Trotter algorithm, and many
-more problems \cite{pearls}.
+Knuth-Morris-Pratt algorithm, Sudoku solvers, arithmetic coding, the
+Schorr-Waite algorithm, the Johnson-Trotter algorithm, and many more
+problems \cite{pearls}.
 
 As a part of the proof of \Cref{thm:unbwt_correct}, we proved two
 other noteworthy results that have not, to our knowledge, been proved
@@ -122,7 +122,7 @@ radixsort and proved its correctness,
     \var{Sorted}~(\var{radixsort}~m~n) \land \var{Permutation}~(\var{radixsort}~m~n)~m
   \end{equation*}
 \end{theorem}
-and we proved that any two stable sorts are interchangable,
+and we proved that any two stable sorts are interchangeable,
 \begin{restatable*}[StableSort\_unique]{theorem}{stablesortunique}
   For all functions $f, g: \var{list}~A \to \var{list}~A$,
   \begin{equation*}
@@ -150,7 +150,7 @@ their correctness.
 The full source code can be found at
 \url{https://github.com/jbaum98/verifed_bzip2/tree/2019-05-06}.
 
-\section{History and Applications of the BWT}
+\section{History and applications of the BWT}
 \label{sec:bwt}
 
 The Burrows--Wheeler transform was originally introduced as a pass in a
@@ -165,7 +165,7 @@ column.
 
 The next pass is a Move-to-Front (MTF) encoding, in which a character
 is represented by the number of different characters encountered since
-the last occurence of this character. This creates many runs of zeroes
+the last occurrence of this character. This creates many runs of zeroes
 from the runs in the output of BWT. On English texts, often 50-60\% of
 the values produced by the MTF pass are zeroes \cite{fenwick2007}.
 Often a Run-Length Encoding (RLE) pass is then used to encode only the
@@ -179,7 +179,7 @@ in order to search for patterns in a compressed text
 \cite{ferragina_index}. These techniques have been applied to enable
 fast matching of DNA subsequences.
 
-\section{Orders and Preorders}
+\section{Orders and preorders}
 \label{sec:ord}
 
 Although it is commonly demonstrated on strings, the BWT can be
@@ -221,8 +221,8 @@ transitive, and symmetric, and we have a decision procedure for it.
 The builtin class \var{EqDec} is used to describe types with decidable
 equivalence relations, so for any \var{Preord} instance we have the
 \var{EqDec} instance \var{Preord\_EqDec}. In Coq, the notation
-\var{===} is used for the equivalence relation of an \var{EqDec}
-instance and \var{==} for its decision procedure.
+\var{=\hspace{0pt}=\hspace{0pt}=} is used for the equivalence relation of an \var{EqDec}
+instance and \var{=\hspace{0pt}=} for its decision procedure.
 
 We say that we have a total, decidable \textit{order} when we have
 that for all $x$ and $y$,
@@ -236,7 +236,7 @@ for this:
 For the BWT, we require an \var{Ord} instance for $A$, but
 elsewhere, such as in sorting, \var{Preord} will suffice.
 
-\section{The Forwards BWT}
+\section{The forwards BWT}
 \label{sec:forwards_BWT}
 
 First, we define the left and right rotations of a list. \var{lrot}
@@ -249,13 +249,12 @@ relies on \var{init}, which drops the last element of a list.
 Note that in order to ensure that $\var{last}$ is total, it takes
 an extra argument to return in the case of an empty list.
 
-Now we would likel to produce the rotation matrix by repeatedly
-applying \var{lrot}. We will use \var{iter}, which takes a function
-$f : A \to A$, a number $n$, and an initial value $z$, and returns the
-list of intermediate values obtained by applying $f$ to $z$ $n$ times.
-Or,
+Now we produce the rotation matrix by repeatedly applying \var{lrot}.
+We will use \var{iter}, which takes a function $f : A \to A$, a number
+$n$, and an initial value $z$, and returns the list of intermediate
+values obtained by applying $f$ to $z$ $n$ times. Or,
 \begin{equation}
-  \var{iter}~f~n~z = [z,~f~z,~f~(f~z),~\ldots,~f^n z]
+  \var{iter}~f~n~z = [z,~f~z,~f~(f~z),~\ldots,~f^{n-1} z]
   \label{eq:iter}
 \end{equation}
 \lstinputlisting[
@@ -265,9 +264,7 @@ Or,
 ]{../theories/BWT/Lib/Iterate.v}
 
 We can prove that this definition satisfies \Cref{eq:iter} by defining
-the function \var{rep}\footnote{Alternatively, we can say that
-  $\lambda f.~\var{rep}~n~f$ is the $n$th Church numeral.} for
-repeated function application.
+the function \var{rep} for repeated function application.
 \lstinputlisting[
   widthgobble=2,
   firstline=8,
@@ -322,7 +319,7 @@ Now we can define \var{rots} to produce the rotation matrix.
 \var{bwl} produces the transformed string by taking the last column
 of the sorted rotation matrix. \var{lexsort} sorts the rotation
 matrix lexicographically using the \var{Ord} instance; we will
-discuss it's implementation in \cref{sec:sort}.
+discuss its implementation in \cref{sec:sort}.
 \lstinputlisting[
   widthgobble=2,
   firstline=31,
@@ -388,7 +385,7 @@ satisfies its specification, namely that for all non-empty $l$
   \end{proof}
 \end{theorem}
 
-\section{The Inverse BWT}
+\section{The inverse BWT}
 \label{sec:inverse_BWT}
 
 Now we want to construct a function \var{unbwt} such that for all $l$,
@@ -505,13 +502,13 @@ move with it for similar reasons. The column directly to its right is
 the result of sorting the input string, and then stably sorting it
 again by the character that precedes it in the original string. The
 next column is the result of sorting by each character, sorting by the
-preceding chracter, and then sorting by the character 2 spaces in
+preceding character, and then sorting by the character 2 spaces in
 front.
 
 All this means that the columns to the left of the sorted column seem
 like they don't matter, which suggests that we can recreate the entire
 rotation matrix from just the last column (\Cref{fig:recreate}).
-However, the column direclty to the left of the sorted column is very
+However, the column directly to the left of the sorted column is very
 important, as it is the next column to be sorted. And we can see that
 this column changes, only becoming the eventual last column of the
 matrix in the second to last iteration. Why then, does it still work
@@ -522,7 +519,7 @@ last column subject to the constraints of the lexicographic ordering.
 For example, we know that the collection of all characters preceding
 an \texttt{a} in the sorted column must be some permutation of
 $[\texttt{c},~\texttt{d},~\texttt{r},~\texttt{r},~\texttt{!}]$,
-because those are the characters that preced \texttt{a}s in the
+because those are the characters that precede \texttt{a}s in the
 original string. However, the order of these characters in the final
 string
 ($[\texttt{r},~\texttt{d},~\texttt{!},~\texttt{r},~\texttt{c}]$) is
@@ -532,7 +529,7 @@ followed by a \texttt{!}, the smallest character. Similarly, although
 the \texttt{d} and \texttt{!} precede \texttt{a}s that are both
 followed by \texttt{bra}s, the next character for the \texttt{d} is a
 \texttt{!}, and the next character for the \texttt{!} is a \texttt{c}.
-This requires that the \texttt{d} preced the \texttt{!} in the last
+This requires that the \texttt{d} precede the \texttt{!} in the last
 column.
 
 Generally, there are constraints on the relative order of the letters
@@ -891,7 +888,7 @@ correct. We will prove all three equivalent.
 \label{subsec:perm}
 
 The word \textit{permutation} has two related meanings that are often
-used interchangably. We sometimes say that two lists are permutations of each
+used interchangeably. We sometimes say that two lists are permutations of each
 other if they contain all of the same elements, just appearing in a
 different order. However, in mathematics we often say that a
 permutation is actually the bijection on indices that defines the
@@ -922,8 +919,8 @@ notation where we denote by $2~1~0$ the permutation $p(0) = 2$, $p(1)
 = 1$, $p(2) = 0$. So, $p$ here would be represented by $[2,~1,~0]$.
 
 To restrict the range to $\mathbb{N}_{<n}$ we say that $\forall i,~i \in p
-\implies ~i<n$, to make the function surjective, we strengthen that to
-$\forall i,~i \in p \iff ~i<n$, and to make it injective we require that $p$ not
+\implies ~i<n$; to make the function surjective, we strengthen that to
+$\forall i,~i \in p \iff ~i<n$; and to make it injective we require that $p$ not
 contain any duplicate entries. The inductive property \var{NoDup} from
 the Coq standard library captures that requirement:
 \begin{align*}
@@ -1061,27 +1058,30 @@ preserves all elements.
 \begin{proof}
   First we let $n = \var{length}~l$, so that we can reason by
   induction on $n$. The base case is uninteresting. In the inductive
-  case, we have the induction hypothesis that for all lists of length
-  $n$ and permutation functions on such lists,
+  case, we have the induction hypothesis that for $p :
+  \var{list}~\mathbb{N}$ and $l : \var{list}~A$
   \begin{equation*}
+    \var{lenth}~l = n \implies \var{PermFun}~n~p \implies
     \var{Permutation}~(\var{apply}~p~l)~l
   \end{equation*}
-  and we must show that
+  Given $\var{PermFun}~(n+1)~(i::p')$, we must show that
   \begin{equation*}
-    \var{Permutation}~(\var{apply}~(i :: p)~(a :: l))~(a :: l)
+    \var{Permutation}~(\var{apply}~(i :: p')~(a :: l))~(a :: l)
   \end{equation*}
 
   We reason as follows, using the notation $\eqperm$ to
   chain together \var{Permutation}s:
   \begin{align*}
-    \var{apply}~(i :: p')~(a :: l) &\eqperm
-    (a :: l)_i :: \var{apply}~(\var{rem\_PermFun}~i~p)~(\var{rem\_nth}~i~(a::l)) \\
-    &\eqperm (a :: l)_i :: \var{rem\_nth}~i~(a::l) \\
-    &\eqperm a :: l
+    &\var{apply}~(i :: p')~(a :: l) \\
+    \eqperm{}& \text{\{ by \var{rem\_PermFun\_correct} \}} \\
+    &(a :: l)_i :: \var{apply}~(\var{rem\_PermFun}~i~p)~(\var{rem\_nth}~i~(a::l))
+    \\
+    \eqperm{}& \text{\{ by IH \}} \\
+    &(a :: l)_i :: \var{rem\_nth}~i~(a::l)
+    \\
+    \eqperm{}& \text{\{ \var{rem\_nth\_Perm} \}} \\
+    & a :: l \qedhere
   \end{align*}
-  where the first step follows from \var{rem\_PermFun\_correct}, the
-  second from the induction hypothesis, and the last from
-  \var{rem\_nth\_Perm}.
 \end{proof}
 
 \begin{theorem}[PermutationEx\_iff]
@@ -1127,7 +1127,7 @@ another when any element occurs an equal number of times in each:
 \lstinputlisting[
   widthgobble=2, firstline=14, lastline=15,
 ]{../theories/BWT/Sorting/PermutationCount.v}
-\var{count\_occ} counts the number of occurences of a given variable
+\var{count\_occ} counts the number of occurrences of a given variable
 using a decision procedure for Leibniz equality. Here that decision
 procedure is \texttt{equiv\_dec} from an \var{EqDec} instance where we
 require the equivalence relation itself by Leibniz equality.
@@ -1183,25 +1183,19 @@ l_j$ we must have
 Based on this, we define a stronger version of the \var{PermFun}
 property, \var{StablePermFun}. However, while $\var{PermFun}~n~p$
 means that $p$ represents a permutation function on lists of length
-$n$, we need to specify the list with resepct to which $p$ is stable,
+$n$, we need to specify the list with respect to which $p$ is stable,
 so we say $\var{StablePermFun}~l~p$ for some list $l$.
-\lstinputlisting[
-  widthgobble=2, firstline=557, lastline=561,
-]{../theories/BWT/Sorting/PermFun.v}
-As above, we can also define this property using the inverse
-permutation:
-\lstinputlisting[
+\lstinputlisting[ widthgobble=2, firstline=557, lastline=561,
+]{../theories/BWT/Sorting/PermFun.v} As above, we can also define this
+property using the inverse permutation: \lstinputlisting[
   widthgobble=2, firstline=563, lastline=567,
-]{../theories/BWT/Sorting/PermFun.v}
-As usual, we will prove these definitions equivalent. First, though,
-we need to define \var{image} and \var{preimage}.
-\lstinputlisting[
-  widthgobble=2, firstline=85, lastline=86,
-]{../theories/BWT/Sorting/PermFun.v}
-We will not prove it here, but $\var{preimage}~p$ and $\var{image}~p$
-are both of bijections of type $\mathbb{N}_{<n} \to \mathbb{N}_{<n}$
-and are invereses of each other. We also have the following two
-theorems:
+]{../theories/BWT/Sorting/PermFun.v} As usual, we will prove these
+definitions equivalent. First, though, we need to define \var{image}
+and \var{preimage}. \lstinputlisting[ widthgobble=2, firstline=85,
+  lastline=86, ]{../theories/BWT/Sorting/PermFun.v} We will not prove
+it here, but $\var{preimage}~p$ and $\var{image}~p$ are both of
+bijections of type $\mathbb{N}_{<n} \to \mathbb{N}_{<n}$ and are
+inverses of each other. We also have the following two theorems:
 \begin{theorem}[nth\_preimage\_apply, nth\_image\_apply]
   For all lists $l$, permutations $p$, and indices $i$,
   \begin{align*}
@@ -1271,7 +1265,7 @@ stability if they are not equivalent. With this fix, we have \var{StablePermInd}
   }
 \end{gather*}
 
-Unforunately, neither of these two definitions will be particularly
+Unfortunately, neither of these two definitions will be particularly
 useful for proving the theorems we would like to prove with them. The
 best definition for stability does not come by analogy with
 \var{Permutation}. The intuition is that for any two lists that are
@@ -1485,7 +1479,7 @@ Now we prove equivalence with \var{StablePermEx}.
   \var{apply\_correct\_stable}.
 \end{proof}
 
-\section{Uniqueness of Stable Sorts}
+\section{Uniqueness of stable sorts}
 \label{sec:unique}
 
 Using our definitions of \var{StablePerm} and \var{Sorted}, we can
@@ -1511,7 +1505,7 @@ radixsort.
   First, we can say that $h \equiv h'$: we know that $h \in h' :: t'$ and $h'
   \in h :: t$. If $h = h'$, then we are done, so assuming $h \neq h'$ we
   know $h \in t'$ and $h' \in t$. Because both $h::t$ and $h'::t'$ are
-  sorted, we knnow that $h \le h'$ and $h' \le h$, implying $h \equiv h'$.
+  sorted, we know that $h \le h'$ and $h' \le h$, implying $h \equiv h'$.
 
   This means that $h = h'$: from $\var{StablePerm}~(h :: t)~(h' ::
   t')$ we have
@@ -1580,7 +1574,7 @@ you cannot distinguish between equivalent elements.
   This follows from \var{Sort\_StableSort\_Ord} and \var{StableSort\_unique}.
 \end{proof}
 
-\section{Lexicographic Orders and Keys}
+\section{Lexicographic orders and keys}
 \label{sec:lex_ord}
 
 Given a preorder on a type $A$, we can define a lexicographic preorder
@@ -1810,7 +1804,7 @@ ordering restricted to the first element of a list.
 First we want to prove that \var{radixsort} permutes the rows of the
 matrix. We will start by proving the invariant that if we rotate the
 last column to the front and sort $j$ times, the resulting matrix is a
-permtuation of simply rotating the last column to the front $j$
+permutation of simply rotating the last column to the front $j$
 times.
 \begin{lemma}[radixsort\_perm\_inv]
   For all matrices $m$ and $j : \mathbb{N}$,
@@ -2000,16 +1994,125 @@ Now we can establish our invariant:
   The last line follows from \var{radixsort\_sorted\_inv}.
 \end{proof}
 
+\section{Relationship to the standard BWT}
+\label{sec:opt}
+
+It is important to note that standard implementations of the BWT do
+not actually reconstruct the entire rotation matrix, as this would be
+inefficient. Instead, they avoid this using the optimization described
+in this section. Although, we did not prove or implement this
+optimization in Coq, it would be straightforward to do so.
+
+In \var{recreate}, we repeatedly prepend the last column to the front
+of the matrix and sort on it. However, each time that column is the
+same, so the permutation that takes us from the unsorted column to the
+sorted column is the same. Therefore, we can calculate that
+permutation function once and store it in a variable $p$. The
+$i$th column of the recreated matrix is simply
+$(\var{apply}~p)^i~(\var{bwl}~l)$, so we can define
+\begin{lstlisting}
+Definition recreate' (p : list nat) (l : list A) : list (list A) :=
+  transpose (iter (apply p) (length l) (apply p l))
+\end{lstlisting}
+In the definition above, we are repeatedly applying \var{p} to the
+first column of the rotation matrix, $\var{apply}~p~l$. Then we
+take the transpose to create the matrix from the columns.
+
+Since in $\var{unbwt}~i~l$, we want the $i$th row of the matrix, we
+can eliminate the transpose by replacing the $\var{nth}~i$ with a
+$\var{map}~\var{nth}~i$ Assuming we already have calculated $p$,
+\begin{align*}
+   \var{unbwt}~i~l &= (\var{recreate}~p~l)_i \\
+  &= (\var{transpose}~(\var{iter}~(\var{apply}~p)~(\var{length}~l)~(\var{apply}~p~l)))_i \\
+  &= \var{map}~(\lambda
+  r.~r_i)~(\var{iter}~(\var{apply}~p)~(\var{length}~l)~(\var{apply}~p~l)) \\
+  &= \var{map}~(\lambda r.~r_i)~(\var{tl}~(\var{iter}~(\var{apply}~p)~(1 +
+  \var{length}~l)~l)) \\
+  &= \var{tl}~(\var{map}~(\lambda r.~r_i)~(\var{iter}~(\var{apply}~p)~(1 + \var{length}~l)~l))
+\end{align*}
+
+Now, instead of indexing into each column at $i$, where the columns
+are all just the result of successively applying $p$ to $l$, we will
+successively take the image of $i$ under $p$ to generate the indices
+into $l$ where those characters appear. This is justified via the
+following theorem:
+\begin{theorem}
+  For all $n$,
+  \begin{equation*}
+  \var{map}~(\lambda r.~r_i)~(\var{iter}~(\var{apply}~p)~n~l)
+  =
+  \var{map}~(\lambda j.~l_j)~(\var{iter}~(\var{image}~p)~n~i)
+  \end{equation*}
+\end{theorem}
+\begin{proof}
+  \begin{align*}
+       & \var{map}~(\lambda r.~r_i)~(\var{iter}~(\var{apply}~p)~n~l) \\
+    ={}& \var{map}~(\lambda r.~r_i)~[l,~(\var{apply}~p)~l,~(\var{apply}~p)^2~l,~\ldots,~(\var{apply}~p)^{n-1}~l] \\
+    ={}& [l_i,~((\var{apply}~p)~l)_i,~((\var{apply}~p)^2~l)_i,~\ldots,~((\var{apply}~p)^{n-1}~l)_i] \\
+    ={}& [l_i,~l_{p(i)},~l_{p^2(i)},~\ldots,~l_{p^{n-1}~i}] \\
+    ={}& \var{map}~(\lambda j.~l_j)~[i,~p(i),~p^2(i),~\ldots,~p^{n-1}~i] \\
+    ={}& \var{map}~(\lambda j.~l_j)~(\var{iter}~(\var{image}~p)~n~i) \qedhere
+  \end{align*}
+\end{proof}
+
+So assuming we have some function $\var{calc\_sort\_perm} :
+\var{list}~A \to \var{list}~\mathbb{N}$ to calculate the permutation
+function that sorts $l$, we redefine \var{unbwt} as
+\begin{lstlisting}
+Definition unbwt' (i : nat) (l : list A) : list A :=
+  match l with
+  | [] => []
+  | d :: _ =>
+    let p := calc_sort_perm l in
+    let indices := tl (iter (image p) (S (length l)) i) in
+    map (fun j => nth l j d) indices
+\end{lstlisting}
+\var{calc\_sort\_perm} can be implemented in linear time using a
+counting sort, so if \var{nth} took constant time, then \var{unbwt}
+would take linear time as well. As a functional specification, this
+closely matches the standard imperative algorithm for the inverse BWT.
+
+\section{Conclusions}
+We have implemented and proved that the the inverse BWT actually
+inverts the forwards BWT, basing our work on Bird et al.'s program
+calculation derivation \cite{birdmu,pearls}. In the process, we
+defined the properties of stable sorts, and implemented and proved
+correct an LSD radixsort.
+
+This paper shows that Bird's style of program calculation is very
+useful for building machine-checked proofs. It leads to proofs that
+are composed of many smaller lemmas, each justifying a single rewrite
+step. Most of the time and effort went into proving the correctness of
+radixsort. If we exclude the parts related to sorting or to other
+general-purpose functions not specific to the BWT, the entire verified
+implementation of the BWT consists of 42 lines of Gallina definitions,
+7 lines of Gallina that are used only in proofs, and 823 lines of
+theorem statements and Ltac code.\footnote{This includes
+  \var{BurrowsWheeler.v}, \var{Columns.v}, \var{Rotations/Rotation.v},
+  \var{Rotations/Rots.v}, \var{Lib/Iterate.v}, \var{Lib/Repeat.v} and
+  \var{Lib/FindIndex.v}, which implement \var{bwl}, \var{bwn},
+  \var{unbwt}, \var{cols}, \var{prepend\_col}, \var{lrot}, \var{rrot},
+  \var{rots}, \var{iter}, and \var{rep}, \var{findIndex}.}
+
+This implementation, including the optimizations mentioned in
+\cref{sec:opt}, can be used as a functional specification to for a
+verified implementation of bzip2. Of course, it would also be
+necessary to have functional specifications for the other phases of
+bzip2, such as Run-Length Encoding, Move-to-Front Encoding, and
+arithmetic coding. As luck would have it, Bird has already analyzed
+arithmetic coding \cite{pearls}.
+\clearpage
+
 \appendix
 
-\section{Insertion Sort}
+\section{Insertion sort}
 \label{appendix:insertion_sort}
 
 Insertion sort is a simple and elegant stable sort that is easy to
 reason about. The theorems proved in \cref{sec:unique} allow us to
 prove things using insertion sort that apply to any stable sort. For
 example, our proof of correctness for radixsort relies on the fact
-that it uses insertion sort as the innner sort, but
+that it uses insertion sort as the inner sort, but
 \var{StableSort\_unique} allows us to extend that proof to a radixsort
 that uses any stable sort. We also use it as the implementation of
 \var{lexsort} because it is convenient, but similarly
@@ -2188,7 +2291,7 @@ First we prove this lemma:
   \end{itemize}
 \end{proof}
 
-\section{Permutation Composition}
+\section{Permutation composition}
 \label{appendix:perm_comp}
 
 In this section, we define \var{compose} to compose permutations,
@@ -2224,7 +2327,7 @@ on $I$, we get
 This equation clearly holds if we can prove that $\iota$ is the identity
 of \var{apply}, giving as an outline of a proof.
 
-We will use the function \var{combine} defined in the Coq standared
+We will use the function \var{combine} defined in the Coq standard
 library to annotate every element of $l$ with its index.
 \begin{lstlisting}
   Fixpoint combine (l : list A) (l' : list B) : list (A*B) :=
@@ -2348,7 +2451,7 @@ Now we can prove the main theorem:
     \eqperm
     \var{apply}~p_2~(\var{apply}~p_1~(\var{combine}~\iota~l))
   \end{equation*}
-  We combine these by transtivity, and then simplify, using \var{app}
+  We combine these by transitivity, and then simplify, using \var{app}
   as an abbreviation for \var{apply}.
   \begin{align*}
     \var{pap}~(p_2 \comp p_1)~(\var{combine}~\iota~l)
