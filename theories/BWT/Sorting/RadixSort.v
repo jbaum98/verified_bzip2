@@ -164,4 +164,11 @@ Section RadixSort.
     apply key_sorted; fold (PrefixSorted n (radixsort m n)).
     apply radixsort_sorted_inv with (n := n); [omega|easy].
   Qed.
+
+  Theorem radixsort_correct : forall n m,
+      Forall (fun x => length x = n) m ->
+      Sorted (radixsort m n) /\ Permutation (radixsort m n) m.
+  Proof.
+    split; [apply radixsort_sorted|symmetry; apply radixsort_perm]; easy.
+  Qed.
 End RadixSort.

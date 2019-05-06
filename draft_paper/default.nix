@@ -18,7 +18,7 @@ let
       lkproof
       enumitem
       mathpazo caption microtype titlesec sourcesanspro xkeyval
-      xcolor
+      xcolor paralist
       ;
     });
 in compileTex {

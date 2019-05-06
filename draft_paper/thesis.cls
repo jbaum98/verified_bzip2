@@ -99,7 +99,6 @@
 \newcommand{\comp}{\circ}
 
 \RequirePackage{proof}
-\RequirePackage{enumitem}
 
 \newcommand{\eqperm}{\overset{\mathtt{Perm}}{=\joinrel=\joinrel=}}
 \newcommand{\eqstable}{\overset{\mathtt{Stable}}{=\joinrel=\joinrel=\joinrel=}}
@@ -121,3 +120,4 @@
 \setcounter{tocdepth}{1}
 \usepackage{xcolor}
 \usepackage{colortbl}
+\usepackage{paralist}

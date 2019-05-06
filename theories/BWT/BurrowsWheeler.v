@@ -29,15 +29,15 @@ Import Coq.Lists.List.ListNotations.
 Section Transform.
   Context {A : Type} `{O: Ord A}.
 
-  Definition bwp (l : list A) : list A :=
+  Definition bwl (l : list A) : list A :=
     match l with
     | [] => []
     | hd :: _ => List.map (fun x => last x hd) (lexsort (rots l))
     end.
 
-  Lemma bwp_nonempty : forall l d,
+  Lemma bwl_nonempty : forall l d,
       l <> [] ->
-      bwp l = List.map (fun x => last x d) (lexsort (rots l)).
+      bwl l = List.map (fun x => last x d) (lexsort (rots l)).
   Proof.
     destruct l; intros.
     - contradiction.
@@ -52,12 +52,12 @@ Section Transform.
       apply last_nonempty; auto.
   Qed.
 
-  Lemma bwp_length : forall l,
-      length (bwp l) = length l.
+  Lemma bwl_length : forall l,
+      length (bwl l) = length l.
   Proof.
     induction l.
     - reflexivity.
-    - cbn [bwp]. rewrite map_length.
+    - cbn [bwl]. rewrite map_length.
       rewrite lexsort_length.
       rewrite rots_length.
       reflexivity.
@@ -162,26 +162,26 @@ Section Recreate.
 
   Theorem recreate_correct_inv : forall j l,
       j <= length l ->
-      recreate j (bwp l) = cols j (lexsort (rots l)).
+      recreate j (bwl l) = cols j (lexsort (rots l)).
   Proof.
     induction j as [|j IH]; intros l HJ.
     - unfold cols; simpl.
       do 2 (erewrite map_const; [|unfold const; reflexivity]).
-      rewrite bwp_length, lexsort_length, rots_length.
+      rewrite bwl_length, lexsort_length, rots_length.
       reflexivity.
     - rewrite <- lexsort_rots_hdsort.
       rewrite cols_hdsort_comm.
       destruct (length_nonempty_destr l j) as [HNE d]; [auto|].
       rewrite cols_map_rrot with (d0 := d).
       rewrite <- IH by omega.
-      rewrite <- bwp_nonempty with (d0:=d) by auto.
+      rewrite <- bwl_nonempty with (d0:=d) by auto.
       reflexivity.
       eapply Forall_impl; [|apply sort_rots_all_len].
       cbn; intros; omega.
   Qed.
 
   Corollary recreate_correct : forall l,
-      recreate (length l) (bwp l) = lexsort (rots l).
+      recreate (length l) (bwl l) = lexsort (rots l).
   Proof.
     intros.
     rewrite recreate_correct_inv by omega.
@@ -198,11 +198,11 @@ Section Unbwt.
     nth i (recreate (length l) l) l.
 
   Theorem unbwt_correct : forall xs : list A,
-      unbwt (bwn xs) (bwp xs) = xs.
+      unbwt (bwn xs) (bwl xs) = xs.
   Proof.
     intros [|a xs]; [reflexivity|].
     unfold unbwt.
-    rewrite bwp_length.
+    rewrite bwl_length.
     rewrite recreate_correct.
     apply bwn_correct.
     intro contra; inversion contra.
