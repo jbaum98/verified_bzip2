@@ -122,3 +122,8 @@
 \usepackage{xcolor}
 \usepackage{colortbl}
 \usepackage{paralist}
+
+\newcommand{\pledge}[1]{
+  \noindent {\Large \textbf{\textit{This paper represents my own work in
+        accordance with University regulations --}} /s/ #1}
+}

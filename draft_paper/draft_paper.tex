@@ -1,4 +1,4 @@
-\documentclass[11pt, titlepage]{thesis}
+\documentclass[11pt]{thesis}
 
 \title{Towards a Verified Bzip2: A Functional Specification for Burrows--Wheeler}
 \author{Jake Waksbaum}
@@ -6,10 +6,49 @@
 
 \begin{document}
 
-\maketitle
+\pagenumbering{gobble}
+
+\begin{titlepage}
+  \centering \Large{\textbf{Towards a Verified Bzip2: \\ A Functional Specification for Burrows--Wheeler
+  }} \vspace{10mm}
+
+  \Large\textit{Jake Waksbaum} \\
+  \vspace{25mm} \large{Junior Two-semester Independent Work \\ Department of
+    Computer Science \\ Princeton University \\ Fall 2018--Spring 2019\\}
+  \vspace{8mm}
+  \begin{figure}[!h]
+    \centering
+    \includegraphics[scale=0.1]{seal.png}
+  \end{figure}
+  \vspace{1mm}
+  \normalsize{Advised by Andrew W. Appel (COS)}\\
+  \normalsize{Second Reader: David Walker (COS)}
+
+  \vfill
+  \pledge{Jake Waksbaum}
+\end{titlepage}
+
+\clearpage
+
+\section*{Acknowledgements}
+
+Thanks to Professor Andrew Appel for being extremely generous with his
+time and his guidance. He was always available for questions, and
+allowed me to focus my work on the areas I found interesting.
+
+I'd also like to thank Matthew Weaver, Lennart Berringer, and Qinshi
+Wang for answering my questions throughout the year. Zachary Kincaid
+provided useful comments on a draft of this paper.
+
+I'd like to thank Benjamin Huang, Yael Marans, and Eli Waksbaum for
+their help and support.
+
+\clearpage
 
 \tableofcontents
 \clearpage
+
+\pagenumbering{arabic}
 
 \section{Introduction}
 \label{sec:intro}
@@ -21,19 +60,25 @@ in the produced string. Of course, a simple way to create runs is to
 sort the string, but that would be useless for compression because the
 original string would be unrecoverable.
 
-The forwards transform is straightforward to describe: for a string of
-length \(n\), form the \(n \times n\) matrix of all cyclic shifts of
-the original string (also referred to as the rotation matrix), sort
-the rows lexicographically, and take the last column of the matrix. In
-addition, we note the index where the original string appears in the
-sorted rotation matrix. As shown in \Cref{fig:bw_ex}, applying the
-algorithm to the string \var{abracadabra!} produces the new string
-\var{ard!rcaaabb} and the index \var{3}. The transformation tends to
-produce runs like the three \var{a}s or the two \var{b}s in
-\var{ard!rcaaabb}, and it is this feature that makes the resulting
-string easier to compress. Although it is not obvious, the transformed
-string, together with the index, provide enough information to recover
-the the original string. The BWT is discussed more in \cref{sec:bwt}.
+To apply the transformation to a string of length $n$:
+\begin{enumerate}
+\item Form the \(n \times n\) matrix of all cyclic shifts of the
+  original string (also referred to as the rotation matrix). Starting
+  with the original string, each row is formed from the previous one
+  by removing the first character and sticking it on the end.
+\item Sort the rows lexicographically
+\item Take the last column of the matrix. That string is the result of the transformation.
+\item Note the index where the original string appears in the sorted
+  rotation matrix. This piece of information is necessary to reverse
+  the transformation.
+\end{enumerate}
+As shown in \Cref{fig:bw_ex}, applying the algorithm to the string
+\var{abracadabra!} produces the new string \var{ard!rcaaabb} and the
+index \var{3}. The transformation tends to produce runs like the three
+\var{a}s or the two \var{b}s in \var{ard!rcaaabb}, and it is this
+feature that makes the resulting string easier to compress. Although
+it is not obvious, the transformed string, together with the index,
+provide enough information to recover the the original string.
 
 \begin{figure}[!hb]
   \centering
@@ -77,9 +122,8 @@ in a functional setting. They express the algorithm as the composition
 of many smaller functions, and then derive an expression for the
 inverse transform from the specification that it inverts the forwards
 transform. In addition to providing an intuitive derivation of the
-inverse transform, this provides the outline of a proof of the
-correctness of the Burrows--Wheeler algorithm. We give our version of
-their derivation in \cref{sec:forwards_BWT,sec:inverse_BWT}.
+inverse transform, this provides the outline of a proof of for the
+inverse BWT.
 
 Our main contribution is a formalization in the Coq proof assistant of
 the BWT, together with a machine-checked proof that our implementation
@@ -89,41 +133,41 @@ is correct. Specifically, we implement the functions $\var{bwl} :
 respectively, and the function $\var{unbwt} : \mathbb{N} \to
 \var{list}~A \to \var{list}~A$ that reverses the transform. We prove the
 following theorem:
-\begin{theorem}[unbwt\_correct]
+\begin{restatable*}[unbwt\_correct]{theorem}{unbwtcorrect}
   \label{thm:unbwt_correct}
   For all lists $l$,
   \begin{equation*}
     \var{unbwt}~(\var{bwn}~l)~(\var{bwl}~l) = l
   \end{equation*}
-\end{theorem}
-The implementation of the functions and the outline of the proof are
-based on Bird et~al.'s derivations.
+\end{restatable*}
+Our implementation and proof are based on Bird et~al.'s derivations.
 
 The implementation is useful in its own right as a functional
 specification for a potential verified implementation of a program
-that relies on Burrows--Wheeler \cite{appel-func-spec}. But more
-generally, this provides evidence that Bird's approach of program
-calculation, in which programs are derived from their specifications
-via algebraic manipulations, is useful for proving the correctness of
-algorithms in a machine-checked setting. Bird has applied this
-approach to greedy algorithms, the Boyer-Moore algorithm, the
-Knuth-Morris-Pratt algorithm, Sudoku solvers, arithmetic coding, the
-Schorr-Waite algorithm, the Johnson-Trotter algorithm, and many more
-problems \cite{pearls}.
+that relies on Burrows--Wheeler, such as bzip2\cite{appel-func-spec}.
+But more generally, this provides evidence that Bird's approach of
+program calculation, in which programs are derived from their
+specifications via algebraic manipulations, is useful for proving the
+correctness of algorithms in a machine-checked setting. Bird has
+applied this approach to greedy algorithms, the Boyer-Moore algorithm,
+the Knuth-Morris-Pratt algorithm, Sudoku solvers, arithmetic coding,
+the Schorr-Waite algorithm, the Johnson-Trotter algorithm, and many
+more problems \cite{pearls}.
 
 As a part of the proof of \Cref{thm:unbwt_correct}, we proved two
 other noteworthy results that have not, to our knowledge, been proved
 before in Coq. We implemented a least-significant-digit (LSD)
 radixsort and proved its correctness,
-\begin{theorem}[radixsort\_correct]
+\begin{restatable*}[radixsort\_correct]{theorem}{radixsortcorrect}
   \label{thm:radixsort_correct}%
   For all matrices $m$ with $n$ columns,
   \begin{equation*}
-    \var{Sorted}~(\var{radixsort}~m~n) \land \var{Permutation}~(\var{radixsort}~m~n)~m
+    \var{Sorted}~(\var{radixsort}~m~n) \land \var{StablePerm}~(\var{radixsort}~m~n)~m
   \end{equation*}
-\end{theorem}
+\end{restatable*}
 and we proved that any two stable sorts are interchangeable,
 \begin{restatable*}[StableSort\_unique]{theorem}{stablesortunique}
+  \label{thm:stablesort_unique}
   For all functions $f, g: \var{list}~A \to \var{list}~A$,
   \begin{equation*}
     \var{StableSort}~f \implies \var{StableSort}~g \implies
@@ -131,37 +175,47 @@ and we proved that any two stable sorts are interchangeable,
   \end{equation*}
 \end{restatable*}
 This in turn required developing suitable definitions for
-\var{Sorted}, \var{Permutation}, and \var{StablePerm}. We explored
-multiple definitions for each of these properties, and proved
-equivalence between them.
+\var{Sorted}, \var{Permutation}, and \var{StablePerm}.
 
 The rest of this paper is organized as follows. \Cref{sec:bwt} details
 the history of the BWT and its applications. \Cref{sec:ord} defines
 what we need to know about a type $A$ to sort a $\var{list}~A$ as a
-part of BWT. Following Bird et~al., \cref{sec:forwards_BWT} defines
-the implementation of the forwards BWT in Coq, and
-\cref{sec:inverse_BWT} derives an implementation of the inverse BWT
-via program calculation. \Cref{sec:sorted_perm_stable} provides
+part of BWT. \Cref{sec:forwards_BWT} implements the forwards BWT in
+Coq. \Cref{sec:inverse_BWT} implements the inverse BWT and proves
+\Cref{thm:unbwt_correct}. \Cref{sec:sorted_perm_stable} provides
 multiple definitions of \var{Sorted}, \var{Permutation}, and
 \var{StablePermutation}, and proves equivalence between them.
-\Cref{sec:sort} implements insertion sort and radixsort, and proves
-their correctness.
+\Cref{sec:unique} proves \Cref{thm:stablesort_unique}. \Cref{sec:ord}
+defines lexicographic orderings, need to sort the rotation matrix.
+\Cref{sec:sort} radixsort and proves \Cref{thm:radixsort_correct}.
+\var{sec:opt} explains the optimization that is most commonly applied
+to BWT that relates our implementation to the standard version of the
+algorithm.
 
-The full source code can be found at
+Every definition and theorem in this paper corresponds directly to a
+definition or theorem in our Coq sources, which can be found at
 \url{https://github.com/jbaum98/verifed_bzip2/tree/2019-05-06}.
+Definitions are copied verbatim. Theorems are rephrased for clarity,
+with the name of the corresponding Coq theorem given in parentheses.
+The only exceptions are \var{sec:opt} and places where we give
+hypothetical definitions to provide an explanation.
 
 \section{History and applications of the BWT}
 \label{sec:bwt}
 
 The Burrows--Wheeler transform was originally introduced as a pass in a
-compression algorithm. First the input is transformed with BWT, which
-tends to group together characters. The intuition for why this happens
-is that all adjacent characters in the output string are followed in
-the input string by characters that are adjacent in the sorted first
-column. If there is any correlation between a character and the
-character preceding it, bringing together the characters in the first
-column will tend to bring together similar characters in the last
-column.
+compression algorithm, and continues to be used as a part of the
+popular, open-source bzip2 compression software \cite{tsai_2016}.
+
+Here we describe a standard compression algorithm built around BWT.
+First the input is transformed with BWT, which tends to group together
+characters. Intuitively, the last column of the rotation matrix
+contains the characters that directly preced the characters in the
+first column of the rotation matrix. Sorting lexicographically, which
+completely sorts the first column. If there is a correlation between a
+character and the character preceding it, bringing together identical
+characters in the first column will tend to bring together identical
+characters in the last column.
 
 The next pass is a Move-to-Front (MTF) encoding, in which a character
 is represented by the number of different characters encountered since
@@ -177,7 +231,7 @@ BWT is also at the heart of algorithms that exploit the relationship
 between the rotation matrix in BWT and the suffix array data structure
 in order to search for patterns in a compressed text
 \cite{ferragina_index}. These techniques have been applied to enable
-fast matching of DNA subsequences.
+fast matching of DNA subsequences \cite{dna}.
 
 \section{Orders and preorders}
 \label{sec:ord}
@@ -257,55 +311,37 @@ values obtained by applying $f$ to $z$ $n$ times. Or,
   \var{iter}~f~n~z = [z,~f~z,~f~(f~z),~\ldots,~f^{n-1} z]
   \label{eq:iter}
 \end{equation}
+where $f^n$ denotes repeated function application.
 \lstinputlisting[
   widthgobble=2,
   firstline=14,
   lastline=18
 ]{../theories/BWT/Lib/Iterate.v}
 
-We can prove that this definition satisfies \Cref{eq:iter} by defining
-the function \var{rep} for repeated function application.
+We can state \Cref{eq:iter} as a theorem by defining the
+function \var{rep} for repeated function application.
 \lstinputlisting[
-  widthgobble=2,
-  firstline=8,
-  lastline=12
+  widthgobble=2, firstline=8, lastline=12,
 ]{../theories/BWT/Lib/Repeat.v}
-In proofs, we will still use the notation $f^i z$ for $\var{rep}~f~i~z$.
-
-\begin{theorem}[rep\_r]
-  For all $f$, $n$, and $z$,
-  \begin{equation}
-     f^i~(f~z) = f^{i+1}~z
-  \end{equation}
-\end{theorem}
-\begin{proof}
-  The theorem follows by induction on $n$.
-\end{proof}
-
-\begin{theorem}[iter\_length]
-  For all $f$, $n$, and $z$,
-  \begin{equation}
-    \var{length}~(\var{iter}~f~n~z) = n
-  \end{equation}
-\end{theorem}
-\begin{proof}
-  The theorem follows by induction on $n$.
-\end{proof}
+In proofs, we will still use the notation $f^i z$ for
+$\var{rep}~f~i~z$. We will also use that notation $l_i$ for the $i$th
+element of a list. In Coq, that is given by $\var{nth}~i~l~d$, where
+$d:A$ is a default value in case $i \ge \var{length}~l$.
 
 \begin{theorem}[iter\_nth]
   For all $f$, $n$, $z$, and $i < n$,
-  \begin{equation}
+  \begin{equation*}
     (\var{iter}~f~n~z)_i = f^i~z
-  \end{equation}
+  \end{equation*}
 \end{theorem}
 \begin{proof}
   The theorem follows by induction on $i$. The inductive case is
   \begin{align*}
-       (\var{iter}~f~(n+1)~z)_{i+1}
-    &= (z :: \var{iter}~f~n~(f~z))_{i+1} &&\{\text{\var{iter} def.}\} \\
-    &= (\var{iter}~f~n~(f~z))_i          &&\{\text{by \var{nth} def.}\} \\
-    &= f^i~(f~z)                            &&\{\text{by \var{rep\_r}}\} \\
-    &= f^{i+1}~z && \qedhere
+       (\var{iter}~f~(n+1)~z)_{i+1} \\
+    &= (z :: \var{iter}~f~n~(f~z))_{i+1} \\
+    &= (\var{iter}~f~n~(f~z))_i \\
+    &= f^i~(f~z) \\
+    &= f^{i+1}~z \qedhere
   \end{align*}
 \end{proof}
 
@@ -316,10 +352,12 @@ Now we can define \var{rots} to produce the rotation matrix.
   lastline=18,
 ]{../theories/BWT/Rotation/Rots.v}
 
-\var{bwl} produces the transformed string by taking the last column
-of the sorted rotation matrix. \var{lexsort} sorts the rotation
-matrix lexicographically using the \var{Ord} instance; we will
-discuss its implementation in \cref{sec:sort}.
+\var{bwl} produces the transformed string by taking the last column of
+the sorted rotation matrix. \var{lexsort} sorts the rotation matrix
+using insertion sort (\cref{appendix:insertion_sort}) and the induced
+lexicographic ordering(\cref{sec:lex_ord}). By
+\Cref{thm:stablesort_ord} though, \var{lexsort} can be implemented
+using any sorting algorithm.
 \lstinputlisting[
   widthgobble=2,
   firstline=31,
@@ -340,50 +378,49 @@ induced equivalence relation from the \var{Ord} instance, so it
 finds the row that is Leibniz equal to $l$.
 \lstinputlisting[
   widthgobble=2,
-  firstline=73,
-  lastline=74,
+  firstline=75,
+  lastline=75,
 ]{../theories/BWT/BurrowsWheeler.v}
 
 Given these definitions, we can quickly prove that \var{bwn}
-satisfies its specification, namely that for all non-empty $l$
-\begin{equation*}
-    (\var{lexsort}~(\var{rots}~l))_{(\var{bwn}~l)} = l
-\end{equation*}
+satisfies its specification:
+\begin{restatable*}[bwn\_correct]{theorem}{bwncorrect}
+  For every non-empty list $xs$,
+  \begin{equation*}
+    (\var{lexsort}~(\var{rots}~xs))_{(\var{bwn}~xs)} = xs
+  \end{equation*}
+\end{restatable*}
 
+First we prove a few lemmas:
 \begin{lemma}[findIndex\_correct]
   For all elements $x$ and lists $l$,
   \begin{equation*}
     (\exists y \in l,~x \equiv y) \implies l_{(\var{findIndex}~x~xs)} \equiv x
   \end{equation*}
-  \begin{proof}
-    This follows by induction on $l$: At every step, either the
-    current element is equivalent to $x$ and we return $0$, or there
-    must be such a $y$ in the rest of the list.
-  \end{proof}
 \end{lemma}
+\begin{proof}
+  This follows by induction on $l$: At every step, either the
+  current element is equivalent to $x$ and we return $0$, or there
+  must be such a $y$ in the rest of the list.
+\end{proof}
 
 \begin{lemma}[orig\_in\_sorted\_rots]
   For every non-empty list $l$,
   \begin{equation*}
     \exists y \in \var{lexsort}~(\var{rots}~l),~x = y
   \end{equation*}
-  \begin{proof}
-    Clearly $l$ is in $\var{rots}~l$ at index 0, and because
-    \var{lexsort} produces a permutation of its input, $l$ must be
-    in $\var{lexsort}~(\var{rots}~l)$ as well.
-  \end{proof}
 \end{lemma}
+\begin{proof}
+  Clearly $l$ is in $\var{rots}~l$ at index 0, and because
+  \var{lexsort} produces a permutation of its input, $l$ must be
+  in $\var{lexsort}~(\var{rots}~l)$ as well.
+\end{proof}
 
-\begin{theorem}[bwn\_correct]
-  For every non-empty list $xs$,
-  \begin{equation*}
-    (\var{lexsort}~(\var{rots}~xs))_{(\var{bwn}~xs)} = xs
-  \end{equation*}
-  \begin{proof}
-    This follows from \var{findIndex\_correct} if we can show that
-    $\exists y \in xs,~x = y$, which we have by \var{orig\_in\_sorted\_rots}.
-  \end{proof}
-\end{theorem}
+\bwncorrect
+\begin{proof}
+  This follows from \var{findIndex\_correct} if we can show that
+  $\exists y \in xs,~x = y$, which we have by \var{orig\_in\_sorted\_rots}.
+\end{proof}
 
 \section{The inverse BWT}
 \label{sec:inverse_BWT}
@@ -400,8 +437,8 @@ the matrix at $\var{bwn}~l$.
 More precisely, suppose we had a function function \var{recreate}
 such that
 \begin{equation}
-  \var{recreate}~(\var{bwl}~l) = \var{lexsort}~(\var{rots}~l)
   \label{eq:recreate}
+  \var{recreate}~(\var{bwl}~l) = \var{lexsort}~(\var{rots}~l)
 \end{equation}
 Then, we could define \var{unbwt} as
 \begin{lstlisting}
@@ -420,13 +457,14 @@ How, then, do we implement \var{recreate} such that \Cref{eq:recreate}
 holds? A key insight is that because any two methods of sorting the
 rotation matrix must produce the same output, we can pretend that
 \var{lexsort} is implemented using an sorting algorithm we find
-convenient. Specifically, if we examine how an LSD radixsort sorts the
-rotation matrix (\Cref{fig:radixsort_rots}) we notice an interesting
-pattern. Each column of the rotation matrix is a permutation of the
-original string, so when we sort a on particular column, we always
-produce the same result in that column. As we move right-to-left, the
-column containing the sorted input string moves with us until it
-reaches the left edge of the matrix.
+convenient (\Cref{thm:sort_ord_unique}). Specifically, if we examine
+how an LSD radixsort sorts the rotation matrix
+(\Cref{fig:radixsort_rots}) we notice an interesting pattern. Each
+column of the rotation matrix is a permutation of the original string,
+so when we sort a on particular column, we always produce the same
+result in that column. As we move right-to-left, the column containing
+the sorted input string moves with us until it reaches the left edge
+of the matrix.
 
 \begin{figure}[!hb]
   \centering
@@ -505,45 +543,9 @@ next column is the result of sorting by each character, sorting by the
 preceding character, and then sorting by the character 2 spaces in
 front.
 
-All this means that the columns to the left of the sorted column seem
-like they don't matter, which suggests that we can recreate the entire
-rotation matrix from just the last column (\Cref{fig:recreate}).
-However, the column directly to the left of the sorted column is very
-important, as it is the next column to be sorted. And we can see that
-this column changes, only becoming the eventual last column of the
-matrix in the second to last iteration. Why then, does it still work
-if we use the last column everywhere?
-
-We can think of the process of sorting the matrix as computing the
-last column subject to the constraints of the lexicographic ordering.
-For example, we know that the collection of all characters preceding
-an \texttt{a} in the sorted column must be some permutation of
-$[\texttt{c},~\texttt{d},~\texttt{r},~\texttt{r},~\texttt{!}]$,
-because those are the characters that precede \texttt{a}s in the
-original string. However, the order of these characters in the final
-string
-($[\texttt{r},~\texttt{d},~\texttt{!},~\texttt{r},~\texttt{c}]$) is
-important. An \texttt{r} must be first, because in the original string
-there is an \texttt{a} following an \texttt{r} which is itself
-followed by a \texttt{!}, the smallest character. Similarly, although
-the \texttt{d} and \texttt{!} precede \texttt{a}s that are both
-followed by \texttt{bra}s, the next character for the \texttt{d} is a
-\texttt{!}, and the next character for the \texttt{!} is a \texttt{c}.
-This requires that the \texttt{d} precede the \texttt{!} in the last
-column.
-
-Generally, there are constraints on the relative order of the letters
-in the column before the sorted column, and in each step we are
-ensuring that these constraints are not violated one more character
-deep in the string. By the time we have reached the last column, we
-have satisfied all the constraints.
-
-We can also think of this as computing the fixpoint of $\var{hdsort} \comp
-\var{map}~\var{rrot}$: we continually move the rightmost column to the
-front and sort on it, until we have sorted the whole matrix and this
-becomes a no-op. The fact that the last column corresponds to the
-fixpoint justifies why in \cref{fig:recreate} we can replace every
-column left of the sorted column with the output of the BWT.
+This suggests that we can, as we had hoped, recreate the matrix from a
+single column (\Cref{fig:recreate}). But why specifically the last
+column?
 
 \begin{figure}[!hb]
   \centering
@@ -613,6 +615,42 @@ column left of the sorted column with the output of the BWT.
   \label{fig:recreate}
 \end{figure}
 
+
+The reason is that the last column is the solution to the fixpoint equation
+\begin{equation*}
+  \var{hdsort}~(\var{prefix\_shift}~c~m) = m
+\end{equation*}
+where \var{hdsort} sorts on the first column of a matrix,
+$\var{prefix\_shift}~c$ adds $c$ as the first column of a matrix,
+dropping the last column, and $m$ is the rotation matrix. This means
+as we repeatedly prefix $l$ and sort, we preserve the ``rest of the
+matrix'', even the parts that we have yet to reconstruct.
+
+We can think of the process of sorting the matrix as computing the
+solution to the fixpoint equation, subject to the constraints of the
+lexicographic ordering. For example, we know that the collection of
+all characters preceding an \texttt{a} in the sorted column must be
+some permutation of
+$[\texttt{c},~\texttt{d},~\texttt{r},~\texttt{r},~\texttt{!}]$,
+because those are the characters that precede \texttt{a}s in the
+original string. However, the order of these characters in the final
+string
+($[\texttt{r},~\texttt{d},~\texttt{!},~\texttt{r},~\texttt{c}]$) is
+important. An \texttt{r} must be first, because in the original string
+there is an \texttt{a} following an \texttt{r} which is itself
+followed by a \texttt{!}, the smallest character. Similarly, although
+the \texttt{d} and \texttt{!} both precede \texttt{a}s that are
+followed by \texttt{bra}s, the next character for the \texttt{d} is a
+\texttt{!}, and the next character for the \texttt{!} is a \texttt{c}.
+This requires that the \texttt{d} precede the \texttt{!} in the last
+column.
+
+Generally, there are constraints on the relative order of the letters
+in the column before the sorted column, and in each step we are
+ensuring that these constraints are not violated one more character
+deep in the string. By the time we have reached the last column, we
+have satisfied all the constraints.
+
 We implement \var{recreate} as follows, introducing a parameter $j$ so
 that we can recursively recreate the first $j$ columns of the matrix,
 one column at a time. Here $l$ is meant to be the output of the BWT,
@@ -631,8 +669,8 @@ This definition relies on \var{prepend\_col} and \var{zipWith}, defined below.
 Now we can redefine \var{unbwt} as
 \lstinputlisting[
   widthgobble=2,
-  firstline=196,
-  lastline=197,
+  firstline=197,
+  lastline=198,
 ]{../theories/BWT/BurrowsWheeler.v}
 
 Since we recreate the matrix column by column, we can define an
@@ -643,13 +681,13 @@ invariant using $\var{cols}~j$, which takes the first $j$ columns of a matrix.
   lastline=20,
 ]{../theories/BWT/Columns.v}
 
-\begin{theorem}[recreate\_correct\_inv]
+\begin{restatable*}[recreate\_correct\_inv]{theorem}{recreatecorrectinv}
   For all lists $l$ and $j \le \var{length}~l$,
   \begin{equation*}
     \var{recreate}~j~(\var{bwl}~l) =
     \var{cols}~j~(\var{lexsort}~(\var{rots}~l))
   \end{equation*}
-\end{theorem}
+\end{restatable*}
 
 Assuming we can prove this theorem, we will be able to prove that our
 implementation of \var{unbwt} is correct along the same lines as before.
@@ -678,7 +716,7 @@ matrix is symmetric.
   \end{align*}
 \end{proof}
 
-Now we can prove that the sorted rotation matrix is indeed a fixpoint.
+Now we can prove that the last column is indeed a fixpoint.
 \begin{theorem}[lexsort\_rots\_hdsort]
   For all lists $l$,
   \begin{equation*}
@@ -688,9 +726,8 @@ Now we can prove that the sorted rotation matrix is indeed a fixpoint.
   \end{equation*}
 \end{theorem}
 \begin{proof}
-  By \var{StablePerm\_Sorted\_eq}, proved in \cref{sec:unique}, any
-  two sorts are equivalent, and we can replace \var{lexsort} with an
-  LSD radixsort implemented as
+  By \Cref{thm:sort_ord_unique}, any two sorts are equivalent, and we
+  can replace \var{lexsort} with an LSD radixsort implemented as
   \begin{equation*}
     \var{radixsort}~m \coloneqq (\var{hdsort} \comp \var{map}~\var{rrot})^n~m
   \end{equation*}
@@ -706,7 +743,7 @@ Now we can prove that the sorted rotation matrix is indeed a fixpoint.
     ={}&\var{lexsort}~(\var{rots}~l)
   \end{align*}
   The last step follows because the function $\var{hdsort} \comp
-  \var{rrot}$ permutes the rotation matrix
+  \var{rrot}$ permutes the rotation matrix.
 \end{proof}
 
 We need two more lemmas that describe the interaction between
@@ -747,17 +784,12 @@ We need two more lemmas that describe the interaction between
     \var{last}~r :: \var{firstn}~j~(\var{init}~r) &= \var{last}~r :: \var{firstn}~j~r \\
     \var{firstn}~j~(\var{init}~r) &= \var{firstn}~j~r
   \end{align*}
-  The bottom equation is true by another theorem we will not prove here.
+  The bottom equation is true because $j > \var{length}~r$, so if $j=
+  0$, $r = []$.
 \end{proof}
 
 Now we are ready to prove the invariant:
-\begin{theorem}[recreate\_correct\_inv]
-  For all lists $l$ and $j \le \var{length}~l$,
-  \begin{equation*}
-    \var{recreate}~j~(\var{bwl}~l) =
-    \var{cols}~j~(\var{lexsort}~(\var{rots}~l))
-  \end{equation*}
-\end{theorem}
+\recreatecorrectinv
 \begin{proof}
 \begin{align*}
   &\var{cols}~(j+1)~(\var{lexsort}~(\var{rots}~l)) \\
@@ -772,17 +804,39 @@ Now we are ready to prove the invariant:
 \end{align*}
 \end{proof}
 
+\begin{theorem}[cols\_id]
+  For all matrices $m$ such that all the rows of $m$ have length less
+  than or equal to $n$,
+  \begin{equation*}
+    \var{cols}~n~m = m
+  \end{equation*}
+\end{theorem}
+\begin{proof}
+  This follows by induction on $m$.
+\end{proof}
+
+\unbwtcorrect
+\begin{proof}
+\begin{align*}
+     \var{unbwt}~(\var{bwn}~l)~(\var{bwl}~l)
+  &= (\var{recreate}~(\var{length}~l))(\var{bwl}~l))_{(\var{bwn})~l}\\
+  &= (\var{cols}~(\var{length}~l)~(\var{lexsort}~(\var{rots}~l)))_{(\var{bwn})~l} \\
+  &= (\var{lexsort}~(\var{rots}~l))_{(\var{bwn})~l} \\
+  &= l \qedhere
+\end{align*}
+\end{proof}
+
 \section{\var{Sorted}, \var{Permutation}, and \var{StablePermutation}}
 \label{sec:sorted_perm_stable}
 
 The previous section's proofs relied on the correctness and stability
 of various sorts. The Coq standard library includes definitions for
 \var{Sorted} and \var{Permutation}, but no definition for stability.
-The Coq standard library also includes an implementation of mergesort.
-However, it uses Coq's module system to enable parametricity over
-ordered types, which is much less convenient to use than typeclasses.
-In this section, we define our own version of \var{Sorted} and
-\var{StablePerm} that are based on our \var{Preord} typeclass.
+It also includes an implementation of mergesort, but it uses Coq's
+module system to enable parametricity over ordered types, which is
+much less convenient to use than typeclasses. In this section, we
+define our own version of \var{Sorted} and \var{StablePerm} that are
+based on our \var{Preord} typeclass.
 
 When defining these properties, it is very important that they mean
 what we would like them to mean. If we prove our implementations
@@ -836,9 +890,9 @@ smaller than just the first element of the sorted list. That leads to a third de
   }
 \end{gather*}
 
-Although these two inductive definitions are intuitive, they are not
-obviously equivalent to the first definition, which is more clearly
-correct. We will prove all three equivalent.
+These two inductive definitions are not obviously equivalent to the
+first definition, which is more clearly correct. We will prove all
+three equivalent.
 
 \begin{theorem}[SortedLocal\_iff]
   For all lists $l$,
@@ -886,6 +940,29 @@ correct. We will prove all three equivalent.
 
 \subsection{\var{Permutation}}
 \label{subsec:perm}
+
+The Coq standard library comes with a definition of \var{Permutation}
+that holds when two lists contain exactly the same elements:
+\begin{gather*}
+  \infer[\var{perm\_nil}]{\var{Permutation}~[]~[]}{}
+  \\
+  \\
+  \infer[\var{perm\_skip}]{\var{Permutation}~(x :: l)~(x :: l')}{%
+    \var{Permutation}~l~l'
+  }
+  \\
+  \\
+  \infer[\var{perm\_swap}]{\var{Permutation}~(x :: y :: l)~(y :: x :: l)}{}
+  \\
+  \\
+  \infer[\var{perm\_trans}]{\var{Permutation}~l~l''}{
+    \var{Permutation}~l~l' & \var{Permutation}~l'~l''
+  }
+\end{gather*}
+Although we have no need to redefine it, we present here some
+alternative definitions. This is mainly because these definitions have
+analagous definitions for \var{StablePerm}, which we are definining
+ourselves.
 
 The word \textit{permutation} has two related meanings that are often
 used interchangeably. We sometimes say that two lists are permutations of each
@@ -945,25 +1022,1006 @@ given permutation:
 And finally, we can define \var{PermutationEx}, which holds between
 two lists when they are permutations of each other.
 \lstinputlisting[
-  widthgobble=2, firstline=510, lastline=511,
+  widthgobble=2, firstline=521, lastline=522,
 ]{../theories/BWT/Sorting/PermFun.v}
 
-As with \var{Sorted}, we would also like an inductive definition of
-\var{Permutation}. The Coq standard library includes one:
+We prove \var{PermutationEx} equivalent to \var{Permutation} in
+\Cref{thm:permutationex_iff}.
+
+For completeness, we will briefly mention a third definition of a
+permutation relation that says that two lists are permutations of one
+another when any element occurs an equal number of times in each:
+\lstinputlisting[
+  widthgobble=2, firstline=14, lastline=15,
+]{../theories/BWT/Sorting/PermutationCount.v}
+\var{count\_occ} counts the number of occurrences of a given variable
+using a decision procedure for Leibniz equality. Here that decision
+procedure is \texttt{equiv\_dec} from an \var{EqDec} instance where we
+require the equivalence relation itself by Leibniz equality.
+
+\begin{theorem}[PermutationCount\_iff]
+  For all lists $l$ and $l'$,
+  \begin{equation*}
+    \var{Permutation}~l~l' \iff \var{PermutationCount}~l~l'
+  \end{equation*}
+\end{theorem}
+\begin{proof}
+  The ($\implies$) direction follows from induction in the evidence of
+  $\var{Permutation}~l~l'$.
+
+  In the ($\impliedby$) direction, we reason by induction on $l$. In
+  the inductive case, we have to show $\var{Permutation}~(a::l)~l'$.
+  We know that $a \in l'$ because $\var{count\_occ}~a~l' =
+  \var{count\_occ}~a~(a::l) > 0$. That means we can deconstruct $l'$
+  as $L \dplus a :: R$, and
+  \begin{equation*}
+    L \dplus a :: R \eqperm a :: L \dplus R \eqperm a :: l
+  \end{equation*}
+  where the last step follows from the induction hypothesis.
+\end{proof}
+
+\subsection{\var{StablePerm}}
+\label{subsec:stable}
+
+A stable sort is a sort that doesn't swap any two elements considered
+equivalent by the ordering. This is relevant when the induced
+equivalence relation does not imply equality, so that we can
+distinguish between elements that the sort considers identical. A good
+example of this is in radixsort: when we sort on a single column, the
+sort can't tell the difference between strings that contain equal
+characters in that column, but it is crucial that it respect the
+existing ordering in cases of a tie.
+
+For stable sorts, we need a stronger property than \var{Permutation}.
+We can extend our mathematical definition. We say that two lists $l$
+and $l'$ are stable permutations of each other when we have a
+permutation $p$ that relates them, and that satisfies an additional
+stability property: for all indices $i$ and $j$ where
+$(\var{apply}~p~l)_i \equiv (\var{apply}~p~l)_j$
+\begin{gather*}
+  i < j \implies p(i) < p(j)
+\end{gather*}
+Equivalently, we can say that for all indices $i$ and $j$ where $l_j \equiv
+l_j$ we must have
+\begin{gather*}
+  i < j \implies p^{-1}(i) < p^{-1}(j)
+\end{gather*}
+
+Based on this, we define a stronger version of the \var{PermFun}
+property, \var{StablePermFun}. However, while $\var{PermFun}~n~p$
+means that $p$ represents a permutation function on lists of length
+$n$, we need to specify the list with respect to which $p$ is stable,
+so we say $\var{StablePermFun}~l~p$ for some list $l$.
+\lstinputlisting[
+  widthgobble=2, firstline=568, lastline=572,
+]{../theories/BWT/Sorting/PermFun.v}
+As above, we can also define this
+property using the inverse permutation:
+\lstinputlisting[
+  widthgobble=2, firstline=574, lastline=578,
+]{../theories/BWT/Sorting/PermFun.v}
+As usual, we will prove these
+definitions equivalent. First, though, we need to define \var{image}
+and \var{preimage}.
+\lstinputlisting[
+  widthgobble=2, firstline=81, lastline=82,
+]{../theories/BWT/Sorting/PermFun.v}
+We will not prove
+it here, but $\var{preimage}~p$ and $\var{image}~p$ are both of
+bijections of type $\mathbb{N}_{<n} \to \mathbb{N}_{<n}$ and are
+inverses of each other. We also have the following two theorems:
+\begin{theorem}[nth\_preimage\_apply, nth\_image\_apply]
+  For all lists $l$, permutations $p$, and indices $i$,
+  \begin{align*}
+    (\var{apply}~p~l)_{p^{-1}(i)} = l_i && l_{p(i)} = (\var{apply}~p~l)_i
+  \end{align*}
+\end{theorem}
+\begin{proof}
+  The first equation (\var{nth\_preimage\_apply}) holds because:
+  \begin{align*}
+       (\var{apply}~p~l)_{p^{-1}(i)}
+    &= (\var{map}~(\lambda j.~l_j)~p)_{\var{findIndex}~i~p} \\
+    &= l_{p_{(\var{findIndex}~i~p)}} \\
+    &= l_i
+  \end{align*}
+  and the second follows from this:
+  \begin{equation*}
+      (\var{apply}~p~l)_i
+    = (\var{apply}~p~l)_{p^{-1}(p(i))}
+    = l_{p(i)}
+    \qedhere
+  \end{equation*}
+\end{proof}
+
+\begin{theorem}[StablePermFun\_iff]
+  For all lists $l$ and permutation $p$,
+  \begin{equation*}
+    \var{StablePermFun}~l~p \iff \var{StablePermFun\_preimage}~l~p
+  \end{equation*}
+\end{theorem}
+\begin{proof}
+  We will only prove the $\implies$ direction; the other direction is
+  very similar. We have that $l_i \equiv l_j$, and that $i < j$, and we
+  have to show that $p^{-1}(i) < p^{-1}(j)$. We will show this by
+  proving that $p^{-1}(i) \ge p^{-1}(j)$ leads to a contradiction.
+
+  Suppose $p^{-1}(i) \ge p^{-1}(j)$. We actually know that $p^{-1}(i) >
+  p^{-1}(j)$ because $i \neq j$. From $l_i \equiv l_j$ and
+  $\var{StablePermFun}~l~p$, along with $p^{-1}(j) < p^{-1}(i)$, we
+  know that $p(p^{-1}(j)) < p(p^{-1}(i))$. However, this implies $j <
+  i$, which is a contradiction. Therefore, $p^{-1}(i) < p^{-1}(j)$.
+\end{proof}
+
+Now, we can define \var{StablePermEx} to describe when two lists are
+stable permutations of each other:
+\lstinputlisting[
+  widthgobble=2, firstline=618, lastline=619,
+]{../theories/BWT/Sorting/PermFun.v}
+
+While \var{StablePermEx} corresponds to \var{PermutationEx}, how can
+we modify \var{Permutation} to create an inductive relation for stable
+lists? Intuitively, the problematic inference rule is
+\var{Permutation\_swap}: we can only swap two elements and preserve
+stability if they are not equivalent. With this fix, we have \var{StablePermInd}:
+\begin{gather*}
+  \infer[\var{StablePermInd\_nil}]{\var{StablePermInd}~[]~[]}{}
+  \\ \\
+  \infer[\var{StablePermInd\_skip}]{\var{StablePermInd}~(x :: l)~(x :: l')}{%
+    \var{StablePermInd}~l~l'
+  }
+  \\ \\
+  \infer[\var{StablePermInd\_swap}]
+        {\var{StablePermInd}~(x :: y :: l)~(y :: x :: l)}
+        {x \not\equiv y}
+  \\ \\
+  \infer[\var{StablePermInd\_trans}]{\var{StablePermInd}~l~l''}{
+    \var{StablePermInd}~l~l' & \var{StablePermInd}~l'~l''
+  }
+\end{gather*}
+
+Unfortunately, neither of these two definitions will be particularly
+useful for proving the theorems we would like to prove with them. The
+best definition for stability does not come by analogy with
+\var{Permutation}. The intuition is that for any two lists that are
+stable permutations of each other, if we filter each list by
+equivalence with any element, the resulting lists should be identical.
+This is because they must have the same elements, since the original
+lists are permutations of one another, and those elements must be in
+the same order, since the original lists are specifically stable
+permutations of one another \cite{leroy_2018}.
+\lstinputlisting[
+  widthgobble=2, firstline=21, lastline=22,
+]{../theories/BWT/Sorting/StablePerm.v}
+
+We prove equivalence between these three definitions in
+\cref{appendix:stableperm_def_eq}.
+
+\section{Uniqueness of stable sorts}
+\label{sec:unique}
+
+Using our definitions of \var{StablePerm} and \var{Sorted}, we can
+prove the theorem that allowed us to replace \var{lexsort} with
+radixsort.
+
+\begin{theorem}[StablePerm\_Sorted\_eq]
+  For all lists $l$,
+  \begin{equation*}
+    \var{Sorted}~l \implies \var{Sorted}~l' \implies
+    \var{StablePerm}~l~l' \implies l = l'.
+  \end{equation*}
+\end{theorem}
+\begin{proof}
+  We reason by induction on $l$. In the inductive case, we have to
+  show that
+  \begin{equation*}
+    h :: t = h' :: t'
+  \end{equation*}
+  given $\var{Sorted}~(h :: t)$, $\var{Sorted}~(h' :: t')$, and
+  $\var{StablePerm}~(h :: t)~(h' :: t')$.
+
+  First, we can say that $h \equiv h'$: we know that $h \in h' :: t'$ and $h'
+  \in h :: t$. If $h = h'$, then we are done, so assuming $h \neq h'$ we
+  know $h \in t'$ and $h' \in t$. Because both $h::t$ and $h'::t'$ are
+  sorted, we know that $h \le h'$ and $h' \le h$, implying $h \equiv h'$.
+
+  This means that $h = h'$: from $\var{StablePerm}~(h :: t)~(h' ::
+  t')$ we have
+  \begin{align*}
+    \var{filter}~(\equiv h)~(h :: t) &= \var{filter}~(\equiv h)~(h' :: t') \\
+    h :: \var{filter}~(\equiv h)~t &= h' :: \var{filter}~(\equiv h)~t'
+  \end{align*}
+  We also have $t = t'$ by the induction hypothesis, so we are done.
+\end{proof}
+
+If we define \var{Sort} and \var{StableSort} as we did
+\cref{sec:sorted_perm_stable}, we can restate the theorem slightly
+more elegantly.
+\lstinputlisting[
+  widthgobble=2, firstline=15, lastline=19,
+]{../theories/BWT/Sorting/Sort.v}
+
+\stablesortunique
+\begin{proof}
+  This follows from \var{StablePerm\_Sorted\_eq}.
+\end{proof}
+
+However, we do not want to require that \var{lexsort} be implemented
+using a stable sorting algorithm. Luckily, because we require that $A$
+be equipped with an order and not just a preorder, we know that
+equivalent elements are actually indistinguishable. This means that
+all sorting algorithms can be considered to be stable: it is
+impossible to tell if any two equivalent elements were swapped because
+you cannot distinguish between equivalent elements.
+
+\begin{theorem}[all\_perm\_stable]
+  If we have that equivalence implies Leibniz equality, then for all
+  lists $l$ and $l'$
+  \begin{equation*}
+      \var{Permutation}~l~l' \implies \var{StablePerm}~l~l'
+  \end{equation*}
+\end{theorem}
+\begin{proof}
+  We reason by induction on the evidence of $\var{Permutation}~l~l'$.
+  Every case other than the \var{perm\_swap} case follows easily.
+  In the \var{perm\_swap} case, we must show that
+  \begin{equation*}
+    \var{StablePerm}~(y :: x :: l)~(x :: y :: l)
+  \end{equation*}
+  for all $x$ and $y$. If $x \not\equiv y$, we can just apply
+  \var{StablePerm\_swap}. If $x \equiv y$, then we know that $x = y$, and
+  we can show
+  \begin{equation*}
+    \var{StablePerm}~(x :: x :: l)~(x :: x :: l)
+  \end{equation*}
+  by applying \var{perm\_skip} twice.
+\end{proof}
+
+\begin{corollary}[Sort\_StableSort\_Ord]
+  \label{thm:stablesort_ord}
+  When sorting using an order,
+  \begin{equation*}
+    \var{Sort}~f \iff \var{StableSort}~f
+  \end{equation*}
+  for any $f$.
+\end{corollary}
+\begin{proof}
+  This follows from \var{all\_perm\_stable}.
+\end{proof}
+
+\begin{theorem}[Sort\_Ord\_unique]
+  \label{thm:sort_ord_unique}
+  When sorting using an order, given any two function $f, g:
+  \var{list}~A \to \var{list}~A$,
+  \begin{equation*}
+    \var{Sort}~f \implies \var{Sort}~g \implies
+    (\forall l,~f~l = g~l)
+  \end{equation*}
+\end{theorem}
+\begin{proof}
+  This follows from \Cref{thm:stablesort_ord} and \Cref{thm:stablesort_unique}.
+\end{proof}
+
+\section{Lexicographic orders and keys}
+\label{sec:lex_ord}
+
+Given a preorder on a type $A$, we can define a lexicographic preorder
+on $\var{list}~A$. Intuitively, we want to say that to compare two
+lists, we compare their elements from left to right. As soon as we
+encounter two elements that are not equivalent, their relationship
+defines the relationship between the two lists. If we make it all the
+way through one of the lists and all the elements are equivalent, we
+say that the shorter list is smaller. If they are the same length and
+all the elements are equivalent, then the lists are equivalent. To
+capture this, we define the inductive relation \var{lex\_le}, which we
+will denote by $\lexle$ in proofs.
+\begin{gather*}
+  \infer[\var{lex\_le\_nil}]{[] \lexle ys}{}
+  \\
+  \\
+  \infer[\var{lex\_le\_cons\_lt}]{(x :: xs) \lexle (y :: ys)}{%
+    x < y
+  }
+  \\
+  \\
+  \infer[\var{lex\_le\_cons\_eq}]{(x :: xs) \lexle (y :: ys)}{%
+    x \equiv y & xs \lexle ys
+  }
+\end{gather*}
+
+Given a preorder on a type $K$ and a key function $\var{key} : A \to K$,
+we can define a preorder on $A$ that compares all elements using the
+key function. That is, we can define the relation $\le_{\var{key}}$ on
+$A$ such that for all $x, y : A$
+\begin{equation*}
+  x \le_{\var{key}} y \coloneqq (\var{key}~x) \le (\var{key}~y)
+\end{equation*}
+
+\begin{theorem}[key\_sort\_inv]
+  Given a key function $\var{key} : A \to K$ and a function $f : A \to A$
+  such that for all $x : A$,
+  \begin{equation*}
+    \var{key}~(f~x) = \var{key}~x
+  \end{equation*}
+  we have that for all lists $l$
+  \begin{equation*}
+    \var{sort}~(\var{map}~\var{f}~l) = \var{map}~\var{f}~(\var{sort}~l).
+  \end{equation*}
+  where \var{sort} is insertion sort.\footnote{This theorem actually
+    holds for any function with type $\forall X, (X \to X \to \mathbb{B}) \to
+    \var{list}~X \to \var{list}~X$ due to parametricity \cite{free}.}
+\end{theorem}
+\begin{proof}
+  The proof follows by induction, unfolding the definition of
+  \var{sort}. All decisions are made by calling \var{key}, so both
+  sides are equal.
+\end{proof}
+
+Taken together, we can define prefix lexicographic orderings on lists,
+where the lexicographic ordering is only allowed to compare up to the
+first $n$ elements of two lists. We define the relation $\le_n$ on
+$\var{list}~A$ such that for all $xs, ys : \var{list}~A$,
+\begin{equation*}
+  xs \le_n ys \coloneqq (\var{firstn}~n~xs) \lexle (\var{firstn}~n~ys)
+\end{equation*}
+For convenience, we define $\var{PrefixSorted}~n$ to hold when a list
+of lists is sorted if you only look at the first $n$ elements of each:
+\lstinputlisting[
+  widthgobble=2, firstline=326, lastline=327,
+]{../theories/BWT/Sorting/Key.v}
+
+We can describe the relationship between orders that can look at fewer
+or more characters with the following two theorems. We will briefly
+offer an explanation of why these theorems makes sense, but these
+explanations do not mirror the Coq proofs we have for these theorems,
+which are hard to follow.
+
+\begin{theorem}[key\_lt\_firstn\_ge]
+  For all $j$ and $k$ such that $j \le k$,
+  \begin{equation*}
+    x <_j y \implies x <_k y
+  \end{equation*}
+\end{theorem}
+\begin{proof}
+  If $x <_j y$, then there must be some index $i < j$ such that $x_i <
+  y_i$. Then $i < k$ as well, so $x <_k y$.
+\end{proof}
+
+\begin{theorem}[key\_le\_firstn\_ge]
+  For all $j$ and $k$ such that $k \ge j$,
+  \begin{equation*}
+    x \le_k y \implies x \le_j y
+  \end{equation*}
+\end{theorem}
+\begin{proof}
+  If $x \le_k y$, then either the first $k$ characters are all
+  equivalent, in which case the first $j$ characters are all
+  equivalent as well, or there was some $i < k$ such that $x_i < y_i$,
+  but at every index before $i$ $x$ and $y$ are equivalent. If $j <
+  i$, then the first $j$ characters are still equivalent, and we have
+  $x \equiv y \implies x \le_j y$. If $j \ge i$, then the deciding character is
+  among the first $j$ and $x \le_j k$.
+\end{proof}
+
+If we consider the implications this has for stability, a weaker order
+can distinguish between fewer elements, which means that it considers
+more elements equivalent. This means that stability with respect to a
+weaker order is actually a stronger property, because the weaker
+order, considering more elements equivalent, is more restrictive about
+which swaps it allows.
+
+\begin{theorem}[StablePerm\_weaken]
+  Suppose we have a two preorders $O$ and $O'$ on $A$, and two lists
+  $l_1$ and $l_2$, with elements of type $A$.
+
+  We also know that on the elements of $l_1$, $O'$ is stronger than
+  $O$. If we denote by $\le$ and $\le'$ the relations for $O$ and $O'$
+  respectively, this means that for all $x$ and $y$ in $l_1$,
+  \begin{equation*}
+    x \le' y \implies x \le y.
+  \end{equation*}
+  Then, denoting by \var{StablePerm} stability relative to the
+  equivalence relation of $O$, and by $\var{StablePerm}'$ stability
+  relative to the equivalence relation of $O'$, we have
+  \begin{equation*}
+    \var{StablePerm}~l_1~l_2 \implies \var{StablePerm}'~l_1~l_2
+  \end{equation*}
+\end{theorem}
+\begin{proof}
+  We reason inductively on the proof of $\var{StablePerm}~l_1~l_2$
+  using \var{StablePermInd\_iff}. The important case is the
+  \var{StablePermInd\_swap} case, where we have to show
+  \begin{equation*}
+    \var{StablePerm}'~(y :: x :: l)~(x :: y :: l)
+  \end{equation*}
+  given that $x \not\equiv y$. To show this, we need to know that $x \not\equiv'
+  y$, which follows from the fact that $O'$ is stronger than $O$.
+\end{proof}
+
+\section{Radixsort}
+\label{sec:sort}
+
+In a least-significant-digit radix sort, we lexicographically sort a
+list of strings of equal length by stably sorting on each column, from
+the end of the string to the front (\Cref{fig:lsd_radixsort}). This
+works because the lexicographic order says that if two strings are
+equal up to a column then the tie is broken in according to the rest
+of the string. This is reflected in the fact that when we stably sort
+on a column, ties are broken in favor or the existing order, which was
+established by sorted on the following columns.
+
+\begin{figure}[!hb]
+  \centering
+  \begin{tt}
+    \begin{tabular}{c}
+      d a \textbf{b} \\
+      a d \textbf{d} \\
+      c a \textbf{b} \\
+      f a \textbf{d} \\
+      f e \textbf{e} \\
+      b a \textbf{d} \\
+      d a \textbf{d} \\
+      b e \textbf{e} \\
+      f e \textbf{d} \\
+      b e \textbf{d} \\
+      e b \textbf{b} \\
+      a c \textbf{e}
+    \end{tabular}
+    $\rightarrow$
+    \begin{tabular}{c}
+      d \textbf{a} b \\
+      c \textbf{a} b \\
+      e \textbf{b} b \\
+      a \textbf{d} d \\
+      f \textbf{a} d \\
+      b \textbf{a} d \\
+      d \textbf{a} d \\
+      f \textbf{e} d \\
+      b \textbf{e} d \\
+      f \textbf{e} e \\
+      b \textbf{e} e \\
+      a \textbf{c} e
+    \end{tabular}
+    $\rightarrow$
+    \begin{tabular}{c}
+      \textbf{d} a b \\
+      \textbf{c} a b \\
+      \textbf{f} a d \\
+      \textbf{b} a d \\
+      \textbf{d} a d \\
+      \textbf{e} b b \\
+      \textbf{a} c e \\
+      \textbf{a} d d \\
+      \textbf{f} e d \\
+      \textbf{b} e d \\
+      \textbf{f} e e \\
+      \textbf{b} e e
+    \end{tabular}
+    $\rightarrow$
+    \begin{tabular}{c}
+      a c e \\
+      a d d \\
+      b a d \\
+      b e d \\
+      b e e \\
+      c a b \\
+      d a b \\
+      d a d \\
+      e b b \\
+      f a d \\
+      f e d \\
+      f e e
+    \end{tabular}
+  \end{tt}
+  \caption{LSD Radixsort}
+  \label{fig:lsd_radixsort}
+\end{figure}
+
+In a functional setting, we can define an LSD radixsort elegantly by
+repeatedly moving the last column to the front of the matrix and
+sorting on the first column. For a matrix with $n$ columns,
+\begin{equation*}
+  \var{radixsort} = (\var{hdsort} \comp \var{map}~\var{rrot})^n
+\end{equation*}
+Or, in Coq:
+\lstinputlisting[
+  widthgobble=2, firstline=27, lastline=28,
+]{../theories/BWT/Sorting/RadixSort.v}
+Here \var{hdsort} is just an insertion sort using $\le_1$ ordering.
+
+First we want to prove that \var{radixsort} permutes the rows of the
+matrix. We will start by proving the invariant that if we rotate the
+last column to the front and sort $j$ times, the resulting matrix is a
+permutation of simply rotating the last column to the front $j$
+times.
+\begin{lemma}[radixsort\_perm\_inv]
+  For all matrices $m$ and $j : \mathbb{N}$,
+  \begin{equation*}
+    \var{Permutation}~((\var{map}~\var{rrot})^j~m)~
+                      ((\var{hdsort} \comp \var{map}~\var{rrot})^j~m)
+  \end{equation*}
+\end{lemma}
+\begin{proof}
+  We reason by induction on $j$. In the inductive case,
+  \begin{align*}
+    (\var{hdsort} \comp \var{map}~\var{rrot})^{j+1}~m ={}&
+    \var{hdsort}~(\var{map}~\var{rrot}~(\var{hdsort} \comp
+    \var{map}~\var{rrot})^j~m) \\
+    \eqperm{}& \var{map}~\var{rrot}~((\var{hdsort} \comp
+    \var{map}~\var{rrot})^j~m) \\
+    \eqperm{}& \var{map}~\var{rrot}~((\var{map}~\var{rrot})^j~m) \\
+    ={}& (\var{map}~\var{rrot})^{j+1}~m \qedhere
+  \end{align*}
+\end{proof}
+
+\begin{theorem}[radixsort\_perm]
+  For all matrices $m$ with rows of length $n$,
+  \begin{equation*}
+    \var{Permutation}~m~(\var{radixsort}~m~n)
+  \end{equation*}
+\end{theorem}
+\begin{proof}
+  \begin{align*}
+    m ={}&
+    \var{map}~\var{rrot}^n~m \\
+    ={}& (\var{map}~\var{rrot})^n~m \\
+    \eqperm{}& (\var{hdsort} \comp \var{map}~\var{rrot})^n~m \\
+    ={}& \var{radixsort}~m~n \qedhere
+  \end{align*}
+\end{proof}
+
+We will prove the stability of \var{radixsort} in a similar way, but
+first we need a lemma.
+\begin{lemma}[StablePerm\_map\_rrot]
+  For all matrices $m$ and $m'$,
+  \begin{equation*}
+    \var{StablePerm}~m~m' \implies
+    \var{StablePerm}~(\var{map}~\var{rrot}~m)~(\var{map}~\var{rrot}~m').
+  \end{equation*}
+\end{lemma}
+\begin{proof}
+  We reason by induction on the evidence that $\var{StablePerm}~m~m'$
+  using \var{StablePermInd\_iff}. The important case is the swap case,
+  where we have to show
+  \begin{equation*}
+    \var{StablePerm}~(\var{map}~(y :: x :: l))~(\var{map}~(x :: y :: l))
+  \end{equation*}
+  given that $x \not\equivle y$. For this it suffices to show that
+  $\var{rrot}~x \not\equivle \var{rrot}~y$. Since lexicographic
+  equivalence means that all the pairs of elements at corresponding
+  indices are equivalent, when \var{rrot} moves the first elements of
+  both lists to the end of both lists, it preserves lexicographic
+  equivalence. Therefore
+  \begin{equation*}
+    x \equivle y \iff \var{rrot}~x \equivle \var{rrot}~y \qedhere
+  \end{equation*}
+\end{proof}
+
+\begin{lemma}[radixsort\_stable\_inv]
+  For all matrices $m$ and $j : \mathbb{N}$,
+  \begin{equation*}
+    \var{StablePerm}~((\var{map}~\var{rrot})^j~m)~
+                     ((\var{hdsort} \comp \var{map}~\var{rrot})^j~m)
+  \end{equation*}
+\end{lemma}
+\begin{proof}
+  We reason by induction on $j$. In the inductive case,
+  \begin{align*}
+    (\var{hdsort} \comp \var{map}~\var{rrot})^{j+1}~m ={}&
+    \var{hdsort}~(\var{map}~\var{rrot}~(\var{hdsort} \comp
+    \var{map}~\var{rrot})^j~m) \\
+    \eqstable{}& \var{map}~\var{rrot}~((\var{hdsort} \comp
+    \var{map}~\var{rrot})^j~m) \\
+    \eqstable{}& \var{map}~\var{rrot}~((\var{map}~\var{rrot})^j~m) \\
+    ={}& (\var{map}~\var{rrot})^{j+1}~m
+  \end{align*}
+  Going from the first line to the second line requires using
+  \var{StablePerm\_weaken} to show that the stability we are
+  guaranteed by \var{hdsort}, namely stability with respect to an
+  ordering that examines at most one element, implies stability with
+  respect to a regular lexicographic ordering.
+\end{proof}
+
+\begin{theorem}[radixsort\_stable]
+  For all matrices $m$ with rows of length $n$,
+  \begin{equation*}
+    \var{StablePerm}~m~(\var{radixsort}~m~n)
+  \end{equation*}
+\end{theorem}
+\begin{proof}
+  The proof is almost identical to the proof of \var{radixsort\_perm}.
+\end{proof}
+
+We would also like to establish an invariant to prove that
+\var{radixsort} produces a sorted list. To do so, we need to be able
+to reason about the process of adding a column to the front of a
+sorted matrix and sorting on that column. Intuitively, we need to know
+that if we have a matrix that is sorted on the first $j$ columns, and
+we add a new column to the front and sort on it, the result list will
+be sorted on the first $j+1$ columns. For a proof, see
+\cref{appendix:hdsort_sorted_S}.
+\begin{restatable*}[hdsort\_sorted\_S]{theorem}{hdsortsortedS}
+  For all matrices $m$ and naturals $j$,
+  \begin{equation*}
+    \var{PrefixSorted}~j~(\var{map}~\var{tl}~m) \implies
+    \var{PrefixSorted}~(j+1)~(\var{hdsort}~m)
+  \end{equation*}
+\end{restatable*}
+
+We also need the following property about \var{prepend\_col}, that
+states that prepending a column and then removing the first column is
+a no-op.
+\begin{theorem}[map\_tl\_prepend]
+  For all matrices $m : \var{list}~(\var{list}~A)$ and columns $c :
+  \var{list}~A$, where $c$ has at least as many elements as $m$ has columns,
+  \begin{equation*}
+      \var{map}~\var{tl}~(\var{prepend\_col}~c~m) = m
+  \end{equation*}
+\end{theorem}
+\begin{proof}
+  We reason by induction on $m$. In the inductive case, we have to
+  prove that
+  \begin{align*}
+    &\var{map}~\var{tl}~(\var{prepend\_col}~(h_c :: t_c)~(r :: m)) \\
+    ={}&\var{map}~\var{tl}~((h_c :: r) :: \var{prepend\_col}~t_c~m) \\
+    ={}&r :: \var{map}~\var{tl}~(\var{prepend\_col}~t_c~m) \\
+    ={}&r :: m
+  \end{align*}
+  where the last line follows from the induction hypothesis.
+\end{proof}
+
+\begin{corollary}
+  For all matrices $m$ and rows $r$,
+  \begin{equation*}
+    \var{map}~\var{tl}~(\var{map}~\var{rrot}~m) = \var{map}~\var{init}~m
+  \end{equation*}
+\end{corollary}
+\begin{proof}
+  \begin{align*}
+    \var{map}~\var{tl}~(\var{map}~\var{rrot}~m) &= \var{map}~\var{tl}~(\var{prepend\_col}~(\var{map}~\var{last}~m)~(\var{map}~\var{init}~m) \\
+    &= \var{map}~\var{init}~m \qedhere
+  \end{align*}
+\end{proof}
+
+Now we can establish our invariant:
+
+\begin{lemma}[radixsort\_sorted\_inv]
+  For all matrices $m$ with rows of length $n$, and $j \le n$,
+  \begin{equation*}
+    \var{PrefixSorted}~j~(\var{radixsort}~m~j)
+  \end{equation*}
+\end{lemma}
+\begin{proof}
+  We reason by induction on $j$. The base case is true because every
+  list is sorted under ordering where you examine no elements of the
+  list. In the inductive case, we reason backwards from our goal:
+  \begin{align*}
+       &\var{PrefixSorted}~(j+1)~(\var{radixsort}~(r :: m)~(j+1)) \\
+    \iff{}&\var{PrefixSorted}~(j+1)~(\var{hdsort}~(\var{map}~\var{rrot}~(\var{radixsort}~(r :: m)~j))) \\
+    \iff{}&\var{PrefixSorted}~j~(\var{map}~\var{tl}~(\var{map}~\var{rrot}~(\var{radixsort}~(r :: m)~j))) \\
+    \iff{}&\var{PrefixSorted}~j~(\var{map}~\var{init}~(\var{radixsort}~(r :: m)~j)) \\
+    \iff{}&\var{Sorted}~(\var{map}~(\var{firstn}~j)~(\var{map}~\var{init}~(\var{radixsort}~(r :: m)~j))) \\
+    \iff{}&\var{Sorted}~(\var{map}~(\var{firstn}~j)~(\var{radixsort}~(r :: m)~j)) \\
+    \iff{}&\var{PrefixSorted}~j~(\var{radixsort}~(r :: m)~j)
+  \end{align*}
+  The last line follows from the induction hypothesis.
+\end{proof}
+
+\begin{theorem}[radixsort\_sorted]
+  For all matrices $m$ with rows of length $n$,
+  \begin{equation*}
+      \var{Sorted}~(\var{radixsort}~m~n)
+  \end{equation*}
+\end{theorem}
+\begin{proof}
+  \begin{align*}
+      &\var{Sorted}~(\var{radixsort}~m~n) \\
+    \iff{}&\var{Sorted}~(\var{map}~(\var{firstn}~n)~(\var{radixsort}~m~n)) \\
+    \iff{}&\var{PrefixSorted}~n~(\var{radixsort}~m~n))
+  \end{align*}
+  The last line follows from \var{radixsort\_sorted\_inv}.
+\end{proof}
+
+\radixsortcorrect
+\begin{proof}
+  This follows from \var{radixsort\_sorted} and \var{radixsort\_stable}.
+\end{proof}
+
+\section{Relationship to the standard BWT}
+\label{sec:opt}
+
+It is important to note that standard implementations of the BWT do
+not actually reconstruct the entire rotation matrix, as this would be
+inefficient. Instead, they avoid this using the optimization described
+in this section. Although, we did not prove or implement this
+optimization in Coq, it would be straightforward to do so.
+
+In \var{recreate}, we repeatedly prepend the last column to the front
+of the matrix and sort on it. However, each time that column is the
+same, so the permutation that takes us from the unsorted column to the
+sorted column is the same. Therefore, we can calculate that
+permutation function once and store it in a variable $p$. The $i$th
+column of the recreated matrix is simply $(\var{apply}~p)^i~f$ where
+$f$ is the first column of the sorted rotation matrix, so we can
+define
+\begin{lstlisting}
+Definition recreate' (p : list nat) (l : list A) : list (list A) :=
+  transpose (iter (apply p) (length l) (apply p l))
+\end{lstlisting}
+In the definition above, we are repeatedly applying $p$ to the
+first column of the rotation matrix, $\var{apply}~p~l$. Then we
+take the transpose to create the matrix from the columns.
+
+Since in $\var{unbwt}~i~l$, we want the $i$th row of the matrix, we
+can eliminate the transpose by replacing the $\var{nth}~i$ with a
+$\var{map}~\var{nth}~i$ Assuming we already have calculated $p$,
 \begin{align*}
-  \infer[\var{perm\_nil}]{\var{Permutation}~[]~[]}{}
-  &&
-  \infer[\var{perm\_skip}]{\var{Permutation}~(x :: l)~(x :: l')}{%
-    \var{Permutation}~l~l'
-  }
-  \\
-  \\
-  \infer[\var{perm\_swap}]{\var{Permutation}~(x :: y :: l)~(y :: x :: l)}{}
-  &&
-  \infer[\var{perm\_trans}]{\var{Permutation}~l~l''}{
-    \var{Permutation}~l~l' & \var{Permutation}~l'~l''
-  }
+   \var{unbwt}~i~l &= (\var{recreate}~p~l)_i \\
+  &= (\var{transpose}~(\var{iter}~(\var{apply}~p)~(\var{length}~l)~(\var{apply}~p~l)))_i \\
+  &= \var{map}~(\lambda
+  r.~r_i)~(\var{iter}~(\var{apply}~p)~(\var{length}~l)~(\var{apply}~p~l)) \\
+  &= \var{map}~(\lambda r.~r_i)~(\var{tl}~(\var{iter}~(\var{apply}~p)~(1 +
+  \var{length}~l)~l)) \\
+  &= \var{tl}~(\var{map}~(\lambda r.~r_i)~(\var{iter}~(\var{apply}~p)~(1 + \var{length}~l)~l))
 \end{align*}
+
+Now, instead of indexing into each column at $i$, where the columns
+are all the result of successively applying $p$ to $l$, we will
+successively take the image of $i$ under $p$ to generate the indices
+into $l$ where those characters appear. This is justified via the
+following theorem:
+\begin{theorem}
+  For all $n$,
+  \begin{equation*}
+  \var{map}~(\lambda r.~r_i)~(\var{iter}~(\var{apply}~p)~n~l)
+  =
+  \var{map}~(\lambda j.~l_j)~(\var{iter}~(\var{image}~p)~n~i)
+  \end{equation*}
+\end{theorem}
+\begin{proof}
+  \begin{align*}
+       & \var{map}~(\lambda r.~r_i)~(\var{iter}~(\var{apply}~p)~n~l) \\
+    ={}& \var{map}~(\lambda r.~r_i)~[l,~(\var{apply}~p)~l,~(\var{apply}~p)^2~l,~\ldots,~(\var{apply}~p)^{n-1}~l] \\
+    ={}& [l_i,~((\var{apply}~p)~l)_i,~((\var{apply}~p)^2~l)_i,~\ldots,~((\var{apply}~p)^{n-1}~l)_i] \\
+    ={}& [l_i,~l_{p(i)},~l_{p^2(i)},~\ldots,~l_{p^{n-1}~i}] \\
+    ={}& \var{map}~(\lambda j.~l_j)~[i,~p(i),~p^2(i),~\ldots,~p^{n-1}~i] \\
+    ={}& \var{map}~(\lambda j.~l_j)~(\var{iter}~(\var{image}~p)~n~i) \qedhere
+  \end{align*}
+\end{proof}
+
+So assuming we have some function $\var{calc\_sort\_perm} :
+\var{list}~A \to \var{list}~\mathbb{N}$ to calculate the permutation
+function that sorts $l$, we redefine \var{unbwt} as
+\begin{lstlisting}
+Definition unbwt' (i : nat) (l : list A) : list A :=
+  match l with
+  | [] => []
+  | d :: _ =>
+    let p := calc_sort_perm l in
+    let indices := tl (iter (image p) (S (length l)) i) in
+    map (fun j => nth l j d) indices
+\end{lstlisting}
+\var{calc\_sort\_perm} can be implemented in linear time using a
+counting sort, so if \var{nth} took constant time, then \var{unbwt}
+would take linear time as well. As a functional specification, this
+closely matches the standard imperative algorithm for the inverse BWT.
+
+\section{Conclusions}
+We have implemented and proved that the the inverse BWT inverts the
+forwards BWT, basing our work on Bird et al.'s program calculation
+derivation \cite{birdmu,pearls}. In the process, we defined the
+properties of stable sorts, and implemented and proved correct an LSD
+radixsort.
+
+This paper shows that Bird's style of program calculation is very
+useful for building machine-checked proofs. It leads to proofs that
+are composed of many smaller lemmas, each justifying a single rewrite
+step. Most of the time and effort went into proving the correctness of
+radixsort. If we exclude the parts related to sorting or to other
+general-purpose functions not specific to the BWT, the entire verified
+implementation of the BWT consists of 42 lines of Gallina definitions,
+7 lines of Gallina that are used only in proofs, and 823 lines of
+theorem statements and Ltac code.\footnote{This includes
+  \var{BurrowsWheeler.v}, \var{Columns.v}, \var{Rotations/Rotation.v},
+  \var{Rotations/Rots.v}, \var{Lib/Iterate.v}, \var{Lib/Repeat.v} and
+  \var{Lib/FindIndex.v}, which implement \var{bwl}, \var{bwn},
+  \var{unbwt}, \var{cols}, \var{prepend\_col}, \var{lrot}, \var{rrot},
+  \var{rots}, \var{iter}, and \var{rep}, \var{findIndex}.}
+
+This implementation, including the optimizations mentioned in
+\cref{sec:opt}, can be used as a functional specification to for a
+verified implementation of bzip2. Of course, it would also be
+necessary to have functional specifications for the other phases of
+bzip2, such as Run-Length Encoding, Move-to-Front Encoding, and
+arithmetic coding. As luck would have it, Bird has already analyzed
+arithmetic coding \cite{pearls}, and the other two phases are
+relatively simple.
+\clearpage
+
+\appendix
+
+\section{Insertion sort}
+\label{appendix:insertion_sort}
+
+Insertion sort is a simple and elegant stable sort that is easy to
+reason about. The theorems proved in \cref{sec:unique} allow us to
+prove things using insertion sort that apply to any stable sort. For
+example, our proof of correctness for radixsort relies on the fact
+that it uses insertion sort as the inner sort, but
+\Cref{thm:stablesort_unique} allows us to extend that proof to a
+radixsort that uses any stable sort. We also use it as the
+implementation of \var{lexsort} because it is convenient, but
+similarly \Cref{thm:sort_ord_unique} ensures that it can be replaced with
+any other sort.
+
+\lstinputlisting[
+  widthgobble=2, firstline=15, lastline=26,
+]{../theories/BWT/Sorting/InsertionSort.v}
+
+\begin{lemma}[insert\_perm]
+  For all lists $l$ and elements $x$,
+  \begin{equation*}
+    \var{Permutation}~(x::l)~(\var{insert}~x~l)
+  \end{equation*}
+\end{lemma}
+\begin{proof}
+  We reason by induction on $l$. In the inductive case, we need to show
+  \begin{equation*}
+    \var{Permutation}~(x::h::t)~(\var{insert}~x~(h::t))
+  \end{equation*}
+  given the induction hypothesis that
+  \begin{equation*}
+    \var{Permutation}~(x::t)~(\var{insert}~x~t)
+  \end{equation*}
+  If $x \le h$, then $\var{insert}~x~(h::t) = x :: h :: t$ and we are
+  done. Otherwise, $\var{insert}~x~(h::t) = h :: \var{insert}~x~t$ and
+  we can apply the induction hypothesis.
+\end{proof}
+
+\begin{theorem}[sort\_perm]
+  For all lists $l$,
+  \begin{equation*}
+    \var{Permutation~l}~(\var{sort}~l)
+  \end{equation*}
+\end{theorem}
+\begin{proof}
+  The proof follows by induction on $l$. The inductive case is
+  \begin{equation*}
+    h :: t \eqperm h :: \var{sort}~t \eqperm
+    \var{insert}~h~(\var{sort}~t) = \var{sort}~(h :: t)
+  \end{equation*}
+  where the first step follows from the induction hypothesis, and the
+  second from \var{insert\_perm}.
+\end{proof}
+
+\begin{lemma}[insert\_sorted]
+  For all lists $l$ and elements $x$,
+  \begin{equation*}
+    \var{Sorted}~l \implies \var{Sorted}~(\var{insert}~x~l)
+  \end{equation*}
+\end{lemma}
+\begin{proof}
+  We reason by induction on the proof that $\var{Sorted}~l$. In the
+  inductive case we need prove that
+  \begin{equation*}
+    \var{Sorted}~(\var{insert}~x~(h::t))
+  \end{equation*}
+  If $x \le h$, then $\var{insert}~x~(h::t) = x :: h :: t$, and by
+  \var{SortedLocal\_cons} we are done.
+
+  If $x > h$, $\var{insert}~x~(h::t) = h :: \var{insert}~x~t$, and it
+  suffices to show that $\forall y \in \var{insert}~x~t,~h \le y$. By
+  \var{insert\_perm}, this is equivalent to $\forall y \in x::t,~h \le y$ From
+  the the fact that $\var{Sorted}~(h::t)$, we know that $\forall y \in t,~h \le
+  y$, and we have that $h < x$, so we are done.
+\end{proof}
+
+\begin{theorem}[sort\_sorted]
+  For all lists $l$,
+  \begin{equation*}
+    \var{Sorted}~(\var{sort}~l)
+  \end{equation*}
+\end{theorem}
+\begin{proof}
+  The proof follows by induction on $l$ and \var{insert\_sorted}.
+\end{proof}
+
+\begin{lemma}[insert\_stable]
+  For all lists $l$ and elements $x$,
+  \begin{equation*}
+    \var{StablePerm}~(x::l)~(\var{insert}~x~l)
+  \end{equation*}
+\end{lemma}
+\begin{proof}
+  We reason by induction on $l$. In the inductive case, we need to show
+  \begin{equation*}
+    \var{StablePerm}~(x::h::t)~(\var{insert}~x~(h::t))
+  \end{equation*}
+  given the induction hypothesis that
+  \begin{equation*}
+    \var{StablePerm}~(x::t)~(\var{insert}~x~t)
+  \end{equation*}
+  If $x \le h$, then $\var{insert}~x~(h::t) = x :: h :: t$ and we are
+  done. Otherwise, $x > h$ and $\var{insert}~x~(h::t) = h ::
+  \var{insert}~x~t$.
+  \begin{equation*}
+    x :: h :: t \eqstable h :: x :: t \eqstable h :: \var{insert}~x~t
+  \end{equation*}
+  where the first step follows from the fact that $x \not\equiv h$ and the
+  second from the induction hypothesis.
+\end{proof}
+
+\begin{theorem}[sort\_stable]
+  For all lists $l$,
+  \begin{equation*}
+    \var{StablePerm}~l~(\var{sort}~l)
+  \end{equation*}
+\end{theorem}
+\begin{proof}
+  The proof is almost identical to the proof for \var{sort\_perm}.
+\end{proof}
+
+\begin{theorem}[sort\_StableSort]
+  \begin{equation*}
+    \var{StableSort}~\var{sort}
+  \end{equation*}
+\end{theorem}
+\begin{proof}
+  This follows from \var{sort\_sorted} and \var{sort\_stable}.
+\end{proof}
+
+\section{\var{hdsorted\_sorted\_S}}
+\label{appendix:hdsort_sorted_S}
+
+\begin{lemma}[insert\_Sorted\_S]
+  For all matrices $m$, rows $r$, and naturals $j$,
+  \begin{gather*}
+    \var{PrefixSorted}~(j+1)~(\var{hdsort}~m) \implies \\
+    \var{PrefixSorted}~j~(\var{tl}~r :: \var{map}~{tl}~m) \implies \\
+    \var{PrefixSorted}~(j+1)~(\var{insert}_1~r~(\var{hdsort}~m))
+  \end{gather*}
+  where $\var{insert}_1$ is \var{insert} that uses the 1-prefix
+  lexicographic ordering used by \var{hdsort}.
+\end{lemma}
+\begin{proof}
+  We can destruct $\var{insert}_1~r~(\var{hdsort}~m)$ as $m_1 \dplus r
+  :: m_2$, where $m_1 \dplus m_2 = \var{hdsort}~m$. Then by
+  \var{Sorted\_app\_cons}, it suffices to show
+  \begin{gather*}
+    \var{PrefixSorted}~(j+1)~m_1 \land \\
+    \var{PrefixSorted}~(j+1)~(r :: m_2) \land \\
+    (\forall x \in m_1,~ r >_{j+1} x)
+  \end{gather*}
+  \begin{itemize}
+  \item $\var{PrefixSorted}~(j+1)~m_1$ follows from the fact that
+    $\var{hdsort}~m = m_1 \dplus m_2$ and
+    $\var{PrefixSorted}~(j+1)~(\var{hdsort}~m)$.
+  \item By similar reasoning, we know that
+    $\var{PrefixSorted}~(j+1)~m_2$, so in order to show
+    $\var{PrefixSorted}~(j+1)~(r :: m_2)$ all we need to prove is that
+    for every row $x$ in $m_2$,
+    \begin{equation*}
+      r \le_{j+1} x
+    \end{equation*}
+    We know from the fact that $\var{insert}_1~r~(\var{hdsort}~m) =
+    m_1 \dplus r :: m_2$ that $r \le_1 x$. Then by \var{key\_firstn\_S},
+    we only need to show that
+    \begin{equation*}
+      \var{tl}~r \le_j \var{tl}~x
+    \end{equation*}
+    This follows from $\var{PrefixSorted}~j~(\var{tl}~r :: \var{map}~{tl}~m)$.
+  \item We have that for any $x \in m_1$, $r >_1 x$ by the fact that
+    $\var{insert}_1~r~(\var{hdsort}~m) = m_1 \dplus r :: m_2$. This
+    gives us $r >_{j+1} x$ by \var{key\_lt\_firstn\_ge}. \qedhere
+  \end{itemize}
+\end{proof}
+
+\hdsortsortedS
+\begin{proof}
+  This follows by induction from \var{insert\_Sorted\_S}
+\end{proof}
+
+\section{\var{Permutation} definitions equivalence}
+\label{appendix:perm_def_eq}
 
 We know we will eventually need to reason inductively about
 permutation functions, so we would like to define the relationship
@@ -1085,6 +2143,7 @@ preserves all elements.
 \end{proof}
 
 \begin{theorem}[PermutationEx\_iff]
+  \label{thm:permutationex_iff}
   For all lists $l$ and $l'$,
   \begin{equation*}
     \var{Permutation}~l~l' \iff \var{PermutationEx}~l~l'
@@ -1121,167 +2180,8 @@ preserves all elements.
   \end{itemize}
 \end{proof}
 
-For completeness, we will briefly mention a third definition of a
-permutation relation that says that two lists are permutations of one
-another when any element occurs an equal number of times in each:
-\lstinputlisting[
-  widthgobble=2, firstline=14, lastline=15,
-]{../theories/BWT/Sorting/PermutationCount.v}
-\var{count\_occ} counts the number of occurrences of a given variable
-using a decision procedure for Leibniz equality. Here that decision
-procedure is \texttt{equiv\_dec} from an \var{EqDec} instance where we
-require the equivalence relation itself by Leibniz equality.
-
-\begin{theorem}[PermutationCount\_iff]
-  For all lists $l$ and $l'$,
-  \begin{equation*}
-    \var{Permutation}~l~l' \iff \var{PermutationCount}~l~l'
-  \end{equation*}
-\end{theorem}
-\begin{proof}
-  The ($\implies$) direction follows from induction in the evidence of
-  $\var{Permutation}~l~l'$.
-
-  In the ($\impliedby$) direction, we reason by induction on $l$. In
-  the inductive case, we have to show $\var{Permutation}~(a::l)~l'$.
-  We know that $a \in l'$ because $\var{count\_occ}~a~l' =
-  \var{count\_occ}~a~(a::l) > 0$. That means we can deconstruct $l'$
-  as $L \dplus a :: R$, and
-  \begin{equation*}
-    L \dplus a :: R \eqperm a :: L \dplus R \eqperm a :: l
-  \end{equation*}
-  where the last step follows from the induction hypothesis.
-\end{proof}
-
-\subsection{\var{StablePerm}}
-\label{subsec:stable}
-
-A stable sort is a sort that doesn't swap any two elements considered
-equivalent by the ordering. This is relevant when the induced
-equivalence relation does not imply equality, so that we can
-distinguish between elements that the sort considers identical. A good
-example of this is in radixsort: when we sort on a single column, the
-sort can't tell the difference between strings that contain equal
-characters in that column, but it is crucial that it respect the
-initial ordering in cases of a tie.
-
-For stable sorts, we need a stronger property than \var{Permutation}.
-We can extend our mathematical definition. We say that two lists $l$
-and $l'$ are stable permutations of each other when we have a
-permutation $p$ that relates them, and that satisfies an additional
-stability property: for all indices $i$ and $j$ where
-$(\var{apply}~p~l)_i \equiv (\var{apply}~p~l)_j$
-\begin{gather*}
-  i < j \implies p(i) < p(j)
-\end{gather*}
-Equivalently, we can say that for all indices $i$ and $j$ where $l_j \equiv
-l_j$ we must have
-\begin{gather*}
-  i < j \implies p^{-1}(i) < p^{-1}(j)
-\end{gather*}
-
-Based on this, we define a stronger version of the \var{PermFun}
-property, \var{StablePermFun}. However, while $\var{PermFun}~n~p$
-means that $p$ represents a permutation function on lists of length
-$n$, we need to specify the list with respect to which $p$ is stable,
-so we say $\var{StablePermFun}~l~p$ for some list $l$.
-\lstinputlisting[ widthgobble=2, firstline=557, lastline=561,
-]{../theories/BWT/Sorting/PermFun.v} As above, we can also define this
-property using the inverse permutation: \lstinputlisting[
-  widthgobble=2, firstline=563, lastline=567,
-]{../theories/BWT/Sorting/PermFun.v} As usual, we will prove these
-definitions equivalent. First, though, we need to define \var{image}
-and \var{preimage}. \lstinputlisting[ widthgobble=2, firstline=85,
-  lastline=86, ]{../theories/BWT/Sorting/PermFun.v} We will not prove
-it here, but $\var{preimage}~p$ and $\var{image}~p$ are both of
-bijections of type $\mathbb{N}_{<n} \to \mathbb{N}_{<n}$ and are
-inverses of each other. We also have the following two theorems:
-\begin{theorem}[nth\_preimage\_apply, nth\_image\_apply]
-  For all lists $l$, permutations $p$, and indices $i$,
-  \begin{align*}
-    (\var{apply}~p~l)_{p^{-1}(i)} = l_i && l_{p(i)} = (\var{apply}~p~l)_i
-  \end{align*}
-\end{theorem}
-\begin{proof}
-  The first equation (\var{nth\_preimage\_apply}) holds because:
-  \begin{align*}
-       (\var{apply}~p~l)_{p^{-1}(i)}
-    &= (\var{map}~(\lambda j.~l_j)~p)_{\var{findIndex}~i~p} \\
-    &= l_{p_{(\var{findIndex}~i~p)}} \\
-    &= l_i
-  \end{align*}
-  and the second follows from this:
-  \begin{equation*}
-      (\var{apply}~p~l)_i
-    = (\var{apply}~p~l)_{p^{-1}(p(i))}
-    = l_{p(i)}
-    \qedhere
-  \end{equation*}
-\end{proof}
-
-\begin{theorem}[StablePermFun\_iff]
-  For all lists $l$ and permutation $p$,
-  \begin{equation*}
-    \var{StablePermFun}~l~p \iff \var{StablePermFun\_preimage}~l~p
-  \end{equation*}
-\end{theorem}
-\begin{proof}
-  We will only prove the $\implies$ direction; the other direction is
-  very similar. We have that $l_i \equiv l_j$, and that $i < j$, and we
-  have to show that $p^{-1}(i) < p^{-1}(j)$. We will show this by
-  proving that $p^{-1}(i) \ge p^{-1}(j)$ leads to a contradiction.
-
-  Suppose $p^{-1}(i) \ge p^{-1}(j)$. We actually know that $p^{-1}(i) >
-  p^{-1}(j)$ because $i \neq j$. From $l_i \equiv l_j$ and
-  $\var{StablePermFun}~l~p$, along with $p^{-1}(j) < p^{-1}(i)$, we
-  know that $p(p^{-1}(j)) < p(p^{-1}(i))$. However, this implies $j <
-  i$, which is a contradiction. Therefore, $p^{-1}(i) < p^{-1}(j)$.
-\end{proof}
-
-Now, we can define \var{StablePermEx} to describe when two lists are
-stable permutations of each other:
-\lstinputlisting[
-  widthgobble=2, firstline=607, lastline=608,
-]{../theories/BWT/Sorting/PermFun.v}
-
-While \var{StablePermEx} corresponds to \var{PermutationEx}, how can
-we modify \var{Permutation} to create an inductive relation for stable
-lists? Intuitively, the problematic inference rule is
-\var{Permutation\_swap}: we can only swap two elements and preserve
-stability if they are not equivalent. With this fix, we have \var{StablePermInd}:
-\begin{gather*}
-  \infer[\var{StablePermInd\_nil}]{\var{StablePermInd}~[]~[]}{}
-  \\ \\
-  \infer[\var{StablePermInd\_skip}]{\var{StablePermInd}~(x :: l)~(x :: l')}{%
-    \var{StablePermInd}~l~l'
-  }
-  \\ \\
-  \infer[\var{StablePermInd\_swap}]
-        {\var{StablePermInd}~(x :: y :: l)~(y :: x :: l)}
-        {x \not\equiv y}
-  \\ \\
-  \infer[\var{StablePermInd\_trans}]{\var{StablePermInd}~l~l''}{
-    \var{StablePermInd}~l~l' & \var{StablePermInd}~l'~l''
-  }
-\end{gather*}
-
-Unfortunately, neither of these two definitions will be particularly
-useful for proving the theorems we would like to prove with them. The
-best definition for stability does not come by analogy with
-\var{Permutation}. The intuition is that for any two lists that are
-stable permutations of each other, if we filter each list by
-equivalence with any element, the resulting lists should be identical.
-This is because they must have the same elements, since the original
-lists are permutations of one another, and those elements must be in
-the same order, since the original lists are specifically stable
-permutations of one another.
-\lstinputlisting[
-  widthgobble=2, firstline=21, lastline=22,
-]{../theories/BWT/Sorting/StablePerm.v}
-
-We will prove equivalence between these three definitions, but first
-we will mention some properties of \var{Stable}. \var{Stable} is an
-equivalence relation, meaning it is reflexive, transitive, and symmetric.
+\section{\var{StablePerm} definitions equivalence}
+\label{appendix:stableperm_def_eq}
 
 \begin{lemma}[StablePerm\_app]
   For all lists $l$, $l'$, $m$ and $m'$,
@@ -1479,817 +2379,6 @@ Now we prove equivalence with \var{StablePermEx}.
   \var{apply\_correct\_stable}.
 \end{proof}
 
-\section{Uniqueness of stable sorts}
-\label{sec:unique}
-
-Using our definitions of \var{StablePerm} and \var{Sorted}, we can
-prove the theorem that allowed us to replace \var{lexsort} with
-radixsort.
-
-\begin{theorem}[StablePerm\_Sorted\_eq]
-  For all lists $l$,
-  \begin{equation*}
-    \var{Sorted}~l \implies \var{Sorted}~l' \implies
-    \var{StablePerm}~l~l' \implies l = l'.
-  \end{equation*}
-\end{theorem}
-\begin{proof}
-  We reason by induction on $l$. In the inductive case, we have to
-  show that
-  \begin{equation*}
-    h :: t = h' :: t'
-  \end{equation*}
-  given $\var{Sorted}~(h :: t)$, $\var{Sorted}~(h' :: t')$, and
-  $\var{StablePerm}~(h :: t)~(h' :: t')$.
-
-  First, we can say that $h \equiv h'$: we know that $h \in h' :: t'$ and $h'
-  \in h :: t$. If $h = h'$, then we are done, so assuming $h \neq h'$ we
-  know $h \in t'$ and $h' \in t$. Because both $h::t$ and $h'::t'$ are
-  sorted, we know that $h \le h'$ and $h' \le h$, implying $h \equiv h'$.
-
-  This means that $h = h'$: from $\var{StablePerm}~(h :: t)~(h' ::
-  t')$ we have
-  \begin{align*}
-    \var{filter}~(\equiv h)~(h :: t) &= \var{filter}~(\equiv h)~(h' :: t') \\
-    h :: \var{filter}~(\equiv h)~t &= h' :: \var{filter}~(\equiv h)~t'
-  \end{align*}
-  We also have $t = t'$ by the induction hypothesis, so we are done.
-\end{proof}
-
-If we define \var{Sort} and \var{StableSort} as we did
-\cref{sec:sorted_perm_stable}, we can restate the theorem slightly
-more elegantly.
-\lstinputlisting[
-  widthgobble=2, firstline=15, lastline=19,
-]{../theories/BWT/Sorting/Sort.v}
-
-\begin{proof}
-  This follows from \var{StablePerm\_Sorted\_eq}.
-\end{proof}
-
-However, we do not want to require that \var{lexsort} be implemented
-using a stable sorting algorithm. Luckily, because we require that $A$
-be equipped with an order and not just a preorder, we know that
-equivalent elements are actually indistinguishable. This means that
-all sorting algorithms can be considered to be stable: it is
-impossible to tell if any two equivalent elements were swapped because
-you cannot distinguish between equivalent elements.
-
-\begin{theorem}[all\_perm\_stable]
-  If we have that equivalence implies Leibniz equality, then for all
-  lists $l$ and $l'$
-  \begin{equation*}
-      \var{Permutation}~l~l' \implies \var{StablePerm}~l~l'
-  \end{equation*}
-\end{theorem}
-\begin{proof}
-  We reason by induction on the evidence of $\var{Permutation}~l~l'$.
-  Every case other than the \var{perm\_swap} case follows easily.
-  In the \var{perm\_swap} case, we must show that
-  \begin{equation*}
-    \var{StablePerm}~(y :: x :: l)~(x :: y :: l)
-  \end{equation*}
-  for all $x$ and $y$. If $x \not\equiv y$, we can just apply
-  \var{StablePerm\_swap}. If $x \equiv y$, then we know that $x = y$, and
-  we can show
-  \begin{equation*}
-    \var{StablePerm}~(x :: x :: l)~(x :: x :: l)
-  \end{equation*}
-  by applying \var{perm\_skip} twice.
-\end{proof}
-
-\begin{corollary}[Sort\_StableSort\_Ord]
-  When sorting using an order,
-  \begin{equation*}
-    \var{Sort}~f \iff \var{StableSort}~f
-  \end{equation*}
-  for any $f$.
-\end{corollary}
-\begin{proof}
-  This follows from \var{all\_perm\_stable}.
-\end{proof}
-
-\stablesortunique
-\begin{proof}
-  This follows from \var{Sort\_StableSort\_Ord} and \var{StableSort\_unique}.
-\end{proof}
-
-\section{Lexicographic orders and keys}
-\label{sec:lex_ord}
-
-Given a preorder on a type $A$, we can define a lexicographic preorder
-on $\var{list}~A$. Intuitively, we want to say that to compare two
-lists, we compare their elements from left to right. As soon as we
-encounter two elements that are not equivalent, their relationship
-defines the relationship between the two lists. If we make it all the
-way through one of the lists and all the elements are equivalent, we
-say that the shorter list is smaller. If they are the same length and
-all the elements are equivalent, then the lists are equivalent. To
-capture this, we define the inductive relation \var{lex\_le}, which we
-will denote by $\lexle$ in proofs.
-\begin{gather*}
-  \infer[\var{lex\_le\_nil}]{[] \lexle ys}{}
-  \\
-  \\
-  \infer[\var{lex\_le\_cons\_lt}]{(x :: xs) \lexle (y :: ys)}{%
-    x < y
-  }
-  \\
-  \\
-  \infer[\var{lex\_le\_cons\_eq}]{(x :: xs) \lexle (y :: ys)}{%
-    x \equiv y & xs \lexle ys
-  }
-\end{gather*}
-
-Given a preorder on a type $K$ and a key function $\var{key} : A \to K$,
-we can define a preorder on $A$ that compares all elements using the
-key function. That is, we can define the relation $\le_{\var{key}}$ on
-$A$ such that for all $x, y : A$
-\begin{equation*}
-  x \le_{\var{key}} y \coloneqq (\var{key}~x) \le (\var{key}~y)
-\end{equation*}
-
-\begin{theorem}[key\_sort\_inv]
-  Given a key function $\var{key} : A \to K$ and a function $f : A \to A$
-  such that for all $x : A$,
-  \begin{equation*}
-    \var{key}~(f~x) = \var{key}~x
-  \end{equation*}
-  we have that for all lists $l$
-  \begin{equation*}
-    \var{sort}~(\var{map}~\var{f}~l) = \var{map}~\var{f}~(\var{sort}~l).
-  \end{equation*}
-  where \var{sort} is insertion sort.\footnote{This theorem actually
-    holds for any function with type $\forall X, (X \to X \to \mathbb{B}) \to
-    \var{list}~X \to \var{list}~X$ due to parametricity \cite{free}.}
-\end{theorem}
-\begin{proof}
-  The proof follows by induction, unfolding the definition of
-  \var{sort}. All decisions are made by calling \var{key}, so both
-  sides are equal.
-\end{proof}
-
-Taken together, we can define prefix lexicographic orderings on lists,
-where the lexicographic ordering is only allowed to compare up to the
-first $n$ elements of two lists. We define the relation $\le_n$ on
-$\var{list}~A$ such that for all $xs, ys : \var{list}~A$,
-\begin{equation*}
-  xs \le_n ys \coloneqq (\var{firstn}~n~xs) \lexle (\var{firstn}~n~ys)
-\end{equation*}
-For convenience, we define $\var{PrefixSorted}~n$ to hold when a list
-of lists is sorted if you only look at the first $n$ elements of each:
-\lstinputlisting[
-  widthgobble=2, firstline=323, lastline=324,
-]{../theories/BWT/Sorting/Key.v}
-
-We can describe the relationship between orders that can look at fewer
-or more characters with the following two theorems. We will briefly
-offer an explanation of why these theorems makes sense, but these
-explanations do not mirror the Coq proofs we have for these theorems.
-
-\begin{theorem}[key\_lt\_firstn\_ge]
-  For all $j$ and $k$ such that $j \le k$,
-  \begin{equation*}
-    x <_j y \implies x <_k y
-  \end{equation*}
-\end{theorem}
-\begin{proof}
-  If $x <_j y$, then there must be some index $i < j$ such that $x_i <
-  y_i$. Then $i < k$ as well, so $x <_k y$.
-\end{proof}
-
-\begin{theorem}[key\_le\_firstn\_ge]
-  For all $j$ and $k$ such that $k \ge j$,
-  \begin{equation*}
-    x \le_k y \implies x \le_j y
-  \end{equation*}
-\end{theorem}
-\begin{proof}
-  If $x \le_k y$, then either the first $k$ characters are all
-  equivalent, in which case the first $j$ characters are all
-  equivalent as well, or there was some $i < k$ such that $x_i < y_i$,
-  but at every index before $i$ $x$ and $y$ are equivalent. If $j <
-  i$, then the first $j$ characters are still equivalent, and we have
-  $x \equiv y \implies x \le_j y$. If $j \ge i$, then the deciding character is
-  among the first $j$ and $x \le_j k$.
-\end{proof}
-
-If we consider the implications this has for stability, a weaker order
-can distinguish between fewer elements, which means that it considers
-more elements equivalent. This means that stability with respect to a
-weaker order is actually a stronger property, because the weaker
-order, considering more elements equivalent, is more restrictive about
-which swaps it allows.
-
-\begin{theorem}[StablePerm\_weaken]
-  Suppose we have a two preorders $O$ and $O'$ on $A$, and two lists
-  $l_1$ and $l_2$, with elements of type $A$.
-
-  We also know that on the elements of $l_1$, $O'$ is stronger than
-  $O$. If we denote by $\le$ and $\le'$ the relations for $O$ and $O'$
-  respectively, this means that for all $x$ and $y$ in $l_1$,
-  \begin{equation*}
-    x \le' y \implies x \le y.
-  \end{equation*}
-  Then, denoting by \var{StablePerm} stability relative to the
-  equivalence relation of $O$, and by $\var{StablePerm}'$ stability
-  relative to the equivalence relation of $O'$, we have
-  \begin{equation*}
-    \var{StablePerm}~l_1~l_2 \implies \var{StablePerm}'~l_1~l_2
-  \end{equation*}
-\end{theorem}
-\begin{proof}
-  We reason inductively on the proof of $\var{StablePerm}~l_1~l_2$
-  using \var{StablePermInd\_iff}. The important case is the
-  \var{StablePermInd\_swap} case, where we have to show
-  \begin{equation*}
-    \var{StablePerm}'~(y :: x :: l)~(x :: y :: l)
-  \end{equation*}
-  given that $x \not\equiv y$. To show this, we need to know that $x \not\equiv'
-  y$, which follows from the fact that $O'$ is stronger than $O$.
-\end{proof}
-
-\section{Radixsort}
-\label{sec:sort}
-
-In a least-significant-digit radix sort, we lexicographically sort a
-list of strings of equal length by stably sorting on each column, from
-the end of the string to the front (\Cref{fig:lsd_radixsort}). This
-works because the lexicographic order says that if two strings are
-equal up to a column then the tie is broken in according to the rest
-of the string. This is reflected in the fact that when we stably sort
-on a column, ties are broken in favor or the existing order, which was
-established by sorted on the following columns.
-
-\begin{figure}[!hb]
-  \centering
-  \begin{tt}
-    \begin{tabular}{c}
-      d a \textbf{b} \\
-      a d \textbf{d} \\
-      c a \textbf{b} \\
-      f a \textbf{d} \\
-      f e \textbf{e} \\
-      b a \textbf{d} \\
-      d a \textbf{d} \\
-      b e \textbf{e} \\
-      f e \textbf{d} \\
-      b e \textbf{d} \\
-      e b \textbf{b} \\
-      a c \textbf{e}
-    \end{tabular}
-    $\rightarrow$
-    \begin{tabular}{c}
-      d \textbf{a} b \\
-      c \textbf{a} b \\
-      e \textbf{b} b \\
-      a \textbf{d} d \\
-      f \textbf{a} d \\
-      b \textbf{a} d \\
-      d \textbf{a} d \\
-      f \textbf{e} d \\
-      b \textbf{e} d \\
-      f \textbf{e} e \\
-      b \textbf{e} e \\
-      a \textbf{c} e
-    \end{tabular}
-    $\rightarrow$
-    \begin{tabular}{c}
-      \textbf{d} a b \\
-      \textbf{c} a b \\
-      \textbf{f} a d \\
-      \textbf{b} a d \\
-      \textbf{d} a d \\
-      \textbf{e} b b \\
-      \textbf{a} c e \\
-      \textbf{a} d d \\
-      \textbf{f} e d \\
-      \textbf{b} e d \\
-      \textbf{f} e e \\
-      \textbf{b} e e
-    \end{tabular}
-    $\rightarrow$
-    \begin{tabular}{c}
-      a c e \\
-      a d d \\
-      b a d \\
-      b e d \\
-      b e e \\
-      c a b \\
-      d a b \\
-      d a d \\
-      e b b \\
-      f a d \\
-      f e d \\
-      f e e
-    \end{tabular}
-  \end{tt}
-  \caption{LSD Radixsort}
-  \label{fig:lsd_radixsort}
-\end{figure}
-
-In a functional setting, we can define an LSD radixsort elegantly by
-repeatedly moving the last column to the front of the matrix and
-sorting on the first column. For a matrix with $n$ columns,
-\begin{equation*}
-  \var{radixsort} = (\var{hdsort} \comp \var{map}~\var{rrot})^n
-\end{equation*}
-Or, in Coq:
-\lstinputlisting[
-  widthgobble=2, firstline=26, lastline=27,
-]{../theories/BWT/Sorting/RadixSort.v}
-Here \var{hdsort} is just an insertion sort that uses a lexicographic
-ordering restricted to the first element of a list.
-
-First we want to prove that \var{radixsort} permutes the rows of the
-matrix. We will start by proving the invariant that if we rotate the
-last column to the front and sort $j$ times, the resulting matrix is a
-permutation of simply rotating the last column to the front $j$
-times.
-\begin{lemma}[radixsort\_perm\_inv]
-  For all matrices $m$ and $j : \mathbb{N}$,
-  \begin{equation*}
-    \var{Permutation}~((\var{map}~\var{rrot})^j~m)~
-                      ((\var{hdsort} \comp \var{map}~\var{rrot})^j~m)
-  \end{equation*}
-\end{lemma}
-\begin{proof}
-  We reason by induction on $j$. In the inductive case,
-  \begin{align*}
-    (\var{hdsort} \comp \var{map}~\var{rrot})^{j+1}~m ={}&
-    \var{hdsort}~(\var{map}~\var{rrot}~(\var{hdsort} \comp
-    \var{map}~\var{rrot})^j~m) \\
-    \eqperm{}& \var{map}~\var{rrot}~((\var{hdsort} \comp
-    \var{map}~\var{rrot})^j~m) \\
-    \eqperm{}& \var{map}~\var{rrot}~((\var{map}~\var{rrot})^j~m) \\
-    ={}& (\var{map}~\var{rrot})^{j+1}~m \qedhere
-  \end{align*}
-\end{proof}
-
-\begin{theorem}[radixsort\_perm]
-  For all matrices $m$ with rows of length $n$,
-  \begin{equation*}
-    \var{Permutation}~m~(\var{radixsort}~m~n)
-  \end{equation*}
-\end{theorem}
-\begin{proof}
-  \begin{align*}
-    m ={}&
-    \var{map}~\var{rrot}^n~m \\
-    ={}& (\var{map}~\var{rrot})^n~m \\
-    \eqperm{}& (\var{hdsort} \comp \var{map}~\var{rrot})^n~m \\
-    ={}& \var{radixsort}~m~n \qedhere
-  \end{align*}
-\end{proof}
-
-We will prove the stability of \var{radixsort} in a similar way, but
-first we need a lemma.
-\begin{lemma}[StablePerm\_map\_rrot]
-  For all matrices $m$ and $m'$,
-  \begin{equation*}
-    \var{StablePerm}~m~m' \implies
-    \var{StablePerm}~(\var{map}~\var{rrot}~m)~(\var{map}~\var{rrot}~m').
-  \end{equation*}
-\end{lemma}
-\begin{proof}
-  We reason by induction on the evidence that $\var{StablePerm}~m~m'$
-  using \var{StablePermInd\_iff}. The important case is the swap case,
-  where we have to show
-  \begin{equation*}
-    \var{StablePerm}~(\var{map}~(y :: x :: l))~(\var{map}~(x :: y :: l))
-  \end{equation*}
-  given that $x \not\equivle y$. For this it suffices to show that
-  $\var{rrot}~x \not\equivle \var{rrot}~y$. Since lexicographic
-  equivalence means that all the pairs of elements at corresponding
-  indices are equivalent, when \var{rrot} moves the first elements of
-  both lists to the end of both lists, it preserves lexicographic
-  equivalence. Therefore
-  \begin{equation*}
-    x \equivle y \iff \var{rrot}~x \equivle \var{rrot}~y \qedhere
-  \end{equation*}
-\end{proof}
-
-\begin{lemma}[radixsort\_stable\_inv]
-  For all matrices $m$ and $j : \mathbb{N}$,
-  \begin{equation*}
-    \var{StablePerm}~((\var{map}~\var{rrot})^j~m)~
-                     ((\var{hdsort} \comp \var{map}~\var{rrot})^j~m)
-  \end{equation*}
-\end{lemma}
-\begin{proof}
-  We reason by induction on $j$. In the inductive case,
-  \begin{align*}
-    (\var{hdsort} \comp \var{map}~\var{rrot})^{j+1}~m ={}&
-    \var{hdsort}~(\var{map}~\var{rrot}~(\var{hdsort} \comp
-    \var{map}~\var{rrot})^j~m) \\
-    \eqstable{}& \var{map}~\var{rrot}~((\var{hdsort} \comp
-    \var{map}~\var{rrot})^j~m) \\
-    \eqstable{}& \var{map}~\var{rrot}~((\var{map}~\var{rrot})^j~m) \\
-    ={}& (\var{map}~\var{rrot})^{j+1}~m
-  \end{align*}
-  Going from the first line to the second line requires using
-  \var{StablePerm\_weaken} to show that the stability we are
-  guaranteed by \var{hdsort}, namely stability with respect to an
-  ordering that examines at most one element, implies stability with
-  respect to a regular lexicographic ordering.
-\end{proof}
-
-\begin{theorem}[radixsort\_stable]
-  For all matrices $m$ with rows of length $n$,
-  \begin{equation*}
-    \var{StablePerm}~m~(\var{radixsort}~m~n)
-  \end{equation*}
-\end{theorem}
-\begin{proof}
-  The proof is almost identical to the proof of \var{radixsort\_perm}.
-\end{proof}
-
-We would also like to establish an invariant to prove that
-\var{radixsort} produces a sorted list. To do so, we need to be able
-to reason about the process of adding a column to the front of a
-sorted matrix and sorting on that column. Intuitively, we need to know
-that if we have a matrix that is sorted on the first $j$ columns, and
-we add a new column to the front and sort on it, the result list will
-be sorted on the first $j+1$ columns. For a proof, see
-\cref{appendix:hdsort_sorted_S}.
-\begin{theorem}[hdsort\_sorted\_S]
-  For all matrices $m$ and naturals $j$,
-  \begin{equation*}
-    \var{PrefixSorted}~j~(\var{map}~\var{tl}~m) \implies
-    \var{PrefixSorted}~(j+1)~(\var{hdsort}~m)
-  \end{equation*}
-\end{theorem}
-
-We also need the following property about \var{prepend\_col}, that
-states that prepending a column and then removing the first column is
-a no-op.
-\begin{theorem}[map\_tl\_prepend]
-  For all matrices $m : \var{list}~(\var{list}~A)$ and columns $c :
-  \var{list}~A$, where $c$ has at least as many elements as $m$ has columns,
-  \begin{equation*}
-      \var{map}~\var{tl}~(\var{prepend\_col}~c~m) = m
-  \end{equation*}
-\end{theorem}
-\begin{proof}
-  We reason by induction on $m$. In the inductive case, we have to
-  prove that
-  \begin{align*}
-    &\var{map}~\var{tl}~(\var{prepend\_col}~(h_c :: t_c)~(r :: m)) \\
-    ={}&\var{map}~\var{tl}~((h_c :: r) :: \var{prepend\_col}~t_c~m) \\
-    ={}&r :: \var{map}~\var{tl}~(\var{prepend\_col}~t_c~m) \\
-    ={}&r :: m
-  \end{align*}
-  where the last line follows from the induction hypothesis.
-\end{proof}
-
-\begin{corollary}
-  For all matrices $m$ and rows $r$,
-  \begin{equation*}
-    \var{map}~\var{tl}~(\var{map}~\var{rrot}~m) = \var{map}~\var{init}~m
-  \end{equation*}
-\end{corollary}
-\begin{proof}
-  \begin{align*}
-    \var{map}~\var{tl}~(\var{map}~\var{rrot}~m) &= \var{map}~\var{tl}~(\var{prepend\_col}~(\var{map}~\var{last}~m)~(\var{map}~\var{init}~m) \\
-    &= \var{map}~\var{init}~m \qedhere
-  \end{align*}
-\end{proof}
-
-Now we can establish our invariant:
-
-\begin{lemma}[radixsort\_sorted\_inv]
-  For all matrices $m$ with rows of length $n$, and $j \le n$,
-  \begin{equation*}
-    \var{PrefixSorted}~j~(\var{radixsort}~m~j)
-  \end{equation*}
-\end{lemma}
-\begin{proof}
-  We reason by induction on $j$. The base case is true because every
-  list is sorted under ordering where you examine no elements of the
-  list. In the inductive case, we reason backwards from our goal:
-  \begin{align*}
-       &\var{PrefixSorted}~(j+1)~(\var{radixsort}~(r :: m)~(j+1)) \\
-    \iff{}&\var{PrefixSorted}~(j+1)~(\var{hdsort}~(\var{map}~\var{rrot}~(\var{radixsort}~(r :: m)~j))) \\
-    \iff{}&\var{PrefixSorted}~j~(\var{map}~\var{tl}~(\var{map}~\var{rrot}~(\var{radixsort}~(r :: m)~j))) \\
-    \iff{}&\var{PrefixSorted}~j~(\var{map}~\var{init}~(\var{radixsort}~(r :: m)~j)) \\
-    \iff{}&\var{Sorted}~(\var{map}~(\var{firstn}~j)~(\var{map}~\var{init}~(\var{radixsort}~(r :: m)~j))) \\
-    \iff{}&\var{Sorted}~(\var{map}~(\var{firstn}~j)~(\var{radixsort}~(r :: m)~j)) \\
-    \iff{}&\var{PrefixSorted}~j~(\var{radixsort}~(r :: m)~j)
-  \end{align*}
-  The last line follows from the induction hypothesis.
-\end{proof}
-
-\begin{theorem}[radixsort\_sorted]
-  For all matrices $m$ with rows of length $n$,
-  \begin{equation*}
-      \var{Sorted}~(\var{radixsort}~m~n)
-  \end{equation*}
-\end{theorem}
-\begin{proof}
-  \begin{align*}
-      &\var{Sorted}~(\var{radixsort}~m~n) \\
-    \iff{}&\var{Sorted}~(\var{map}~(\var{firstn}~n)~(\var{radixsort}~m~n)) \\
-    \iff{}&\var{PrefixSorted}~n~(\var{radixsort}~m~n))
-  \end{align*}
-  The last line follows from \var{radixsort\_sorted\_inv}.
-\end{proof}
-
-\section{Relationship to the standard BWT}
-\label{sec:opt}
-
-It is important to note that standard implementations of the BWT do
-not actually reconstruct the entire rotation matrix, as this would be
-inefficient. Instead, they avoid this using the optimization described
-in this section. Although, we did not prove or implement this
-optimization in Coq, it would be straightforward to do so.
-
-In \var{recreate}, we repeatedly prepend the last column to the front
-of the matrix and sort on it. However, each time that column is the
-same, so the permutation that takes us from the unsorted column to the
-sorted column is the same. Therefore, we can calculate that
-permutation function once and store it in a variable $p$. The
-$i$th column of the recreated matrix is simply
-$(\var{apply}~p)^i~(\var{bwl}~l)$, so we can define
-\begin{lstlisting}
-Definition recreate' (p : list nat) (l : list A) : list (list A) :=
-  transpose (iter (apply p) (length l) (apply p l))
-\end{lstlisting}
-In the definition above, we are repeatedly applying \var{p} to the
-first column of the rotation matrix, $\var{apply}~p~l$. Then we
-take the transpose to create the matrix from the columns.
-
-Since in $\var{unbwt}~i~l$, we want the $i$th row of the matrix, we
-can eliminate the transpose by replacing the $\var{nth}~i$ with a
-$\var{map}~\var{nth}~i$ Assuming we already have calculated $p$,
-\begin{align*}
-   \var{unbwt}~i~l &= (\var{recreate}~p~l)_i \\
-  &= (\var{transpose}~(\var{iter}~(\var{apply}~p)~(\var{length}~l)~(\var{apply}~p~l)))_i \\
-  &= \var{map}~(\lambda
-  r.~r_i)~(\var{iter}~(\var{apply}~p)~(\var{length}~l)~(\var{apply}~p~l)) \\
-  &= \var{map}~(\lambda r.~r_i)~(\var{tl}~(\var{iter}~(\var{apply}~p)~(1 +
-  \var{length}~l)~l)) \\
-  &= \var{tl}~(\var{map}~(\lambda r.~r_i)~(\var{iter}~(\var{apply}~p)~(1 + \var{length}~l)~l))
-\end{align*}
-
-Now, instead of indexing into each column at $i$, where the columns
-are all just the result of successively applying $p$ to $l$, we will
-successively take the image of $i$ under $p$ to generate the indices
-into $l$ where those characters appear. This is justified via the
-following theorem:
-\begin{theorem}
-  For all $n$,
-  \begin{equation*}
-  \var{map}~(\lambda r.~r_i)~(\var{iter}~(\var{apply}~p)~n~l)
-  =
-  \var{map}~(\lambda j.~l_j)~(\var{iter}~(\var{image}~p)~n~i)
-  \end{equation*}
-\end{theorem}
-\begin{proof}
-  \begin{align*}
-       & \var{map}~(\lambda r.~r_i)~(\var{iter}~(\var{apply}~p)~n~l) \\
-    ={}& \var{map}~(\lambda r.~r_i)~[l,~(\var{apply}~p)~l,~(\var{apply}~p)^2~l,~\ldots,~(\var{apply}~p)^{n-1}~l] \\
-    ={}& [l_i,~((\var{apply}~p)~l)_i,~((\var{apply}~p)^2~l)_i,~\ldots,~((\var{apply}~p)^{n-1}~l)_i] \\
-    ={}& [l_i,~l_{p(i)},~l_{p^2(i)},~\ldots,~l_{p^{n-1}~i}] \\
-    ={}& \var{map}~(\lambda j.~l_j)~[i,~p(i),~p^2(i),~\ldots,~p^{n-1}~i] \\
-    ={}& \var{map}~(\lambda j.~l_j)~(\var{iter}~(\var{image}~p)~n~i) \qedhere
-  \end{align*}
-\end{proof}
-
-So assuming we have some function $\var{calc\_sort\_perm} :
-\var{list}~A \to \var{list}~\mathbb{N}$ to calculate the permutation
-function that sorts $l$, we redefine \var{unbwt} as
-\begin{lstlisting}
-Definition unbwt' (i : nat) (l : list A) : list A :=
-  match l with
-  | [] => []
-  | d :: _ =>
-    let p := calc_sort_perm l in
-    let indices := tl (iter (image p) (S (length l)) i) in
-    map (fun j => nth l j d) indices
-\end{lstlisting}
-\var{calc\_sort\_perm} can be implemented in linear time using a
-counting sort, so if \var{nth} took constant time, then \var{unbwt}
-would take linear time as well. As a functional specification, this
-closely matches the standard imperative algorithm for the inverse BWT.
-
-\section{Conclusions}
-We have implemented and proved that the the inverse BWT actually
-inverts the forwards BWT, basing our work on Bird et al.'s program
-calculation derivation \cite{birdmu,pearls}. In the process, we
-defined the properties of stable sorts, and implemented and proved
-correct an LSD radixsort.
-
-This paper shows that Bird's style of program calculation is very
-useful for building machine-checked proofs. It leads to proofs that
-are composed of many smaller lemmas, each justifying a single rewrite
-step. Most of the time and effort went into proving the correctness of
-radixsort. If we exclude the parts related to sorting or to other
-general-purpose functions not specific to the BWT, the entire verified
-implementation of the BWT consists of 42 lines of Gallina definitions,
-7 lines of Gallina that are used only in proofs, and 823 lines of
-theorem statements and Ltac code.\footnote{This includes
-  \var{BurrowsWheeler.v}, \var{Columns.v}, \var{Rotations/Rotation.v},
-  \var{Rotations/Rots.v}, \var{Lib/Iterate.v}, \var{Lib/Repeat.v} and
-  \var{Lib/FindIndex.v}, which implement \var{bwl}, \var{bwn},
-  \var{unbwt}, \var{cols}, \var{prepend\_col}, \var{lrot}, \var{rrot},
-  \var{rots}, \var{iter}, and \var{rep}, \var{findIndex}.}
-
-This implementation, including the optimizations mentioned in
-\cref{sec:opt}, can be used as a functional specification to for a
-verified implementation of bzip2. Of course, it would also be
-necessary to have functional specifications for the other phases of
-bzip2, such as Run-Length Encoding, Move-to-Front Encoding, and
-arithmetic coding. As luck would have it, Bird has already analyzed
-arithmetic coding \cite{pearls}.
-\clearpage
-
-\appendix
-
-\section{Insertion sort}
-\label{appendix:insertion_sort}
-
-Insertion sort is a simple and elegant stable sort that is easy to
-reason about. The theorems proved in \cref{sec:unique} allow us to
-prove things using insertion sort that apply to any stable sort. For
-example, our proof of correctness for radixsort relies on the fact
-that it uses insertion sort as the inner sort, but
-\var{StableSort\_unique} allows us to extend that proof to a radixsort
-that uses any stable sort. We also use it as the implementation of
-\var{lexsort} because it is convenient, but similarly
-\var{Sort\_Ord\_unique} ensures that it can be replaced with any other
-sort.
-
-\lstinputlisting[
-  widthgobble=2, firstline=15, lastline=26,
-]{../theories/BWT/Sorting/InsertionSort.v}
-
-\begin{lemma}[insert\_perm]
-  For all lists $l$ and elements $x$,
-  \begin{equation*}
-    \var{Permutation}~(x::l)~(\var{insert}~x~l)
-  \end{equation*}
-\end{lemma}
-\begin{proof}
-  We reason by induction on $l$. In the inductive case, we need to show
-  \begin{equation*}
-    \var{Permutation}~(x::h::t)~(\var{insert}~x~(h::t))
-  \end{equation*}
-  given the induction hypothesis that
-  \begin{equation*}
-    \var{Permutation}~(x::t)~(\var{insert}~x~t)
-  \end{equation*}
-  If $x \le h$, then $\var{insert}~x~(h::t) = x :: h :: t$ and we are
-  done. Otherwise, $\var{insert}~x~(h::t) = h :: \var{insert}~x~t$ and
-  we can apply the induction hypothesis.
-\end{proof}
-
-\begin{theorem}[sort\_perm]
-  For all lists $l$,
-  \begin{equation*}
-    \var{Permutation~l}~(\var{sort}~l)
-  \end{equation*}
-\end{theorem}
-\begin{proof}
-  The proof follows by induction on $l$. The inductive case is
-  \begin{equation*}
-    h :: t \eqperm h :: \var{sort}~t \eqperm
-    \var{insert}~h~(\var{sort}~t) = \var{sort}~(h :: t)
-  \end{equation*}
-  where the first step follows from the induction hypothesis, and the
-  second from \var{insert\_perm}.
-\end{proof}
-
-\begin{lemma}[insert\_sorted]
-  For all lists $l$ and elements $x$,
-  \begin{equation*}
-    \var{Sorted}~l \implies \var{Sorted}~(\var{insert}~x~l)
-  \end{equation*}
-\end{lemma}
-\begin{proof}
-  We reason by induction on the proof that $\var{Sorted}~l$. In the
-  inductive case we need prove that
-  \begin{equation*}
-    \var{Sorted}~(\var{insert}~x~(h::t))
-  \end{equation*}
-  If $x \le h$, then $\var{insert}~x~(h::t) = x :: h :: t$, and by
-  \var{SortedLocal\_cons} we are done.
-
-  If $x > h$, $\var{insert}~x~(h::t) = h :: \var{insert}~x~t$, and it
-  suffices to show that $\forall y \in \var{insert}~x~t,~h \le y$. By
-  \var{insert\_perm}, this is equivalent to $\forall y \in x::t,~h \le y$ From
-  the the fact that $\var{Sorted}~(h::t)$, we know that $\forall y \in t,~h \le
-  y$, and we have that $h < x$, so we are done.
-\end{proof}
-
-\begin{theorem}[sort\_sorted]
-  For all lists $l$,
-  \begin{equation*}
-    \var{Sorted}~(\var{sort}~l)
-  \end{equation*}
-\end{theorem}
-\begin{proof}
-  The proof follows by induction on $l$ and \var{insert\_sorted}.
-\end{proof}
-
-\begin{lemma}[insert\_stable]
-  For all lists $l$ and elements $x$,
-  \begin{equation*}
-    \var{StablePerm}~(x::l)~(\var{insert}~x~l)
-  \end{equation*}
-\end{lemma}
-\begin{proof}
-  We reason by induction on $l$. In the inductive case, we need to show
-  \begin{equation*}
-    \var{StablePerm}~(x::h::t)~(\var{insert}~x~(h::t))
-  \end{equation*}
-  given the induction hypothesis that
-  \begin{equation*}
-    \var{StablePerm}~(x::t)~(\var{insert}~x~t)
-  \end{equation*}
-  If $x \le h$, then $\var{insert}~x~(h::t) = x :: h :: t$ and we are
-  done. Otherwise, $x > h$ and $\var{insert}~x~(h::t) = h ::
-  \var{insert}~x~t$.
-  \begin{equation*}
-    x :: h :: t \eqstable h :: x :: t \eqstable h :: \var{insert}~x~t
-  \end{equation*}
-  where the first step follows from the fact that $x \not\equiv h$ and the
-  second from the induction hypothesis.
-\end{proof}
-
-\begin{theorem}[sort\_stable]
-  For all lists $l$,
-  \begin{equation*}
-    \var{StablePerm}~l~(\var{sort}~l)
-  \end{equation*}
-\end{theorem}
-\begin{proof}
-  The proof is almost identical to the proof for \var{sort\_perm}.
-\end{proof}
-
-\begin{theorem}[sort\_StableSort]
-  \begin{equation*}
-    \var{StableSort}~\var{sort}
-  \end{equation*}
-\end{theorem}
-\begin{proof}
-  This follows from \var{sort\_sorted} and \var{sort\_stable}.
-\end{proof}
-
-\section{\var{hdsorted\_sorted\_S}}
-\label{appendix:hdsort_sorted_S}
-
-In this section, we prove the following theorem:
-\begin{theorem}[hdsort\_sorted\_S]
-  For all matrices $m$ and naturals $j$,
-  \begin{equation*}
-    \var{PrefixSorted}~j~(\var{map}~\var{tl}~m) \implies
-    \var{PrefixSorted}~(j+1)~(\var{hdsort}~m)
-  \end{equation*}
-\end{theorem}
-
-First we prove this lemma:
-\begin{lemma}[insert\_Sorted\_S]
-  For all matrices $m$, rows $r$, and naturals $j$,
-  \begin{gather*}
-    \var{PrefixSorted}~(j+1)~(\var{hdsort}~m) \implies \\
-    \var{PrefixSorted}~j~(\var{tl}~r :: \var{map}~{tl}~m) \implies \\
-    \var{PrefixSorted}~(j+1)~(\var{insert}_1~r~(\var{hdsort}~m))
-  \end{gather*}
-  where $\var{insert}_1$ is \var{insert} that uses the 1-prefix
-  lexicographic ordering used by \var{hdsort}.
-\end{lemma}
-\begin{proof}
-  We can destruct $\var{insert}_1~r~(\var{hdsort}~m)$ as $m_1 \dplus r
-  :: m_2$, where $m_1 \dplus m_2 = \var{hdsort}~m$. Then by
-  \var{Sorted\_app\_cons}, it suffices to show
-  \begin{gather*}
-    \var{PrefixSorted}~(j+1)~m_1 \land \\
-    \var{PrefixSorted}~(j+1)~(r :: m_2) \land \\
-    (\forall x \in m_1,~ r >_{j+1} x)
-  \end{gather*}
-  \begin{itemize}
-  \item $\var{PrefixSorted}~(j+1)~m_1$ follows from the fact that
-    $\var{hdsort}~m = m_1 \dplus m_2$ and
-    $\var{PrefixSorted}~(j+1)~(\var{hdsort}~m)$.
-  \item By similar reasoning, we know that
-    $\var{PrefixSorted}~(j+1)~m_2$, so in order to show
-    $\var{PrefixSorted}~(j+1)~(r :: m_2)$ all we need to prove is that
-    for every row $x$ in $m_2$,
-    \begin{equation*}
-      r \le_{j+1} x
-    \end{equation*}
-    We know from the fact that $\var{insert}_1~r~(\var{hdsort}~m) =
-    m_1 \dplus r :: m_2$ that $r \le_1 x$. Then by \var{key\_firstn\_S},
-    we only need to show that
-    \begin{equation*}
-      \var{tl}~r \le_j \var{tl}~x
-    \end{equation*}
-    This follows from $\var{PrefixSorted}~j~(\var{tl}~r :: \var{map}~{tl}~m)$.
-  \item We have that for any $x \in m_1$, $r >_1 x$ by the fact that
-    $\var{insert}_1~r~(\var{hdsort}~m) = m_1 \dplus r :: m_2$. This
-    gives us $r >_{j+1} x$ by \var{key\_lt\_firstn\_ge}. \qedhere
-  \end{itemize}
-\end{proof}
 
 \section{Permutation composition}
 \label{appendix:perm_comp}
@@ -2470,6 +2559,8 @@ Now we can prove the main theorem:
   Because $p_2 \comp p_1 = \var{app}~p_2~p_1$, we can apply
   \var{Permutation\_combine\_eq}.
 \end{proof}
+
+\clearpage
 
 \nocite{*}
 \printbibliography{}

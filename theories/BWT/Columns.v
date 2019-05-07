@@ -82,7 +82,7 @@ Section PrependColumn.
     unfold prepend_col; reflexivity.
     cbn [map cols]; rewrite prepend_cons.
     f_equal.
-    apply firstn_rrot; inversion HJ; auto.
+    apply firstn_rrot; inversion HJ; easy.
     apply IHt; inversion HJ; auto.
   Qed.
 

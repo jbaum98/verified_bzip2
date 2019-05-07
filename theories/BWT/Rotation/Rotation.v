@@ -163,15 +163,11 @@ Section Rot.
 
   Theorem lrot_nonempty : forall l,
       l <> [] -> lrot l <> [].
-  Proof.
-    exact (f_nonempty lrot lrot_perm).
-  Qed.
+  Proof. exact (f_nonempty lrot lrot_perm). Qed.
 
   Theorem rrot_nonempty : forall l,
       l <> [] -> rrot l <> [].
-  Proof.
-    exact (f_nonempty rrot rrot_perm).
-  Qed.
+  Proof. exact (f_nonempty rrot rrot_perm). Qed.
 End Rot.
 
 Section Nth.
