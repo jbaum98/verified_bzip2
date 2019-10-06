@@ -2,12 +2,12 @@
 
 \ProvidesClass{thesis}[2019/04/30 Thesis Class]
 
-\DeclareOption*{\PassOptionsToClass{\CurrentOption}{article}}
+\DeclareOption*{\PassOptionsToClass{\CurrentOption}{acmart}}
 \ProcessOptions\relax
-\LoadClass{article}
+\LoadClass{acmart}
 
-\RequirePackage[fleqn]{amsmath}
-\RequirePackage{amssymb}
+\settopmatter{printfolios=true,printccs=false,printacmref=false}
+
 \RequirePackage{mathtools}
 \RequirePackage{hyperref}
 \RequirePackage{cleveref}
@@ -16,9 +16,6 @@
 \RequirePackage{amsthm}
 
 \RequirePackage{thmtools, thm-restate}
-
-\RequirePackage[style=numeric-comp]{biblatex}
-\bibliography{draft_paper}
 
 \declaretheoremstyle[
   notefont=\mdseries\ttfamily, notebraces={(}{)},
@@ -34,11 +31,6 @@
 \declaretheorem[style=lemma,numberwithin=section]{example}
 \declaretheorem[style=lemma,numberwithin=section]{remark}
 
-\RequirePackage[letterpaper,left=1.5in,right=1.5in,top=1in,bottom=1in]{geometry}
-
-\setlength{\parskip}{1.5em}
-\setlength{\parindent}{0in}
-
 \RequirePackage{fontspec}
 \setmonofont[
   Contextuals=Alternate,
@@ -46,8 +38,8 @@
   Scale=0.9,
   UprightFont={*},
   ItalicFont={* Italic},
-  BoldFont={* Semibold},
-  BoldItalicFont={* Semibold Italic}
+  BoldFont={* Medium},
+  BoldItalicFont={* Medium Italic}
 ]{Iosevka}
 
 \RequirePackage{listings}
@@ -106,24 +98,7 @@
 \newcommand{\lexle}{\ensuremath{\le_{\var{L}}}}
 \newcommand{\equivle}{\ensuremath{\equiv_{\var{L}}}}
 
-\RequirePackage{microtype}
-\RequirePackage[sc]{mathpazo}
-\linespread{1.05} % Palladio needs more leading (space between lines)
-\RequirePackage[T1]{fontenc}
-
-\RequirePackage[semibold]{sourcesanspro}
-\RequirePackage{titlesec}
-\titleformat*{\section}{\sffamily\Large\bfseries}
-\titleformat*{\subsection}{\sffamily\Large}
-
-\RequirePackage[margin=15pt,font=small,labelfont={bf,sf}]{caption}
-
 \setcounter{tocdepth}{1}
 \usepackage{xcolor}
 \usepackage{colortbl}
 \usepackage{paralist}
-
-\newcommand{\pledge}[1]{
-  \noindent {\Large \textbf{\textit{This paper represents my own work in
-        accordance with University regulations --}} /s/ #1}
-}
