@@ -34,7 +34,6 @@
                             %% e.g., \cite{Baker12,Baker14,Baker16}
                             %% rendered as [2,3,4] rather than [2-4].
 
-
 \begin{document}
 
 \title{Towards a Verified Bzip2}
@@ -217,7 +216,7 @@ and we proved that any two stable sorts are interchangeable,
   For all functions $f, g: \var{list}~A \to \var{list}~A$,
   \begin{equation*}
     \var{StableSort}~f \implies \var{StableSort}~g \implies
-    (\forall l,~f~l = g~l)
+    (\forall l,f~l = g~l)
   \end{equation*}
 \end{restatable*}
 This in turn required developing suitable definitions for
