@@ -5,6 +5,10 @@
 %% and hacks by Andrew Appel (2011)
 %% and modifications by Jake Waksbaum (2019)
 %%
+\makeatletter
+\def\verbatim@nolig@list{}
+\makeatother
+
 \lstdefinelanguage{Coq}{%
   morekeywords={Context,Variable,Inductive,CoInductive,Fixpoint,CoFixpoint,%
       Definition,Lemma,Theorem,Axiom,Local,Save,Grammar,Syntax,Intro,%
@@ -18,15 +22,14 @@
       Require,Load,Import,Scope,Set,Open,Section,End,match,with,Ltac,%
       Declare,Instance, Class, Tactic, Abort, Hint, Goal, as, return, Function,%
   },%
+  breaklines=true,
+  postbreak=\mbox{\textcolor{red}{$\hookrightarrow$}},
   sensitive, %
   morecomment=[n]{(*}{*)},%
   literate=
-  {=>}{{=>} }2
-  {->}{{->} }2
-  {<->}{{<->} }3
-  {::}{{::} }2
-  {:=}{{:=} }2
-  {>>=}{{>>=} }3
-  {forall}{{∀}}2
-  {exists}{{∃}}2
+  {forall}{∀}1
+  {exists}{∃}1
+  {Prop}{{\notofamily ℙ}}1
+  {nat}{{\notofamily ℕ}}1
+  {bool}{{\notofamily 𝔹}}1
 }[keywords,comments,strings]%
