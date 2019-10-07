@@ -859,17 +859,17 @@ We need two more lemmas that describe the interaction between
 
 \begin{theorem}[cols\_map\_rrot]
   For all $j$ and matrices $m$ that has rows all of length less than $j$,
-  \begin{equation*}
-    \var{cols}~(j+1)~(\var{map}~\var{rrot}~m) =
+  \begin{gather*}
+    \var{cols}~(j+1)~(\var{map}~\var{rrot}~m) = \\
     \var{prepend\_col}~(\var{map}~\var{last}~m)~(\var{cols}~j~m)
-  \end{equation*}
+  \end{gather*}
 \end{theorem}
 \begin{proof}
   We reason by induction on $m$. In the inductive case we need to show that
-  \begin{equation*}
-    \var{cols}~(j+1)~(\var{map}~\var{rrot}~(r::m)) =
+  \begin{gather*}
+    \var{cols}~(j+1)~(\var{map}~\var{rrot}~(r::m)) = \\
     \var{prepend\_col}~(\var{map}~\var{last}~(r::m))~(\var{cols}~j~(r::m))
-  \end{equation*}
+  \end{gather*}
   Simplifying, we have that the tails are equal by the induction
   hypothesis, and we must show that the heads are equal.
   \begin{align*}
@@ -886,17 +886,18 @@ We need two more lemmas that describe the interaction between
 Now we are ready to prove the invariant:
 \recreatecorrectinv
 \begin{proof}
-\begin{align*}
-  &\var{cols}~(j+1)~(\var{lexsort}~(\var{rots}~l)) \\
-={}& \var{cols}~(j+1)~(\var{hdsort}~(\var{map}~\var{rrot}~(\var{lexsort}~(\var{rots}~l)))) \\
-={}&
-\var{hdsort}~(\var{cols}~(j+1)~(\var{map}~\var{rrot}~(\var{lexsort}~(\var{rots}~l)))) \\
-={}&
-\var{hdsort}~(\var{prepend\_col}~(\var{map}~\var{last}~(\var{lexsort}~(\var{rots}~l)))~(\var{cols}~j~(\var{lexsort}~(\var{rots}~l))) \\
-={}&
-\var{hdsort}~(\var{prepend\_col}~(\var{bwl}~l)~(\var{recreate}~j~(\var{bwl}~l))) \\
-={}& \var{recreate}~j~(\var{bwl}~l) \qedhere
-\end{align*}
+  Letting $m = \var{lexsort}~(\var{rots}~l)$,
+  \begin{align*}
+    &\var{cols}~(j+1)~m \\
+    ={}& \var{cols}~(j+1)~(\var{hdsort}~(\var{map}~\var{rrot}~m)) \\
+    ={}&
+    \var{hdsort}~(\var{cols}~(j+1)~(\var{map}~\var{rrot}~m)) \\
+    ={}&
+    \var{hdsort}~(\var{prepend\_col}~(\var{map}~\var{last}~m)~(\var{cols}~j~m)) \\
+    ={}&
+    \var{hdsort}~(\var{prepend\_col}~(\var{bwl}~l)~(\var{recreate}~j~(\var{bwl}~l))) \\
+    ={}& \var{recreate}~j~(\var{bwl}~l) \qedhere
+  \end{align*}
 \end{proof}
 
 \begin{theorem}[cols\_id]
@@ -973,11 +974,10 @@ existing elements and the result will also be sorted:
 By transitivity it suffices to check that the new element is
 smaller than just the first element of the sorted list. That leads to a third definition of sorted:
 \begin{gather*}
-  \begin{align*}
-    \infer[\var{SortedLocal\_nil}]{\var{SortedLocal}~[]}{}
-    &&
-    \infer[\var{SortedLocal\_1}]{\var{SortedLocal}~[a]}{}
-  \end{align*}
+  \infer[\var{SortedLocal\_nil}]{\var{SortedLocal}~[]}{}
+  \\
+  \\
+  \infer[\var{SortedLocal\_1}]{\var{SortedLocal}~[a]}{}
   \\
   \\
   \infer[\var{SortedLocal\_cons}]{\var{SortedLocal}~(a :: b :: l)}{%
@@ -1021,16 +1021,18 @@ three equivalent.
     which follows from the induction hypothesis.
   \end{itemize}
 
-  ($\impliedby$) We have $\var{SortedIx}~(a :: l')$, and we need to
-  show $\var{Sorted}~a :: l'$ given the induction hypothesis
-  $\var{SortedIx}~l' \implies \var{Sorted}~l'$. By
-  \var{SortedLocal\_iff}, we can just prove $\var{SortedLocal}~(a ::
-  l')$. If $l' = []$, we can apply $\var{SortedLocal\_1}$, so assume
-  $l' = b :: l''$. To apply \var{SortedLocal\_cons} we need to show
-  $\var{SortedLocal}~(b :: l'')$, which we have by the induction
-  hypothesis and $\var{SortedIx}~(a :: b :: l'')$, and that $a \le b$.
-  That follows because $a = (a :: b :: l'')_0$ and $b = (a :: b ::
-  l'')_1$, so by $\var{SortedIx}~(a :: b :: l'')$, we are done.
+  ($\impliedby$) We have $\var{SortedIx}\ \allowbreak(a :: l')$, and
+  we need to show $\var{Sorted}\ \allowbreak(a :: l')$ given the
+  induction hypothesis $\var{SortedIx}~l' \implies \var{Sorted}~l'$.
+  By \var{SortedLocal\_iff}, we can just prove
+  $\var{SortedLocal}\ \allowbreak(a :: l')$. If $l' = []$, we can
+  apply $\var{SortedLocal\_1}$, so assume $l' = b :: l''$. To apply
+  \var{SortedLocal\_cons} we need to show
+  $\var{SortedLocal}\ \allowbreak(b :: l'')$, which we have by the
+  induction hypothesis and $\var{SortedIx}\ \allowbreak(a :: b ::
+  l'')$, and that $a \le b$. That follows because $a = (a :: b ::
+  l'')_0$ and $b = (a :: b :: l'')_1$, so by
+  $\var{SortedIx}\ \allowbreak(a :: b :: l'')$, we are done.
 \end{proof}
 
 \subsection{\var{Permutation}}
@@ -1086,7 +1088,7 @@ permutations of each other is precisely when
 
 In Coq, we can represent a finite function as a list of its outputs:
 $f : \mathbb{N}_{<n} \to A$ is represented by the $\var{list}~A$
-$[f(0),~f(1),\ldots,f(n-1)]$. For permutations, this is consistent with the
+$[f(0),~f(1),\allowbreak\ldots,f(n-1)]$. For permutations, this is consistent with the
 notation where we denote by $2~1~0$ the permutation $p(0) = 2$, $p(1)
 = 1$, $p(2) = 0$. So, $p$ here would be represented by $[2,~1,~0]$.
 
@@ -1540,8 +1542,8 @@ which swaps it allows.
 \end{theorem}
 \begin{proof}
   We reason inductively on the proof of $\var{StablePerm}~l_1~l_2$
-  using \var{StablePermInd\_iff}. The important case is the
-  \var{StablePermInd\_swap} case, where we have to show
+  using \var{StablePermInd\_iff}. The important case is the swap case,
+  where we have to show
   \begin{equation*}
     \var{StablePerm}'~(y :: x :: l)~(x :: y :: l)
   \end{equation*}
@@ -1656,11 +1658,11 @@ times.
 \begin{proof}
   We reason by induction on $j$. In the inductive case,
   \begin{align*}
-    (\var{hdsort} \comp \var{map}~\var{rrot})^{j+1}~m ={}&
-    \var{hdsort}~(\var{map}~\var{rrot}~(\var{hdsort} \comp
-    \var{map}~\var{rrot})^j~m) \\
+     {}& (\var{hdsort} \comp \var{map}~\var{rrot})^{j+1}~m \\
+    ={}& \var{hdsort}~(\var{map}~\var{rrot}~(\var{hdsort} \comp
+         \var{map}~\var{rrot})^j~m) \\
     \eqperm{}& \var{map}~\var{rrot}~((\var{hdsort} \comp
-    \var{map}~\var{rrot})^j~m) \\
+      \var{map}~\var{rrot})^j~m) \\
     \eqperm{}& \var{map}~\var{rrot}~((\var{map}~\var{rrot})^j~m) \\
     ={}& (\var{map}~\var{rrot})^{j+1}~m \qedhere
   \end{align*}
@@ -1692,7 +1694,7 @@ first we need a lemma.
   \end{equation*}
 \end{lemma}
 \begin{proof}
-  We reason by induction on the evidence that $\var{StablePerm}~m~m'$
+  We reason by induction on the evidence that $m \eqperm m'$
   using \var{StablePermInd\_iff}. The important case is the swap case,
   where we have to show
   \begin{equation*}
@@ -1719,8 +1721,8 @@ first we need a lemma.
 \begin{proof}
   We reason by induction on $j$. In the inductive case,
   \begin{align*}
-    (\var{hdsort} \comp \var{map}~\var{rrot})^{j+1}~m ={}&
-    \var{hdsort}~(\var{map}~\var{rrot}~(\var{hdsort} \comp
+    {}& (\var{hdsort} \comp \var{map}~\var{rrot})^{j+1}~m \\
+    ={}&\var{hdsort}~(\var{map}~\var{rrot}~(\var{hdsort} \comp
     \var{map}~\var{rrot})^j~m) \\
     \eqstable{}& \var{map}~\var{rrot}~((\var{hdsort} \comp
     \var{map}~\var{rrot})^j~m) \\
@@ -1741,7 +1743,7 @@ first we need a lemma.
   \end{equation*}
 \end{theorem}
 \begin{proof}
-  The proof is almost identical to the proof of \var{radixsort\_perm}.
+  The proof similar to the proof of \var{radixsort\_perm}.
 \end{proof}
 
 We would also like to establish an invariant to prove that
@@ -1764,7 +1766,7 @@ We also need the following property about \var{prepend\_col}, that
 states that prepending a column and then removing the first column is
 a no-op.
 \begin{theorem}[map\_tl\_prepend]
-  For all matrices $m : \var{list}~(\var{list}~A)$ and columns $c :
+  For all matrices $m : \var{list}\ \allowbreak(\var{list}~A)$ and columns $c :
   \var{list}~A$, where $c$ has at least as many elements as $m$ has columns,
   \begin{equation*}
       \var{map}~\var{tl}~(\var{prepend\_col}~c~m) = m
@@ -1790,8 +1792,9 @@ a no-op.
 \end{corollary}
 \begin{proof}
   \begin{align*}
-    \var{map}~\var{tl}~(\var{map}~\var{rrot}~m) &= \var{map}~\var{tl}~(\var{prepend\_col}~(\var{map}~\var{last}~m)~(\var{map}~\var{init}~m) \\
-    &= \var{map}~\var{init}~m \qedhere
+    {}& \var{map}~\var{tl}~(\var{map}~\var{rrot}~m) \\
+    ={}& \var{map}~\var{tl}~(\var{prepend\_col}~(\var{map}~\var{last}~m)~(\var{map}~\var{init}~m) \\
+    ={}& \var{map}~\var{init}~m \qedhere
   \end{align*}
 \end{proof}
 
@@ -1808,13 +1811,13 @@ Now we can establish our invariant:
   list is sorted under ordering where you examine no elements of the
   list. In the inductive case, we reason backwards from our goal:
   \begin{align*}
-       &\var{PrefixSorted}~(j+1)~(\var{radixsort}~(r :: m)~(j+1)) \\
-    \iff{}&\var{PrefixSorted}~(j+1)~(\var{hdsort}~(\var{map}~\var{rrot}~(\var{radixsort}~(r :: m)~j))) \\
-    \iff{}&\var{PrefixSorted}~j~(\var{map}~\var{tl}~(\var{map}~\var{rrot}~(\var{radixsort}~(r :: m)~j))) \\
-    \iff{}&\var{PrefixSorted}~j~(\var{map}~\var{init}~(\var{radixsort}~(r :: m)~j)) \\
-    \iff{}&\var{Sorted}~(\var{map}~(\var{firstn}~j)~(\var{map}~\var{init}~(\var{radixsort}~(r :: m)~j))) \\
-    \iff{}&\var{Sorted}~(\var{map}~(\var{firstn}~j)~(\var{radixsort}~(r :: m)~j)) \\
-    \iff{}&\var{PrefixSorted}~j~(\var{radixsort}~(r :: m)~j)
+       &\var{PrefixSorted}~(j+1)~(\var{radixsort}~m~(j+1)) \\
+    \iff{}&\var{PrefixSorted}~(j+1)~(\var{hdsort}~(\var{map}~\var{rrot}~(\var{radixsort}~m~j))) \\
+    \iff{}&\var{PrefixSorted}~j~(\var{map}~\var{tl}~(\var{map}~\var{rrot}~(\var{radixsort}~m~j))) \\
+    \iff{}&\var{PrefixSorted}~j~(\var{map}~\var{init}~(\var{radixsort}~m~j)) \\
+    \iff{}&\var{Sorted}~(\var{map}~(\var{firstn}~j)~(\var{map}~\var{init}~(\var{radixsort}~m~j))) \\
+    \iff{}&\var{Sorted}~(\var{map}~(\var{firstn}~j)~(\var{radixsort}~m~j)) \\
+    \iff{}&\var{PrefixSorted}~j~(\var{radixsort}~m~j)
   \end{align*}
   The last line follows from the induction hypothesis.
 \end{proof}
@@ -1857,7 +1860,8 @@ column of the recreated matrix is simply $(\var{apply}~p)^i~f$ where
 $f$ is the first column of the sorted rotation matrix, so we can
 define
 \begin{lstlisting}
-Definition recreate' (p : list nat) (l : list A) : list (list A) :=
+Definition recreate' (p : list nat) (l : list A)
+  : list (list A) :=
   transpose (iter (apply p) (length l) (apply p l))
 \end{lstlisting}
 In the definition above, we are repeatedly applying $p$ to the
@@ -1910,8 +1914,9 @@ Definition unbwt' (i : nat) (l : list A) : list A :=
   | [] => []
   | d :: _ =>
     let p := calc_sort_perm l in
-    let indices := tl (iter (image p) (S (length l)) i) in
-    map (fun j => nth l j d) indices
+    let indices :=
+      tl (iter (image p) (S (length l)) i)
+    in map (fun j => nth l j d) indices
 \end{lstlisting}
 \var{calc\_sort\_perm} can be implemented in linear time using a
 counting sort, so if \var{nth} took constant time, then \var{unbwt}
@@ -2231,7 +2236,8 @@ preserves all elements.
     l_i :: \var{map}~(\lambda j.~l_j)~p &=
     l_i :: \var{map}~(\lambda j.~(\var{rem\_nth}~i~l)_j)~(\var{rem\_PermFun}~i~p) \\
     \var{map}~(\lambda j.~l_j)~p &=
-    \var{map}~(\lambda j.~(\var{rem\_nth}~i~l)_j)~(\var{map}~(\lambda j. \bvar{if}~i < j~\bvar{then}~j-1~\bvar{else}~j)~p) \\
+    \var{map}~(\lambda j.~(\var{rem\_nth}~i~l)_j)\\
+      &\phantom{=} \quad (\var{map}~(\lambda j. \bvar{if}~i < j~\bvar{then}~j-1~\bvar{else}~j)~p) \\
     \var{map}~(\lambda j.~l_j)~p &=
     \var{map}~(\lambda j.~(\var{rem\_nth}~i~l)_{\bvar{if}~i < j~\bvar{then}~j-1~\bvar{else}~j})~p \\
   \end{align*}
@@ -2330,10 +2336,10 @@ preserves all elements.
 
 \begin{lemma}[StablePerm\_app]
   For all lists $l$, $l'$, $m$ and $m'$,
-  \begin{equation*}
-    \var{StablePerm}~l~l' \implies \var{StablePerm}~m~m' \implies
+  \begin{gather*}
+    \var{StablePerm}~l~l' \implies \var{StablePerm}~m~m' \implies \\
     \var{StablePerm}~(l \dplus m)~(l' \dplus m')
-  \end{equation*}
+  \end{gather*}
 \end{lemma}
 \begin{proof}
   This follows from the distributivity of \var{filter} over \var{app}.
@@ -2482,6 +2488,7 @@ preserves all elements.
 Now we prove equivalence with \var{StablePermEx}.
 
 \begin{theorem}[apply\_correct\_stable]
+  \label{thm:apply_correct_stable}
   For all lists $l$ and permutation functions $p$,
   \begin{equation*}
     \var{StablePermFun}~l~p \implies \var{StablePerm}~(\var{apply}~p~l)~l
@@ -2496,7 +2503,7 @@ Now we prove equivalence with \var{StablePermEx}.
 
   Using $\eqstable$ to chain \var{StablePerm}s transitively,
   \begin{align*}
-    \var{apply}~(i :: p)~(a :: l)
+    {}& \var{apply}~(i :: p)~(a :: l) \\
     ={}& (a :: l)_i  ::
     \var{apply}~(\var{rem\_PermFun}~i~p)~(\var{rem\_nth}~i~(a :: l)) \\
     \eqstable{}& (a :: l)_i :: \var{rem\_nth}~i~(a :: l) \\
@@ -2513,15 +2520,14 @@ Now we prove equivalence with \var{StablePermEx}.
   \end{equation*}
 \end{theorem}
 \begin{proof}
-  We use \var{StablePermInd\_iff} and prove $\var{StablePermInd}~l~l'
-  \iff \var{StablePermEx}~l~l'$.
+  We prove $\var{StablePermInd}~l~l' \iff \var{StablePermEx}~l~l'$.
 
   The $\implies$ direction is very similar to the $\implies$ direction
   of the \var{PermutationEx\_iff} proof: we reason by induction on
   $\var{StablePermInd}~l~l'$, constructing the same permutation
   functions in each case, but this time we have to prove that it is
   stable as well. The $\impliedby$ direction follows from
-  \var{apply\_correct\_stable}.
+  \Cref{thm:apply_correct_stable}.
 \end{proof}
 
 
@@ -2581,6 +2587,7 @@ be equal as well, because the permutation condition guarantees that
 each $x$-coordinate is paired with the same $y$-coordinate in both
 lists.
 \begin{theorem}[Permutation\_combine\_eq]
+  \label{thm:Permutation_combine_eq}
   For all lists $xs$, $ys_1$, and $ys_2$ with all the same length,
   if $xs$ has no duplicates then
   \begin{equation*}
@@ -2638,15 +2645,15 @@ Now we show that $\iota$ is the identity of $\var{compose}$/$\var{apply}$.
 \begin{proof}
   The proof follows from induction on $p$. In the inductive case,
   \begin{align*}
-       \var{compose}~(\var{seq}~0~(n+1))~(i::p)
-    &= \var{map}~(\lambda j.~(i::p)_j)~(\var{seq}~0~(n+1)) \\
-    &= \var{map}~(\lambda j.~(i::p)_j)~(0 :: \var{seq}~1~(n+1)) \\
-    &= i :: \var{map}~(\lambda j.~(i::p)_j)~(\var{seq}~1~(n+1)) \\
-    &= i :: \var{map}~(\lambda j.~(i::p)_j)~(\var{map}~(\lambda j.~j+1)~(\var{seq}~0~n)) \\
-    &= i :: \var{map}~(\lambda j.~(i::p)_{j+1})~(\var{seq}~0~n) \\
-    &= i :: \var{map}~(\lambda j.~p_j)~(\var{seq}~0~n) \\
-    &= i :: \var{compose}~(\var{seq}~0~n)~p \\
-    &= i :: p \qedhere
+     {}& \var{compose}~(\var{seq}~0~(n+1))~(i::p) \\
+    ={}& \var{map}~(\lambda j.~(i::p)_j)~(\var{seq}~0~(n+1)) \\
+    ={}& \var{map}~(\lambda j.~(i::p)_j)~(0 :: \var{seq}~1~(n+1)) \\
+    ={}& i :: \var{map}~(\lambda j.~(i::p)_j)~(\var{seq}~1~(n+1)) \\
+    ={}& i :: \var{map}~(\lambda j.~(i::p)_j)~(\var{map}~(\lambda j.~j+1)~(\var{seq}~0~n)) \\
+    ={}& i :: \var{map}~(\lambda j.~(i::p)_{j+1})~(\var{seq}~0~n) \\
+    ={}& i :: \var{map}~(\lambda j.~p_j)~(\var{seq}~0~n) \\
+    ={}& i :: \var{compose}~(\var{seq}~0~n)~p \\
+    ={}& i :: p \qedhere
   \end{align*}
 \end{proof}
 
@@ -2679,31 +2686,32 @@ Now we can prove the main theorem:
      \var{combine}~\iota~l \eqperm \var{apply}~(p_2 \comp p_1)~(\var{combine}~\iota~l)
   \end{equation*}
   and
-  \begin{equation*}
+  \begin{gather*}
     \var{combine}~\iota~l
     \eqperm
-    \var{apply}~p_1~(\var{combine}~\iota~l)
+    \var{apply}~p_1~(\var{combine}~\iota~l) \\
     \eqperm
     \var{apply}~p_2~(\var{apply}~p_1~(\var{combine}~\iota~l))
-  \end{equation*}
-  We combine these by transitivity, and then simplify, using \var{app}
-  as an abbreviation for \var{apply}.
+  \end{gather*}
+  We combine these by transitivity, and then simplify. For space, we
+  denote \var{apply} by only juxtaposition, and \var{combine} by $\oplus$.
   \begin{align*}
-    \var{pap}~(p_2 \comp p_1)~(\var{combine}~\iota~l)
+    (p_2 \comp p_1)~(\iota \oplus l)
     &\eqperm
-    \var{app}~p_2~(\var{app}~p_1~(\var{combine}~\iota~l)) \\
-    \var{combine}~(\var{app}~(p_2 \comp p_1)~\iota)~(\var{app}~(p_2 \comp p_1)~l)
+    p_2~(p_1~(\iota \oplus l)) \\
+    ((p_2 \comp p_1)~\iota) \oplus ((p_2 \comp p_1)~l)
     &\eqperm
-    \var{app}~p_2~(\var{combine}~(\var{app}~p_1~\iota)~(\var{app}~p_1~l)) \\
-    \var{combine}~(p_2 \comp p_1)~(\var{app}~(p_2 \comp p_1)~l)
+    p_2~((p_1~\iota) \oplus (p_1~l)) \\
+    (p_2 \comp p_1) \oplus ((p_2 \comp p_1)~l)
     &\eqperm
-    \var{app}~p_2~(\var{combine}~p_1~(\var{app}~p_1~l)) \\
-    \var{combine}~(p_2 \comp p_1)~(\var{app}~(p_2 \comp p_1)~l)
+    p_2~(p_1 \oplus (p_1~l)) \\
+    (p_2 \comp p_1) \oplus ((p_2 \comp p_1)~l)
     &\eqperm
-    \var{combine}~(\var{app}~p_2~p_1)~(\var{app}~p_2~(\var{app}~p_1~l))
+    (p_2~p_1)\oplus(p_2~(p_1~l))
   \end{align*}
-  Because $p_2 \comp p_1 = \var{app}~p_2~p_1$, we can apply
-  \var{Permutation\_combine\_eq}.
+  Because $p_2 \comp p_1 = p_2~p_1$, we can apply
+  \Cref{thm:Permutation_combine_eq} to show $(p_2 \comp p_1)~l \eqperm
+  p_2~(p_1~l)$
 \end{proof}
 
 \end{document}
