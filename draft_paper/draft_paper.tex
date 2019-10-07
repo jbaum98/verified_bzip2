@@ -299,7 +299,14 @@ decision procedure for determining whether $x \le y$ or $x \not\le y$.
 
 We represent a total, decidable preorder on type with the
 \var{Preord} typeclass in Coq:
-\lstinputlisting[firstline=9, lastline=14]{../theories/BWT/Sorting/Ord.v}
+\begin{lstlisting}
+Class Preord (A : Type) :=
+  { le : A -> A -> Prop;
+    le_trans : forall x y z, le x y -> le y z -> le x z;
+    le_total : forall x y, le x y \/ le y x;
+    le_dec : forall x y, {le x y} + {~le x y};
+  }.
+\end{lstlisting}
 We do not explicitly require reflexivity because it follows from
 totality. Given a \var{Preord} instance for a type $A$, we will be
 able to sort $\var{list}~A$ as shown in \cref{sec:sort}.
@@ -331,7 +338,10 @@ that for all $x$ and $y$,
 that is, the induced equivalence relation of the preorder ($\equiv$)
 implies Leibniz equality ($=$). We use the \var{Ord} class in Coq
 for this:
-\lstinputlisting[firstline=175, lastline=176, widthgobble=2]{../theories/BWT/Sorting/Ord.v}
+\begin{lstlisting}
+Class Ord (A : Type) `{Preord A} :=
+  { eqv_eq : forall x y, eqv x y -> x = y }.
+\end{lstlisting}
 For the BWT, we require an \var{Ord} instance for $A$, but
 elsewhere, such as in sorting, \var{Preord} will suffice.
 
@@ -340,11 +350,29 @@ elsewhere, such as in sorting, \var{Preord} will suffice.
 
 First, we define the left and right rotations of a list. \var{lrot}
 moves the first element of a list to the end.
-\lstinputlisting[widthgobble=2, firstline=24, lastline=28]{../theories/BWT/Rotation/Rotation.v}
+\begin{lstlisting}
+Definition lrot (l: list A) : list A :=
+  match l with
+  | [] => []
+  | hd :: tl => tl ++ [hd]
+  end.
+\end{lstlisting}
 \var{rrot} moves the last element of a list to the front, and
 relies on \var{init}, which drops the last element of a list.
-\lstinputlisting[widthgobble=2, firstline=18, lastline=22]{../theories/BWT/Lib/List.v}
-\lstinputlisting[widthgobble=2, firstline=17, lastline=21]{../theories/BWT/Rotation/Rotation.v}
+\begin{lstlisting}
+Fixpoint init l : list A :=
+  match l with
+  | [] | [_] => []
+  | hd :: tl => hd :: init tl
+  end.
+\end{lstlisting}
+\begin{lstlisting}
+Definition rrot (l: list A) : list A :=
+  match l with
+  | [] => []
+  | hd :: tl => last l hd :: init l
+  end.
+\end{lstlisting}
 Note that in order to ensure that $\var{last}$ is total, it takes
 an extra argument to return in the case of an empty list.
 
@@ -357,17 +385,24 @@ values obtained by applying $f$ to $z$ $n$ times. Or,
   \label{eq:iter}
 \end{equation}
 where $f^n$ denotes repeated function application.
-\lstinputlisting[
-  widthgobble=2,
-  firstline=14,
-  lastline=18
-]{../theories/BWT/Lib/Iterate.v}
+\begin{lstlisting}
+Fixpoint iter (f : A -> A) (n : nat) (z : A)
+  : list A :=
+  match n with
+  | O   => []
+  | S m => z :: iter f m (f z)
+  end.
+\end{lstlisting}
 
 We can state \Cref{eq:iter} as a theorem by defining the
 function \var{rep} for repeated function application.
-\lstinputlisting[
-  widthgobble=2, firstline=8, lastline=12,
-]{../theories/BWT/Lib/Repeat.v}
+\begin{lstlisting}
+Fixpoint rep (f : A -> A) (n : nat) (z : A) : A :=
+  match n with
+  | O => z
+  | S m => f (rep f m z)
+  end.
+\end{lstlisting}
 In proofs, we will still use the notation $f^i z$ for
 $\var{rep}~f~i~z$. We will also use that notation $l_i$ for the $i$th
 element of a list. In Coq, that is given by $\var{nth}~i~l~d$, where
@@ -391,11 +426,10 @@ $d:A$ is a default value in case $i \ge \var{length}~l$.
 \end{proof}
 
 Now we can define \var{rots} to produce the rotation matrix.
-\lstinputlisting[
-  widthgobble=2,
-  firstline=17,
-  lastline=18,
-]{../theories/BWT/Rotation/Rots.v}
+\begin{lstlisting}
+Definition rots (l : list A) : list (list A) :=
+  iter lrot (length l) l.
+\end{lstlisting}
 
 \var{bwl} produces the transformed string by taking the last column of
 the sorted rotation matrix. \var{lexsort} sorts the rotation matrix
@@ -403,29 +437,35 @@ using insertion sort (\cref{appendix:insertion_sort}) and the induced
 lexicographic ordering(\cref{sec:lex_ord}). By
 \Cref{thm:stablesort_ord} though, \var{lexsort} can be implemented
 using any sorting algorithm.
-\lstinputlisting[
-  widthgobble=2,
-  firstline=31,
-  lastline=35
-]{../theories/BWT/BurrowsWheeler.v}
+\begin{lstlisting}
+Definition bwl (l : list A) : list A :=
+  match l with
+  | [] => []
+  | hd :: _ =>
+    List.map (fun x => last x hd) (lexsort (rots l))
+  end.
+\end{lstlisting}
 
 \var{bwn} returns the index in the sorted rotation matrix where the
 original string appears. It relies on \var{findIndex}, which is
 defined with respect to some decidable equivalence relation.
-\lstinputlisting[
-  widthgobble=2,
-  firstline=12,
-  lastline=19,
-]{../theories/BWT/Lib/FindIndex.v}
+\begin{lstlisting}
+Fixpoint findIndex (x : A) (ls : list A) : nat :=
+  match ls with
+  | [] => 0
+  | hd :: tl =>
+    if x == hd then 0
+    else S (findIndex x tl)
+  end.
+\end{lstlisting}
 
 When we use \var{findIndex} in \var{bwn}, we are using the
 induced equivalence relation from the \var{Ord} instance, so it
 finds the row that is Leibniz equal to $l$.
-\lstinputlisting[
-  widthgobble=2,
-  firstline=75,
-  lastline=75,
-]{../theories/BWT/BurrowsWheeler.v}
+\begin{lstlisting}
+Definition bwn (l : list A) : nat :=
+  findIndex l (lexsort (rots l)).
+\end{lstlisting}
 
 Given these definitions, we can quickly prove that \var{bwn}
 satisfies its specification:
@@ -700,31 +740,41 @@ We implement \var{recreate} as follows, introducing a parameter $j$ so
 that we can recursively recreate the first $j$ columns of the matrix,
 one column at a time. Here $l$ is meant to be the output of the BWT,
 the last column of the sorted rotation matrix.
-\lstinputlisting[
-  widthgobble=2, firstline=156, lastline=160,
-]{../theories/BWT/BurrowsWheeler.v}
+\begin{lstlisting}
+Fixpoint recreate (j : nat) (l : list A)
+  : list (list A) :=
+  match j with
+  | O    => map (const []) l
+  | S j' => hdsort (prepend_col l (recreate j' l))
+  end.
+\end{lstlisting}
 This definition relies on \var{prepend\_col} and \var{zipWith}, defined below.
-\lstinputlisting[
-  widthgobble=2, firstline=47, lastline=48,
-]{../theories/BWT/Columns.v}
-\lstinputlisting[
-  widthgobble=2, firstline=16, lastline=20,
-]{../theories/BWT/Lib/ZipWith.v}
+\begin{lstlisting}
+Definition prepend_col
+  : list A -> list (list A) -> list (list A)
+  := zipWith cons.
+
+Fixpoint zipWith (a : list A) (b : list B)
+  : list C :=
+  match (a, b) with
+  | (ahd :: atl, bhd :: btl) =>
+    f ahd bhd :: zipWith atl btl
+  | _ => []
+  end.
+\end{lstlisting}
 
 Now we can redefine \var{unbwt} as
-\lstinputlisting[
-  widthgobble=2,
-  firstline=197,
-  lastline=198,
-]{../theories/BWT/BurrowsWheeler.v}
+\begin{lstlisting}
+Definition unbwt (i : nat) (l : list A) : list A :=
+  nth i (recreate (length l) l) l.
+\end{lstlisting}
 
 Since we recreate the matrix column by column, we can define an
 invariant using $\var{cols}~j$, which takes the first $j$ columns of a matrix.
-\lstinputlisting[
-  widthgobble=2,
-  firstline=19,
-  lastline=20,
-]{../theories/BWT/Columns.v}
+\begin{lstlisting}
+Definition cols (j : nat)
+  : list (list A) -> list (list A) := map (firstn j).
+\end{lstlisting}
 
 \begin{restatable*}[recreate\_correct\_inv]{theorem}{recreatecorrectinv}
   For all lists $l$ and $j \le \var{length}~l$,
@@ -1056,29 +1106,35 @@ the Coq standard library captures that requirement:
 This leads to the following definition of the property
 $\var{PermFun}~n~p$, which holds when $p : \var{list}~\mathbb{N}$
 represents a permutation function on lists of length $n$:
-\lstinputlisting[
-  firstline=14, lastline=15,
-]{../theories/BWT/Sorting/PermFun.v}
+\begin{lstlisting}
+Definition PermFun (n : nat) (p : list nat)
+  : Prop := NoDup p /\ forall i, In i p <-> i < n.
+\end{lstlisting}
 Then, we can define \var{apply}, which permutes a list according to a
 given permutation:
-\lstinputlisting[
-  widthgobble=2, firstline=161, lastline=165,
-]{../theories/BWT/Sorting/PermFun.v}
+\begin{lstlisting}
+Definition apply p l : list A :=
+  match l with
+  | [] => []
+  | d :: _ => map (fun i => nth i l d) p
+  end.
+\end{lstlisting}
 And finally, we can define \var{PermutationEx}, which holds between
 two lists when they are permutations of each other.
-\lstinputlisting[
-  widthgobble=2, firstline=521, lastline=522,
-]{../theories/BWT/Sorting/PermFun.v}
-
+\begin{lstlisting}
+Definition PermutationEx l l' : Prop :=
+  exists p, PermFun (length l) p /\ apply p l = l'.
+\end{lstlisting}
 We prove \var{PermutationEx} equivalent to \var{Permutation} in
 \Cref{thm:permutationex_iff}.
 
 For completeness, we will briefly mention a third definition of a
 permutation relation that says that two lists are permutations of one
 another when any element occurs an equal number of times in each:
-\lstinputlisting[
-  widthgobble=2, firstline=14, lastline=15,
-]{../theories/BWT/Sorting/PermutationCount.v}
+\begin{lstlisting}
+Definition PermutationCount l l' : Prop := forall x,
+  count_occ equiv_dec l x = count_occ equiv_dec l' x.
+\end{lstlisting}
 \var{count\_occ} counts the number of occurrences of a given variable
 using a decision procedure for Leibniz equality. Here that decision
 procedure is \texttt{equiv\_dec} from an \var{EqDec} instance where we
@@ -1137,24 +1193,32 @@ property, \var{StablePermFun}. However, while $\var{PermFun}~n~p$
 means that $p$ represents a permutation function on lists of length
 $n$, we need to specify the list with respect to which $p$ is stable,
 so we say $\var{StablePermFun}~l~p$ for some list $l$.
-\lstinputlisting[
-  widthgobble=2, firstline=568, lastline=572,
-]{../theories/BWT/Sorting/PermFun.v}
+\begin{lstlisting}
+Definition StablePermFun (l : list A) (p : list nat)
+  := PermFun (length l) p /\ forall i j d,
+    nth i (apply p l) d === nth j (apply p l) d ->
+    i < j < length l -> image p i < image p j.
+\end{lstlisting}
 As above, we can also define this
 property using the inverse permutation:
-\lstinputlisting[
-  widthgobble=2, firstline=574, lastline=578,
-]{../theories/BWT/Sorting/PermFun.v}
+\begin{lstlisting}
+Definition StablePermFun_preimage
+  (l : list A) (p : list nat) :=
+  PermFun (length l) p /\ forall i j d,
+    nth i l d === nth j l d ->
+    i < j < length l -> preimage p i < preimage p j.
+\end{lstlisting}
+
 As usual, we will prove these
 definitions equivalent. First, though, we need to define \var{image}
 and \var{preimage}.
-\lstinputlisting[
-  widthgobble=2, firstline=81, lastline=82,
-]{../theories/BWT/Sorting/PermFun.v}
-We will not prove
-it here, but $\var{preimage}~p$ and $\var{image}~p$ are both of
-bijections of type $\mathbb{N}_{<n} \to \mathbb{N}_{<n}$ and are
-inverses of each other. We also have the following two theorems:
+\begin{lstlisting}
+Definition image (p : list nat) i := nth i p 0.
+Definition preimage (p : list nat) i := findIndex i p.
+\end{lstlisting}
+We will not prove it here, but $\var{preimage}~p$ and $\var{image}~p$
+are both of bijections of type $\mathbb{N}_{<n} \to \mathbb{N}_{<n}$ and
+are inverses of each other. We also have the following two theorems:
 \begin{theorem}[nth\_preimage\_apply, nth\_image\_apply]
   For all lists $l$, permutations $p$, and indices $i$,
   \begin{align*}
@@ -1199,15 +1263,16 @@ inverses of each other. We also have the following two theorems:
 
 Now, we can define \var{StablePermEx} to describe when two lists are
 stable permutations of each other:
-\lstinputlisting[
-  widthgobble=2, firstline=618, lastline=619,
-]{../theories/BWT/Sorting/PermFun.v}
+\begin{lstlisting}
+Definition StablePermEx l l' :=
+  exists p, StablePermFun l p /\ apply p l = l'.
+\end{lstlisting}
 
 While \var{StablePermEx} corresponds to \var{PermutationEx}, how can
 we modify \var{Permutation} to create an inductive relation for stable
-lists? Intuitively, the problematic inference rule is
-\var{Permutation\_swap}: we can only swap two elements and preserve
-stability if they are not equivalent. With this fix, we have \var{StablePermInd}:
+lists? Intuitively, the problem is \var{Permutation\_swap}: we can
+only swap two elements and preserve stability if they are not
+equivalent. With this fix, we have \var{StablePermInd}:
 \begin{gather*}
   \infer[\var{StablePermInd\_nil}]{\var{StablePermInd}~[]~[]}{}
   \\ \\
@@ -1234,10 +1299,10 @@ This is because they must have the same elements, since the original
 lists are permutations of one another, and those elements must be in
 the same order, since the original lists are specifically stable
 permutations of one another \cite{leroy_2018}.
-\lstinputlisting[
-  widthgobble=2, firstline=21, lastline=22,
-]{../theories/BWT/Sorting/StablePerm.v}
-
+\begin{lstlisting}
+Definition StablePerm (l l': list A) : Prop := forall x,
+  filter (equiv_decb x) l = filter (equiv_decb x) l'.
+\end{lstlisting}
 We prove equivalence between these three definitions in
 \cref{appendix:stableperm_def_eq}.
 
@@ -1281,9 +1346,10 @@ radixsort.
 If we define \var{Sort} and \var{StableSort} as we did
 \cref{sec:sorted_perm_stable}, we can restate the theorem slightly
 more elegantly.
-\lstinputlisting[
-  widthgobble=2, firstline=15, lastline=19,
-]{../theories/BWT/Sorting/Sort.v}
+\begin{lstlisting}
+Definition Sort f :=
+  forall l, Sorted (f l) /\ Permutation (f l) l.
+\end{lstlisting}
 
 \stablesortunique
 \begin{proof}
@@ -1410,9 +1476,10 @@ $\var{list}~A$ such that for all $xs, ys : \var{list}~A$,
 \end{equation*}
 For convenience, we define $\var{PrefixSorted}~n$ to hold when a list
 of lists is sorted if you only look at the first $n$ elements of each:
-\lstinputlisting[
-  widthgobble=2, firstline=326, lastline=327,
-]{../theories/BWT/Sorting/Key.v}
+\begin{lstlisting}
+Definition PrefixSorted (n : nat) : list (list A) -> Prop
+  := Sorted (keyOrd (firstn n)).
+\end{lstlisting}
 
 We can describe the relationship between orders that can look at fewer
 or more characters with the following two theorems. We will briefly
@@ -1568,9 +1635,10 @@ sorting on the first column. For a matrix with $n$ columns,
   \var{radixsort} = (\var{hdsort} \comp \var{map}~\var{rrot})^n
 \end{equation*}
 Or, in Coq:
-\lstinputlisting[
-  widthgobble=2, firstline=27, lastline=28,
-]{../theories/BWT/Sorting/RadixSort.v}
+\begin{lstlisting}
+Definition radixsort m (n : nat) : list (list A)
+  := rep (hdsort ∘ map rrot) n m.
+\end{lstlisting}
 Here \var{hdsort} is just an insertion sort using $\le_1$ ordering.
 
 First we want to prove that \var{radixsort} permutes the rows of the
@@ -1912,9 +1980,20 @@ implementation of \var{lexsort} because it is convenient, but
 similarly \Cref{thm:sort_ord_unique} ensures that it can be replaced with
 any other sort.
 
-\lstinputlisting[
-  widthgobble=2, firstline=15, lastline=26,
-]{../theories/BWT/Sorting/InsertionSort.v}
+\begin{lstlisting}
+  Fixpoint insert (x : A) (l : list A) :=
+    match l with
+    | [] => [x]
+    | h :: t =>
+      if le_dec x h then x :: h :: t else h :: insert x t
+    end.
+
+  Fixpoint sort (l : list A) : list A :=
+    match l with
+    | [] => []
+    | h :: t => insert h (sort t)
+    end.
+\end{lstlisting}
 
 \begin{lemma}[insert\_perm]
   For all lists $l$ and elements $x$,
@@ -2095,13 +2174,20 @@ prove that
   \var{apply}~(i::p)~l =
   l_i :: \var{apply}~(\var{rem\_PermFun}~i~p)~(\var{rem\_nth}~i~l)
 \end{equation*}
-\lstinputlisting[
-  widthgobble=4, firstline=229, lastline=229,
-]{../theories/BWT/Sorting/PermFun.v}
-\vspace{\parskip}
-\lstinputlisting[
-  widthgobble=2, firstline=599, lastline=607,
-]{../theories/BWT/Lib/List.v}
+\begin{lstlisting}
+Definition rem_PermFun i :=
+  map (fun j => if lt_dec i j then pred j else j).
+
+Fixpoint rem_nth i l :=
+  match l with
+  | [] => []
+  | h :: t =>
+    match i with
+    | 0 => t
+    | S i' => h :: rem_nth i' t
+    end
+  end.
+\end{lstlisting}
 
 These two theorems define how \var{rem\_nth} affects indexing.
 \begin{theorem}[nth\_lt\_rem\_nth, nth\_ge\_rem\_nth]
@@ -2455,9 +2541,9 @@ property:
 
 Because we represent the permutations as lists of outputs, we can
 simply apply one permutation to the other permutation to compose them.
-\lstinputlisting[
-  widthgobble=2, firstline=409, lastline=409
-]{../theories/BWT/Sorting/PermFun.v}
+\begin{lstlisting}
+Definition compose p2 p1 := apply p2 p1.
+\end{lstlisting}
 This definition, while simple, does not make it obvious that
 \var{compose\_apply} holds.
 \begin{equation}
@@ -2478,11 +2564,12 @@ of \var{apply}, giving as an outline of a proof.
 We will use the function \var{combine} defined in the Coq standard
 library to annotate every element of $l$ with its index.
 \begin{lstlisting}
-  Fixpoint combine (l : list A) (l' : list B) : list (A*B) :=
-    match l,l' with
-    | x :: tl, y :: tl' => (x,y) :: (combine tl tl')
-    | _, _ => nil
-    end.
+Fixpoint combine (l : list A) (l' : list B)
+  : list (A*B) :=
+  match l,l' with
+  | x :: tl, y :: tl' => (x,y) :: (combine tl tl')
+  | _, _ => nil
+  end.
 \end{lstlisting}
 
 To formalize the idea that we can reason about the indices of the
