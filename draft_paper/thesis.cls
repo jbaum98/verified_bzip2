@@ -98,7 +98,6 @@
 \newcommand{\lexle}{\ensuremath{\le_{\var{L}}}}
 \newcommand{\equivle}{\ensuremath{\equiv_{\var{L}}}}
 
-\setcounter{tocdepth}{1}
-\usepackage{xcolor}
-\usepackage{colortbl}
-\usepackage{paralist}
+\RequirePackage{xcolor}
+\RequirePackage{colortbl}
+\RequirePackage{paralist}
