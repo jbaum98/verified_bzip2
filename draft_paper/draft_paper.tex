@@ -62,7 +62,18 @@
 \email{appel@princeton.edu}
 
 \begin{abstract}
-Text of abstract \ldots.
+Stable sorts are an important and fundamental type of sorting
+algorithm. Some algorithms, such as radix sorts, rely upon the
+stability of a sorting subroutine for their correctness. In other
+cases, stable sorts are useful for reasoning about algorithms, often
+because any two stable sorts are interchangeable. One such algorithm
+is the Burrows--Wheeler transform (BWT), which has applications in
+compression, full-text indexing and pattern searching.
+
+There has not been much work on formally verifying stable sorts, or
+rather, the stability of stable sorts. In this paper, we develop more
+fully the theory of stable sorts, and use this theory to prove the
+correctness of radixsort and the BWT.
 \end{abstract}
 
 %% 2012 ACM Computing Classification System (CSS) concepts
@@ -91,19 +102,83 @@ Text of abstract \ldots.
 \ccsdesc[500]{Software and its engineering~Formal methods}
 %% End of generated code
 
-\keywords{Formal methods, Sorting and seraching, Data compression}
+\keywords{Formal methods, Sorting and searching, Data compression}
 
 \maketitle
 
 \section{Introduction}
 \label{sec:intro}
 
+Stable sorts are an important and fundamental type of sorting
+algorithm. A sort is stable if it preserves the relative order of
+equal elements: for example, if we are sorting a list of words by the
+first characters, every word that starts with \texttt{a} appears in
+the same order relative to the other words that start with \texttt{a}
+as in the original list. Stability can be directly useful in certain
+contexts, such as when sorting a table by a single column. However,
+stability is also crucial to correctness of certain general-purpose
+algorithms.
+
+One such algorith, or set of algorithms, are radix sorts. Radix sorts
+operate on lists with fixed-size elements, such as strings of a given
+length or integers with a given number of digits. A Least Significant
+Digit (LSD) radix sort uses some stable sort to sort each column,
+starting with the rightmost (or least significant) and ending with the
+leftmost (or most significant) digit. Radix sorts can be faster than
+other comparison-based sorts such as quicksort, achieving linear
+worst-case runtimes in the length of the list. This is because they
+are less general, in a sense: rather than relying only on a comparison
+function, they exploit more of the elements' structure. The cost of
+requiring that structure is that we are restricted to lists with
+fixed-size elements. In practice, though, many common types of data
+are of fixed size: integers, floating point numbers, and fixed-length
+strings, as well as structs and tuples of other fixed size data types.
+In addition, radix sorts can be extended to handle variable-length
+strings \cite{McIlroy93}.
+
+% https://probablydance.com/2016/12/02/investigating-radix-sort/
+
+Stable sorts are also important for reasoning about sorting algorithms
+more broadly. This is because any two stable sorting algorithms are
+equivalent, in the sense that they will produce the same outputs for a
+given input. Crucially, this allows us to reason using elegant
+algorithms and replace them with efficient algorithms later on. We
+make use of this technique in order to reason about LSD radix sort, as
+well as an algorithm called the Burrows-Wheeler transform (BWT).
+
 The Burrows--Wheeler transform (BWT) is an invertible transformation
 that makes a string more amenable to compression by other methods
 \cite{bw}. It accomplishes this by creating runs of repeated letters
 in the produced string. Of course, a simple way to create runs is to
 sort the string, but that would be useless for compression because the
-original string would be unrecoverable.
+original string would be unrecoverable. Notably, the BWT is the core
+pass in the popular, open-source bzip2 compression software
+\cite{tsai_2016}. In addition, the BWT has been recently applied to
+full-text indexing and pattern searching, for example in genomics
+\cite{ferragina_index, dna}.
+
+There has not been much work on formally verifying stable sorts, or
+rather, the stability of stable sorts. Some work has been done on
+verifying the stability of mergesort
+\cite{leroy_2018,Sternagel2013,Leino2015,deGouw2014}, but we do not
+know of any formally verified implementation of a radix sort including
+stability. In addition, to our knowledge, no one has produced a
+formally verified implementation of the BWT, by which we mean an
+implementation of the forwards-transform, the inverse-transform, and a
+proof that they the inverse-transform inverts the forwards-transform.
+
+In this paper, we develop more fully the theory of stable sorts: we
+define stability in 3 different ways and prove equivalence between
+them, and we prove that all stable sorts are interchangeable. We use
+this to prove the correctness and stability of an LSD radix sort.
+Finally, we prove implement and prove correct the BWT, basing our
+proof on the excellent derivation of Bird
+et~al\cite{alg-of-prog,birdmu}. Bird's technique of proof by program
+calculation transferred very well to a machine-checked setting; the
+most difficult part was proving the lemmas the derivation relies upon,
+which include the correctness of LSD radix sort.
+
+\section{Main Ideas}
 
 To apply the transformation to a string of length $n$:
 \begin{enumerate}
