@@ -10,7 +10,7 @@
 
 \RequirePackage{mathtools}
 \RequirePackage{hyperref}
-\RequirePackage{cleveref}
+\RequirePackage[capitalise]{cleveref}
 \RequirePackage{parskip}
 \RequirePackage{listings}
 \RequirePackage{lstlangcoq}
