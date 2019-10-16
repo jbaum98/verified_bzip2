@@ -52,3 +52,6 @@
 \newcommand{\dplus}{\ensuremath{\mathbin{+\mkern-3mu+}}}
 \newcommand{\lexle}{\ensuremath{\le_{\var{L}}}}
 \newcommand{\equivle}{\ensuremath{\equiv_{\var{L}}}}
+
+\newcommand{\nat}{\text{\notofamily ℕ}}
+\newcommand{\bool}{\text{𝔹}}
