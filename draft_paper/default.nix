@@ -1,4 +1,4 @@
-{ compileTex, texlive, iosevka-bin }:
+{ compileTex, texlive, iosevka-bin, noto-fonts }:
 let
   tex = texlive.combine ({
     inherit (texlive)
@@ -73,6 +73,6 @@ in compileTex {
   srcDir = ./.;
   texFile = "draft_paper.tex";
   otherFiles = [ "acmart.cls" "ACM-Reference-Format.bst" "draft_paper.bib" "thesis.cls" "lstlangcoq.sty" ];
-  fonts = [ iosevka-bin ];
+  fonts = [ iosevka-bin noto-fonts ];
   inherit tex;
 }
