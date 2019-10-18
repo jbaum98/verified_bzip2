@@ -26,8 +26,8 @@
   Scale=0.9,
   UprightFont={*},
   ItalicFont={* Italic},
-  BoldFont={* Heavy},
-  BoldItalicFont={* Heavy Italic}
+  BoldFont={* Medium},
+  BoldItalicFont={* Medium Italic}
 ]{Iosevka}
 
 \newfontfamily\notofamily{Noto Serif}
