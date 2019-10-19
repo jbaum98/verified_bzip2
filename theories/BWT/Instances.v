@@ -1,15 +1,9 @@
-Require compcert.lib.Integers.
 Require Import Coq.ZArith.ZArith.
 Require Import Ascii.
 Require Export Coq.Classes.EquivDec.
 Require Import Coq.Logic.Eqdep_dec.
 
 Require Export BWT.Sorting.Ord.
-
-Instance Byte_EqDec   : EqDec Integers.Byte.int   eq := Integers.Byte.eq_dec.
-Instance Int_EqDec    : EqDec Integers.Int.int    eq := Integers.Int.eq_dec.
-Instance Int64_EqDec  : EqDec Integers.Int64.int  eq := Integers.Int64.eq_dec.
-Instance Ptrofs_EqDec : EqDec Integers.Ptrofs.int eq := Integers.Ptrofs.eq_dec.
 
 Instance EqDec_Z : EqDec Z eq := BinInt.Z.eq_dec.
 
@@ -50,15 +44,6 @@ Proof.
     intros; eauto using le_trans, le_total, le_dec.
 Defined.
 
-Instance Byte_Preord : Preord Integers.Byte.int :=
-  int_Preord Integers.Byte.repr_unsigned.
-Instance Int_Preord : Preord Integers.Int.int :=
-  int_Preord Integers.Int.repr_unsigned.
-Instance Int64_Preord : Preord Integers.Int64.int :=
-  int_Preord Integers.Int64.repr_unsigned.
-Instance Ptrofs_Preord : Preord Integers.Ptrofs.int :=
-  int_Preord Integers.Ptrofs.repr_unsigned.
-
 Section ProofIrreleventZLt.
   Implicit Type c : comparison.
 
@@ -80,73 +65,6 @@ Section ProofIrreleventZLt.
   Theorem Z_lt_unicity : forall m n (H1 H2 : Z.lt m n) (E1 E2 : H1 = H2), E1 = E2.
   Proof. intros m n. exact (UIP_dec (Z_lt_eq_dec m n)). Defined.
 End ProofIrreleventZLt.
-
-Theorem Byte_unsigned_inj : forall x y,
-    Integers.Byte.unsigned x = Integers.Byte.unsigned y -> x = y.
-Proof.
-  intros [xval Hxrange] [yal Hyrange] E.
-  cbn in E. subst.
-  assert (Hxrange = Hyrange). {
-    destruct Hxrange; destruct Hyrange.
-    f_equal; apply comparison_eq_unicity.
-  }
-  subst. reflexivity.
-Qed.
-
-Theorem Int_unsigned_inj : forall x y,
-    Integers.Int.unsigned x = Integers.Int.unsigned y -> x = y.
-Proof.
-  intros [xval Hxrange] [yal Hyrange] E.
-  cbn in E. subst.
-  assert (Hxrange = Hyrange). {
-    destruct Hxrange; destruct Hyrange.
-    f_equal; apply comparison_eq_unicity.
-  }
-  subst. reflexivity.
-Qed.
-
-Theorem Int64_unsigned_inj : forall x y,
-    Integers.Int64.unsigned x = Integers.Int64.unsigned y -> x = y.
-Proof.
-  intros [xval Hxrange] [yal Hyrange] E.
-  cbn in E. subst.
-  assert (Hxrange = Hyrange). {
-    destruct Hxrange; destruct Hyrange.
-    f_equal; apply comparison_eq_unicity.
-  }
-  subst. reflexivity.
-Qed.
-
-Theorem Ptrofs_unsigned_inj : forall x y,
-    Integers.Ptrofs.unsigned x = Integers.Ptrofs.unsigned y -> x = y.
-Proof.
-  intros [xval Hxrange] [yal Hyrange] E.
-  cbn in E. subst.
-  assert (Hxrange = Hyrange). {
-    destruct Hxrange; destruct Hyrange.
-    f_equal; apply comparison_eq_unicity.
-  }
-  subst. reflexivity.
-Qed.
-
-Theorem int_Ord {A : Type} `{P : Preord A} {unsigned : A -> Z}
-        (p_le : forall x y, le x y = le (unsigned x) (unsigned y))
-        (unsigned_inj : forall x y : A, unsigned x = unsigned y -> x = y) : Ord A.
-Proof.
-  apply Build_Ord; intros x y [].
-  rewrite p_le in *.
-  apply unsigned_inj.
-  apply eqv_eq; split; auto.
-Defined.
-
-Instance Byte_Ord : Ord Integers.Byte.int :=
-  int_Ord (fun x y : Integers.Byte.int => eq_refl) Byte_unsigned_inj.
-Instance Int_Ord : Ord Integers.Int.int :=
-  int_Ord (fun x y : Integers.Int.int => eq_refl) Int_unsigned_inj.
-Instance Int64_Ord : Ord Integers.Int64.int :=
-  int_Ord (fun x y : Integers.Int64.int => eq_refl) Int64_unsigned_inj.
-Instance Ptrofs_Ord : Ord Integers.Ptrofs.int :=
-  int_Ord (fun x y : Integers.Ptrofs.int => eq_refl) Ptrofs_unsigned_inj.
 
 Instance Ascii_Preord : Preord ascii.
 Proof.

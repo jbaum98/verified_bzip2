@@ -14,9 +14,6 @@ clean-local:
 clean:
 	fd --no-ignore-vcs -e vo -e glob -e d -x rm {}
 
-VST/%.vo: VST/%.v
-	$(MAKE) -C VST $(patsubst VST/%,%,$@)
-
 BWT/%.vo: BWT/%.v
 	$(COQC) $<
 
