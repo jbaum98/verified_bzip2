@@ -208,5 +208,3 @@ Section Unbwt.
     intro contra; inversion contra.
   Qed.
 End Unbwt.
-
-Print Assumptions unbwt_correct.

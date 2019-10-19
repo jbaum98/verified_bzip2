@@ -2,17 +2,11 @@ COQFLAGS := `cat _CoqProject`
 COQC := coqc $(COQFLAGS)
 COQDEP := coqdep $(COQFLAGS)
 
-SRC := $(shell fd . -e v 'BWT')
+SRC := $(shell find BWT -iname "*.v")
 OBJ := $(SRC:%.v=%.vo)
 DEPS := $(SRC:%.v=%.d)
 
-all: $(OBJ)
-
-clean-local:
-	fd -E VST --no-ignore-vcs -e vo -e glob -e d -x rm {}
-
-clean:
-	fd --no-ignore-vcs -e vo -e glob -e d -x rm {}
+all: BWT/BurrowsWheeler.vo BWT/Sorting/RadixSort.v BWT/Sorting/StablePerm.v
 
 BWT/%.vo: BWT/%.v
 	$(COQC) $<
