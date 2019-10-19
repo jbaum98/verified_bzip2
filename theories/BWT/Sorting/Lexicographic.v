@@ -22,9 +22,9 @@ Section Pairs.
   | lex_le_left_eq : forall l l' r r', eqv l l' -> le r r' -> lex_le_pair (l, r) (l', r')
   .
 
-  Global Instance Preord_Pair  : Preord (A * B) :=
-    { le := lex_le_pair; }.
+  Global Instance Preord_Pair : Preord (A * B).
   Proof.
+    apply (Build_Preord _ lex_le_pair).
     - intros [xl xr] [yl yr] [zl zr] LXY LYZ.
       inversion LXY; inversion LYZ; subst; clear LXY LYZ.
       + apply lex_le_left_lt.
