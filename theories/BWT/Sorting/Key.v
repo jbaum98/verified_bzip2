@@ -99,6 +99,8 @@ Section Firstn.
   Local Arguments eqv {_} _.
   Local Arguments le_dec {_} _.
 
+  Definition lexle_firstn n := keyOrd(firstn n).
+
   Theorem key_le_firstn_O : forall x y,
       le (keyOrd (firstn 0)) x y.
   Proof.

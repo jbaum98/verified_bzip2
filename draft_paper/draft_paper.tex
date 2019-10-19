@@ -344,22 +344,25 @@ shuffling a list~$l$ according to a permutation function~$p$. To
 define this precisely, we have to first define how we will represent
 permutation functions in Coq.
 
-A permutation function on $n$ elements maps indices to indices, and so
-has type $\nat_{<n} \to \nat_{<n}$. In Coq, we can represent a finite
-function as a list of its outputs: $f : \nat_{<n} \to A$ is represented
-by the list $[f(0),~f(1),\allowbreak\ldots,~f(n-1)]$. Applied to
-permutations, this means that the permutation~$p$ mentioned above
-would be represented by $[2,~1,~0]$. This is consistent with
-``one-line'' notation for permutations, in which a permutation on $n$
-elements is represented by its result when applied to the
-list~$[0,~2,\ldots,n-1]$. Now we can define the action of a permutation on
-a list.
+One natural representation for a permutation function~$p$ is a list of
+natural numbers, where each element~$i$ of $p$ stands in for the $i$th
+element of the original list. For example, the representation of the
+permutation mapping $l =
+[\var{zebra},\ \allowbreak\var{appliance},\ \allowbreak\var{kite}]$ to
+$l' =
+[\var{appliance},\ \allowbreak\var{kite},\ \allowbreak\var{zebra}]$
+would be $[1, 2, 0]$, because $\var{appliance} = l_1$, $\var{kite} =
+l_2$ and $\var{zebra} = l_0$. So, the mathematical permutation
+function~$p$ on $n$ elements is represented by the list
+$[p^{-1}(0),\ \allowbreak p^{-1}(1),\ \allowbreak,\ldots,\ \allowbreak
+  p^{-1}(n-1)]$. This gives us a very elegant definition for the
+action of a permutation on lists.
 \begin{equation*}
   p(l) \coloneq \var{map}~(\lambda i. l_i)~p
 \end{equation*}
-We implement this in Coq using an \var{apply} function. The definition
-is slightly complicated by the fact that \var{nth} takes an extra
-parameter to return in case $i$ is out of bounds.
+We implement this in Coq with \var{apply}. The definition is slightly
+complicated by the fact that \var{nth} takes an extra parameter to
+return in case $i$ is out of bounds.
 \begin{lstlisting}
 Definition apply p l : list A :=
   match l with
@@ -454,6 +457,7 @@ function-based definition.
 \end{definition}
 
 \begin{definition}[StablePermFun]
+  \label{def:stablepermfun}
   A permutation function $p$ is a \textit{stable} permutation function
   on some list $l$ when for all indices $i < j$ where $l_i \equiv l_j$, we
   also have $p(i) < p(j)$.
@@ -838,7 +842,6 @@ elements of two lists.
 We also define $\var{PrefixSorted}~n$ as \var{Sorted} specialized to
 the $\le_n$ ordering. \var{hdsort} is insertion sort specialized to the
 $\le_1$ ordering.
-
 
 We would like to prove that radix sort is a stable sort.
 
@@ -1704,7 +1707,7 @@ are all the result of successively applying $p$ to $l$, we will
 successively take the image of $i$ under $p$ to generate the indices
 into $l$ where those characters appear.
 \begin{lstlisting}
-Definition image (p : list nat) i := nth i p 0.
+Definition image (p : list nat) i := findIndex i p.
 \end{lstlisting}
 This is justified via the following theorem.
 \begin{theorem}
@@ -1875,11 +1878,11 @@ In this section we sometimes use the notation $\eqperm$ to chain
   where the last step follows from the induction hypothesis.
 \end{proof}
 
-We can define the iamge and preimage of an index under a permutation
+We can define the image and preimage of an index under a permutation
 function.
 \begin{lstlisting}
-Definition image (p : list nat) i := nth i p 0.
-Definition preimage (p : list nat) i := findIndex i p.
+Definition image (p : list nat) i := findIndex i p.
+Definition preimage (p : list nat) i := nth i p 0.
 \end{lstlisting}
 We will use the notation $p(i)$ for $\var{image}~i$ and $p^{-1}(i)$
 for $\var{preimage}~i$. It should be clear from context whether $p(x)$
@@ -1892,13 +1895,13 @@ inverses of each other. We also have the following two theorems:
 \begin{theorem}[nth\_preimage\_apply, nth\_image\_apply]
   For all lists $l$, permutations $p$, and indices $i$,
   \begin{align*}
-    (\var{apply}~p~l)_{p^{-1}(i)} = l_i && l_{p(i)} = (\var{apply}~p~l)_i
+    (\var{apply}~p~l)_{p(i)} = l_i && l_{p^{-1}(i)} = (\var{apply}~p~l)_i
   \end{align*}
 \end{theorem}
 \begin{proof}
   The first equation (\var{nth\_preimage\_apply}) holds because
   \begin{align*}
-       (\var{apply}~p~l)_{p^{-1}(i)}
+       (\var{apply}~p~l)_{p(i)}
     &= (\var{map}~(\lambda j.~l_j)~p)_{\var{findIndex}~i~p} \\
     &= l_{p_{(\var{findIndex}~i~p)}} \\
     &= l_i
@@ -1906,8 +1909,8 @@ inverses of each other. We also have the following two theorems:
   and the second follows from the first.
   \begin{equation*}
       (\var{apply}~p~l)_i
-    = (\var{apply}~p~l)_{p^{-1}(p(i))}
-    = l_{p(i)}
+    = (\var{apply}~p~l)_{p(p^{-1}(i))}
+    = l_{p^{-1}(i)}
     \qedhere
   \end{equation*}
 \end{proof}
@@ -2071,6 +2074,38 @@ preserves all elements.
 
 \section{Stability}
 \label{appendix:stability}
+
+We defined \var{StablePermFun} in terms of the indices of the original
+list~$l$ (\cref{def:stablepermfun}), but we just as easily could have
+defined it in terms of the indices of the permuted list~$l'$.
+
+\begin{definition}[StablePermFun\_preimage]
+  A permutation function $p$ is a \textit{stable} permutation function
+  on some list $l$ when for all indices $i < j$ where $p(l)_i \equiv p(l)_j$, we
+  also have $p^{-1}(i) < p^{-1}(j)$.
+\end{definition}
+
+\begin{theorem}[StablePermFun\_iff]
+  For all lists~$l$ and $p : \var{list}~\nat$,
+  \begin{equation*}
+    \var{StablePermFun}~l~p \iff \var{StablePermFun\_preimage}~l~p
+  \end{equation*}
+\end{theorem}
+\begin{proof}
+  Both directions are very similar, we will prove just the $\implies$
+  direction here.
+
+  We have that $\var{StablePermFun}~l~p$, and we have an $i$ and $j$
+  such that $i < j$ and $p(l)_i \equiv p(l)_j$. We must show that
+  $p^{-1}(i) < p^{-1}(j)$. For the sake of contradiction, suppose
+  $p^{-1}(i) \ge p^{-1}(j)$. If $p^{-1}(i) = p^{-1}(j)$, then $i = j$,
+  contradicting $i < j$, so suppose $p^{-1}(i) > p^{-1}(j)$. Then,
+  since $p(l)_i \equiv p(l)_j$ implies $l_{p^{-1}(i)} \equiv l_{p^{-1}(j)}$,
+  from $\var{StablePermFun}~l~p$ we know that $p(p^{-1}(i)) >
+  p(p^{-1}(i))$, and therefore that $i > j$. This is also a
+  contradiction, so it must be that $p^{-1}(i) < p^{-1}(j)$.
+\end{proof}
+
 
 \begin{lemma}[StablePerm\_app]
   For all lists $l$, $l'$, $m$ and $m'$,
