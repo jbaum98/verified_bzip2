@@ -151,26 +151,23 @@ open-source bzip2 compression software \cite{tsai_2016}. In addition,
 the BWT has been applied to full-text indexing and pattern searching,
 for example in genomics \cite{ferragina_index, dna}.
 
-There has not been much work on formally verifying stable sorts, or
-rather, the stability of stable sorts. Some work has been done on
-verifying the stability of mergesort
-\cite{leroy_2018,Sternagel2013,Leino2015,deGouw2014}, but we do not
-know of any formally verified implementation of a radix sort that
-includes stability.
-
-In addition, to our knowledge no one has produced a formally verified
-implementation of the BWT. Bird et~al.\ \cite{alg-of-prog,birdmu}
-provide an excellent derivation of the BWT and its inverse based on
-the technique of program calculation, in which programs are calculated
-from their specifications using algebraic transformations. However,
-their derivation leaves a few crucial lemmas unproven, including the
+Bird et~al.\ \cite{alg-of-prog,birdmu} provide an excellent derivation
+of the BWT and its inverse based on the technique of program
+calculation, in which programs are calculated from their
+specifications using algebraic transformations. However, their
+derivation leaves a few crucial lemmas unproven, including the
 correctness of LSD radix sort.
 
-In this paper, we develop more fully the theory of stable sorts: we
-give multiple definitions for permutations and stable permutations and
-prove them equivalent. This allows us to choose whichever definition
-makes the proof easiest. We also prove that any two sorts are
-interchangeable.
+Although there is a line of work on mergesort stability proofs
+\cite{leroy_2018,Sternagel2013,Leino2015,deGouw2014}, these proofs are
+not directly applicable to radix sort. In fact, the correctness of LSD
+radix sort remains unproven and more generally, nobody has contributed
+a general theory for reasoning about stable sorts.
+
+In this paper, we develop such a theory: we give multiple definitions
+for permutations and stable permutations and prove them equivalent.
+This allows us to choose whichever definition makes the proof easiest.
+We also prove that any two sorts are interchangeable.
 \begin{restatable*}[StableSort\_unique]{corollary}{stablesortunique}
   \label{thm:stablesort_unique}
   For all stable sorting functions $f, g: \var{list}~A \to
