@@ -1379,7 +1379,7 @@ the shaded column are identical.
 \end{figure*}
 
 This intuition is related to the following lemma.
-\begin{restatable*}[lexsort\_rots\_hdsort]{lemma}{lexsrotrotshdsort}
+\begin{restatable*}[lexsort\_rots\_hdsort]{lemma}{lexsortrotshdsort}
   For all lists $l$,
   \begin{equation*}
     (\var{hdsort} \comp
@@ -1524,7 +1524,7 @@ Fixpoint zipWith (a : list A) (b : list B)
   end.
 \end{lstlisting}
 
-The specificiation for \var{recreate} is that it recreates the first
+The specification for \var{recreate} is that it recreates the first
 $j$ columns of the sorted rotation matrix. For this we need to define
 \var{cols}.
 \begin{lstlisting}
@@ -1561,7 +1561,7 @@ rotation matrix is symmetric.
   \end{align*}
 \end{proof}
 
-\lexsrotrotshdsort
+\lexsortrotshdsort
 \begin{proof}
   By \cref{thm:sort_ord_unique}, any two sorts on an order are
   equivalent, and we can replace \var{lexsort} with \var{radixsort}.
@@ -1576,7 +1576,7 @@ rotation matrix is symmetric.
   \end{align*}
   The last step follows because the function $\var{hdsort} \comp
   \var{rrot}$ permutes the rotation matrix right before it is sorted
-  by \var{lexsrot}, so it doesn't change the final result.
+  by \var{lexsort}, so it doesn't change the final result.
 \end{proof}
 
 \begin{lemma}[cols\_hdsort\_comm]
@@ -1887,7 +1887,7 @@ Definition preimage (p : list nat) i := nth i p 0.
 We will use the notation $p(i)$ for $\var{image}~i$ and $p^{-1}(i)$
 for $\var{preimage}~i$. It should be clear from context whether $p(x)$
 denotes $\var{image}~x$ or $\var{apply}~x$, and when it is not we will
-use \var{image} and \var{apply} explicitlity.
+use \var{image} and \var{apply} explicitly.
 
 We will not prove it here, but $\var{preimage}~p$ and $\var{image}~p$
 are both of bijections of type $\nat_{<n} \to \nat_{<n}$ and are
